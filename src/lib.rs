@@ -1,4 +1,5 @@
 pub mod rdf;
+pub mod util;
 
 // use pyo3::prelude::*;
 
