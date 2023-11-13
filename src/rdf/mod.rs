@@ -10,17 +10,16 @@ use self::{
 
 pub mod attachment;
 pub mod author;
-pub mod axes;
 pub mod badge;
 pub mod cite_entry;
 pub mod file_reference;
-pub mod input_tensor;
 pub mod license;
 pub mod maintainer;
+pub mod model;
 pub mod version;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-pub struct ModelRDF {
+pub struct Rdf {
     pub format_version: Version,
     pub description: ConfigString,
     pub name: ConfigString,
@@ -91,8 +90,8 @@ fn test_model_rdf_serde() {
         "version": "4.5.6",
     });
 
-    let parsed_rdf: ModelRDF = serde_json::from_value(raw).unwrap();
-    let expected_rdf = ModelRDF {
+    let parsed_rdf: Rdf = serde_json::from_value(raw).unwrap();
+    let expected_rdf = Rdf {
         format_version: Version {
             major: 1,
             minor: 2,

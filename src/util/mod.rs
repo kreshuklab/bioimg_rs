@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
@@ -41,5 +42,21 @@ impl TryFrom<&str> for ConfigString {
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         String::from(value).try_into()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[serde(untagged)]
+pub enum SingleOrMultiple<T> {
+    Single(T),
+    Multiple(Vec<T>),
+}
+
+impl<T> SingleOrMultiple<T> {
+    pub fn as_slice(&self) -> &[T] {
+        match self {
+            Self::Single(t) => std::slice::from_ref(t),
+            Self::Multiple(ts) => ts,
+        }
     }
 }
