@@ -6,19 +6,19 @@ use crate::util::SingleOrMultiple;
 use super::axes::AxisSequence;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "name", content = "kwargs")]
 pub enum Preprocessing {
-    Binarize {
-        threshold: f64,
-    },
-    Clip {
-        min: f64,
-        max: f64,
-    },
+    #[serde(rename = "binarize")]
+    Binarize { threshold: f64 },
+    #[serde(rename = "clip")]
+    Clip { min: f64, max: f64 },
+    #[serde(rename = "scale_linear")]
     ScaleLinear {
         axes: AxisSequence,
         gain: SingleOrMultiple<f64>,
         offset: SingleOrMultiple<f64>,
     },
+    #[serde(rename = "scale_range")]
     ScaleRange {
         mode: ScaleRangeMode,
         axes: AxisSequence,
@@ -29,7 +29,9 @@ pub enum Preprocessing {
         #[serde(default = "_default_min_percentile")]
         min_percentile: f64,
     },
+    #[serde(rename = "sigmoid")]
     Sigmoid,
+    #[serde(rename = "zero_mean_unit_variance")]
     ZeroMeanUnitVariance(ZeroMeanUnitVariance),
 }
 
