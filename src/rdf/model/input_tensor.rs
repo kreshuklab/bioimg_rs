@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::util::ConfigString;
 
 use super::{
@@ -11,4 +13,23 @@ pub struct InputTensor {
     pub shape: Vec<usize>,
     pub data_range: DataRange,
     pub preprocessing: Vec<Preprocessing>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct InputTensor2 {
+    pub axes: AxisSequence,
+    pub data_type: DataType,
+    #[serde(default = "_default_input_name")]
+    pub name: ConfigString,
+    #[serde(default)]
+    pub description: String,
+    pub shape: Vec<usize>,
+    pub data_range: DataRange,
+    pub preprocessing: Vec<Preprocessing>,
+}
+
+fn _default_input_name() -> ConfigString {
+    let x: String = Default::default();
+
+    ConfigString::try_from("input").unwrap()
 }

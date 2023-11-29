@@ -60,3 +60,31 @@ impl<T> SingleOrMultiple<T> {
         }
     }
 }
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[serde(into = "usize")]
+#[serde(try_from = "usize")]
+pub struct ConstOne;
+
+#[derive(thiserror::Error, Debug)]
+pub enum ConstOneParsingError {
+    #[error("Expected number 1, found '{found}'")]
+    ExpectedNumberOne { found: usize },
+}
+
+impl TryFrom<usize> for ConstOne {
+    type Error = ConstOneParsingError;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        if value == 1 {
+            Ok(ConstOne)
+        } else {
+            Err(ConstOneParsingError::ExpectedNumberOne { found: value })
+        }
+    }
+}
+
+impl Into<usize> for ConstOne {
+    fn into(self) -> usize {
+        1
+    }
+}
