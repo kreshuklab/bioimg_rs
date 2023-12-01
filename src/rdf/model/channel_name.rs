@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::util::{ConfigString, ConfigStringParsingError};
+
 #[derive(thiserror::Error, Debug)]
 pub enum ChannelNameParsingError {
     #[error("Value '{value}' has bad size: {length}")]
@@ -10,6 +12,14 @@ pub enum ChannelNameParsingError {
     UnexpectedCharacter { value: String, char: char },
     #[error("Expected a string like 'prefix{{i}}suffix, found {value}")]
     BadDynamicChannelname { value: String },
+    #[error("Bad configuration string: {source}")]
+    BadConfigString { source: ConfigStringParsingError },
+}
+
+impl From<ConfigStringParsingError> for ChannelNameParsingError {
+    fn from(source: ConfigStringParsingError) -> Self {
+        Self::BadConfigString { source }
+    }
 }
 
 // Union[Sequence[str*], str*]
@@ -74,8 +84,8 @@ impl ChannelNames {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FixedChannelName(String);
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FixedChannelName(ConfigString);
 impl TryFrom<String> for FixedChannelName {
     type Error = ChannelNameParsingError;
 
@@ -87,11 +97,13 @@ impl TryFrom<String> for FixedChannelName {
                 char: unexpected_char,
             });
         }
-        Ok(Self(val))
+        Ok(Self(val.try_into()?))
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(try_from = "String")]
+#[serde(into = "String")]
 pub struct DynamicChannelName {
     pub prefix: String,
     pub suffix: String,
@@ -106,6 +118,12 @@ impl Default for DynamicChannelName {
     }
 }
 
+impl From<DynamicChannelName> for String {
+    fn from(value: DynamicChannelName) -> Self {
+        return format!("{}{{i}}{}", value.prefix, value.suffix);
+    }
+}
+
 impl TryFrom<String> for DynamicChannelName {
     type Error = ChannelNameParsingError;
 
@@ -117,5 +135,41 @@ impl TryFrom<String> for DynamicChannelName {
             prefix: prefix.into(),
             suffix: suffix.into(),
         })
+    }
+}
+
+#[test]
+fn test_channel_names_serialization() {
+    let val = serde_json::json!("some_prefix{i}some_suffix");
+    let channel_names: ChannelNames = serde_json::from_value(val).unwrap();
+    match channel_names {
+        ChannelNames::Dynamic(DynamicChannelName { prefix, suffix }) => {
+            assert_eq!(prefix.as_str(), "some_prefix");
+            assert_eq!(suffix.as_str(), "some_suffix");
+        }
+        bad_match => panic!("Expected dynamic channle name, found {bad_match:?}"),
+    }
+
+    let val = serde_json::json!("blas");
+    let channel_names: ChannelNames = serde_json::from_value(val).unwrap();
+    match channel_names {
+        ChannelNames::Shorthand(FixedChannelName(name)) => {
+            assert_eq!(name.as_str(), "blas")
+        }
+        bad_match => panic!("Expected shorthand, found {bad_match:?}"),
+    }
+
+    let val = serde_json::json!(["blas", "bles", "blis"]);
+    let channel_names: ChannelNames = serde_json::from_value(val).unwrap();
+    match channel_names {
+        ChannelNames::Fixed(names) => {
+            let expected: Vec<_> = vec![
+                FixedChannelName(String::from("blas").try_into().unwrap()),
+                FixedChannelName(String::from("bles").try_into().unwrap()),
+                FixedChannelName(String::from("blis").try_into().unwrap()),
+            ];
+            assert_eq!(names, expected);
+        }
+        bad_match => panic!("Expected shorthand, found {bad_match:?}"),
     }
 }

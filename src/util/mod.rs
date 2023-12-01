@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::borrow::Borrow;
 use std::fmt::Debug;
 use std::fmt::Display;
 
@@ -10,6 +11,18 @@ pub struct ConfigString(String);
 impl Display for ConfigString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Borrow<str> for ConfigString {
+    fn borrow(&self) -> &str {
+        return &self.0;
+    }
+}
+
+impl ConfigString {
+    pub fn as_str(&self) -> &str {
+        return &self.0;
     }
 }
 
