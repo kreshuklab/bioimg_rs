@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::{ConfigString, ConstOne};
+use crate::util::{ConfigString, LiteralInt};
+
+use super::channel_name::ChannelNames;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
@@ -12,7 +14,7 @@ pub enum Axis {
         #[serde(default)]
         description: String,
         #[serde(default)]
-        size: Option<ConstOne>,
+        size: Option<LiteralInt<1>>,
     },
     ChannelAxis {
         #[serde(default = "_default_channel_axis_name")]
@@ -21,14 +23,15 @@ pub enum Axis {
         description: String,
         #[serde(default)]
         channel_names: ChannelNames,
+        size: usize,
     },
 }
 
 // pub StaticChannelName
 
-const fn _default_batch_axis_name() -> ConfigString {
+fn _default_batch_axis_name() -> ConfigString {
     ConfigString::try_from("b").unwrap()
 }
-const fn _default_channel_axis_name() -> ConfigString {
+fn _default_channel_axis_name() -> ConfigString {
     ConfigString::try_from("c").unwrap()
 }

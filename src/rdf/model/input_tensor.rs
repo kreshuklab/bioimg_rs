@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::ConfigString;
 
-use super::{
-    axes::AxisSequence, data_range::DataRange, data_type::DataType, preprocessing::Preprocessing,
-};
+use super::{axes::AxisSequence, data_range::DataRange, data_type::DataType, preprocessing::Preprocessing};
 
 pub struct InputTensor {
     pub axes: AxisSequence,
@@ -29,7 +27,5 @@ pub struct InputTensor2 {
 }
 
 fn _default_input_name() -> ConfigString {
-    let x: String = Default::default();
-
     ConfigString::try_from("input").unwrap()
 }

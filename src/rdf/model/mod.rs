@@ -13,3 +13,5 @@ pub struct ModelRdf {
     pub base: Rdf,
     // inputs: u32
 }
+
+pub struct ModelRdfV05 {}

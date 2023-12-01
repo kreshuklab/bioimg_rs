@@ -64,27 +64,30 @@ impl<T> SingleOrMultiple<T> {
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(into = "usize")]
 #[serde(try_from = "usize")]
-pub struct ConstOne;
+pub struct LiteralInt<const VAL: usize>;
 
 #[derive(thiserror::Error, Debug)]
-pub enum ConstOneParsingError {
-    #[error("Expected number 1, found '{found}'")]
-    ExpectedNumberOne { found: usize },
+pub enum LiteralIntParsingError {
+    #[error("Expected number {expected}, found '{found}'")]
+    ExpectedNumberOne { expected: usize, found: usize },
 }
 
-impl TryFrom<usize> for ConstOne {
-    type Error = ConstOneParsingError;
+impl<const VAL: usize> TryFrom<usize> for LiteralInt<VAL> {
+    type Error = LiteralIntParsingError;
     fn try_from(value: usize) -> Result<Self, Self::Error> {
-        if value == 1 {
-            Ok(ConstOne)
+        if value == VAL {
+            Ok(Self)
         } else {
-            Err(ConstOneParsingError::ExpectedNumberOne { found: value })
+            Err(LiteralIntParsingError::ExpectedNumberOne {
+                expected: VAL,
+                found: value,
+            })
         }
     }
 }
 
-impl Into<usize> for ConstOne {
+impl<const VAL: usize> Into<usize> for LiteralInt<VAL> {
     fn into(self) -> usize {
-        1
+        VAL
     }
 }

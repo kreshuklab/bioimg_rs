@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(thiserror::Error, Debug)]
 pub enum ChannelNameParsingError {
     #[error("Value '{value}' has bad size: {length}")]
@@ -6,6 +8,8 @@ pub enum ChannelNameParsingError {
     IsPythonKeyword { value: String },
     #[error("Unexpected character '{char}' in channel name '{value}'")]
     UnexpectedCharacter { value: String, char: char },
+    #[error("Expected a string like 'prefix{{i}}suffix, found {value}")]
+    BadDynamicChannelname { value: String },
 }
 
 // Union[Sequence[str*], str*]
@@ -32,50 +36,86 @@ pub enum ChannelNameParsingError {
 //     )
 // )
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum ChannelNames {
-    Fixed(Vec<FixedChannelName>),
     Dynamic(DynamicChannelName),
+    Shorthand(FixedChannelName),
+    Fixed(Vec<FixedChannelName>),
 }
+
+impl Default for ChannelNames {
+    fn default() -> Self {
+        ChannelNames::Dynamic(DynamicChannelName::default())
+    }
+}
+
 impl ChannelNames {
     const MIN_LENGTH: usize = 1;
     const MAX_LENGTH: usize = 16;
     const PYTHON_KEYWORDS: [&'static str; 35] = [
-        "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
-        "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
-        "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return",
-        "try", "while", "with", "yield",
+        "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif",
+        "else", "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or",
+        "pass", "raise", "return", "try", "while", "with", "yield",
     ];
 
     fn validate_basic(value: String) -> Result<String, ChannelNameParsingError> {
         if !(Self::MIN_LENGTH..=Self::MAX_LENGTH).contains(&value.len()) {
             return Err(ChannelNameParsingError::BadLength {
-                value,
                 length: value.len(),
+                value,
             });
         }
 
-        if Self::PYTHON_KEYWORDS
-            .iter()
-            .find(|kw| **kw == value.as_str())
-            .is_some()
-        {
+        if Self::PYTHON_KEYWORDS.iter().find(|kw| **kw == value.as_str()).is_some() {
             return Err(ChannelNameParsingError::IsPythonKeyword { value });
         }
         return Ok(value);
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FixedChannelName(String);
 impl TryFrom<String> for FixedChannelName {
     type Error = ChannelNameParsingError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let val = ChannelNames::validate_basic(value)?;
-        if let Some(unexpected_char) = val.chars().find(|c| *c == '{' || *c == '}'){
-            return Err(ChannelNameParsingError::UnexpectedCharacter { value, char: unexpected_char })
+        if let Some(unexpected_char) = val.chars().find(|c| *c == '{' || *c == '}') {
+            return Err(ChannelNameParsingError::UnexpectedCharacter {
+                value: val,
+                char: unexpected_char,
+            });
         }
-        Ok(Self(value))
+        Ok(Self(val))
     }
 }
 
-// pub struct DynamicChannelName
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DynamicChannelName {
+    pub prefix: String,
+    pub suffix: String,
+}
+
+impl Default for DynamicChannelName {
+    fn default() -> Self {
+        Self {
+            prefix: "channel".into(),
+            suffix: String::new(),
+        }
+    }
+}
+
+impl TryFrom<String> for DynamicChannelName {
+    type Error = ChannelNameParsingError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let (prefix, suffix) = value
+            .split_once("{i}")
+            .ok_or(ChannelNameParsingError::BadDynamicChannelname { value: value.clone() })?;
+        Ok(Self {
+            prefix: prefix.into(),
+            suffix: suffix.into(),
+        })
+    }
+}
