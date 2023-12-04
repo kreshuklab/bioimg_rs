@@ -4,8 +4,8 @@ use url::Url;
 use crate::util::PeggedString;
 
 use self::{
-    attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry,
-    file_reference::FileReference, license::SpdxLicense, maintainer::Maintainer, version::Version,
+    attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, file_reference::FileReference,
+    license::SpdxLicense, maintainer::Maintainer, version::Version,
 };
 
 pub mod attachment;
@@ -13,6 +13,8 @@ pub mod author;
 pub mod badge;
 pub mod cite_entry;
 pub mod file_reference;
+pub mod identifier;
+pub mod lowercase;
 pub mod license;
 pub mod maintainer;
 pub mod model;

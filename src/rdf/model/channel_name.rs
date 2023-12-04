@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::{PeggedString, RestrictedStringParsingError};
+use crate::util::{PeggedString, PeggedStringParsingError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ChannelNameParsingError {
@@ -13,11 +13,11 @@ pub enum ChannelNameParsingError {
     #[error("Expected a string like 'prefix{{i}}suffix, found {value}")]
     BadDynamicChannelname { value: String },
     #[error("Bad configuration string: {source}")]
-    BadConfigString { source: RestrictedStringParsingError },
+    BadConfigString { source: PeggedStringParsingError },
 }
 
-impl From<RestrictedStringParsingError> for ChannelNameParsingError {
-    fn from(source: RestrictedStringParsingError) -> Self {
+impl From<PeggedStringParsingError> for ChannelNameParsingError {
+    fn from(source: PeggedStringParsingError) -> Self {
         Self::BadConfigString { source }
     }
 }

@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display};
 use std::ops::RangeInclusive;
 
 #[derive(thiserror::Error, PartialEq, Eq, Debug)]
-pub enum RestrictedStringParsingError {
+pub enum PeggedStringParsingError {
     #[error("Expected a string with length in {allowed:?}")]
     BadLength { value: String, allowed: RangeInclusive<usize> },
 }
@@ -15,13 +15,13 @@ pub enum RestrictedStringParsingError {
 pub struct PeggedString<const MIN_CHARS: usize, const EXTRA_CHARS: usize>(String);
 
 impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> TryFrom<String> for PeggedString<MIN_CHARS, EXTRA_CHARS> {
-    type Error = RestrictedStringParsingError;
+    type Error = PeggedStringParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let allowed = MIN_CHARS..=MIN_CHARS + EXTRA_CHARS;
         if allowed.contains(&value.len()) {
             Ok(PeggedString(value))
         } else {
-            Err(RestrictedStringParsingError::BadLength { value, allowed })
+            Err(PeggedStringParsingError::BadLength { value, allowed })
         }
     }
 }
@@ -51,7 +51,7 @@ impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> Into<String> for PeggedSt
 }
 
 impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> TryFrom<&str> for PeggedString<MIN_CHARS, EXTRA_CHARS> {
-    type Error = RestrictedStringParsingError;
+    type Error = PeggedStringParsingError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         String::from(value).try_into()
