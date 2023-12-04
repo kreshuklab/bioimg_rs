@@ -25,8 +25,8 @@ impl<const VAL: usize> TryFrom<usize> for LiteralInt<VAL> {
     }
 }
 
-impl<const VAL: usize> Into<usize> for LiteralInt<VAL> {
-    fn into(self) -> usize {
-        VAL
+impl<const VAL: usize> From<LiteralInt<VAL>> for usize {
+    fn from(_value: LiteralInt<VAL>) -> Self {
+        return VAL
     }
 }
