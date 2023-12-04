@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::util::ConfigString;
+use crate::util::PeggedString;
 
 use self::{
     attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry,
@@ -21,8 +21,8 @@ pub mod version;
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
     pub format_version: Version,
-    pub description: ConfigString,
-    pub name: ConfigString,
+    pub description: PeggedString<1, 1023>, //FIXME: double chekc lengrhs
+    pub name: PeggedString<1, 1023>,
     pub attachments: Option<Attachments>,
     pub authors: Option<Vec<Author>>,
     pub badges: Option<Vec<Badge>>,
@@ -31,14 +31,14 @@ pub struct Rdf {
     pub documentation: Option<FileReference>,
     pub download_url: Option<FileReference>,
     pub git_repo: Option<Url>,
-    pub icon: Option<ConfigString>,
-    pub id: Option<ConfigString>,
+    pub icon: Option<PeggedString<1, 1023>>,
+    pub id: Option<PeggedString<1, 1023>>,
     pub license: Option<SpdxLicense>,
     pub links: Option<Vec<FileReference>>,
     pub maintainers: Option<Vec<Maintainer>>,
     pub rdf_source: Option<FileReference>,
     pub source: Option<FileReference>,
-    pub tags: Option<Vec<ConfigString>>,
+    pub tags: Option<Vec<PeggedString<1, 1023>>>,
     pub version: Option<Version>,
 }
 

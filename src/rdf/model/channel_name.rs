@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::{ConfigString, ConfigStringParsingError};
+use crate::util::{PeggedString, RestrictedStringParsingError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ChannelNameParsingError {
@@ -13,11 +13,11 @@ pub enum ChannelNameParsingError {
     #[error("Expected a string like 'prefix{{i}}suffix, found {value}")]
     BadDynamicChannelname { value: String },
     #[error("Bad configuration string: {source}")]
-    BadConfigString { source: ConfigStringParsingError },
+    BadConfigString { source: RestrictedStringParsingError },
 }
 
-impl From<ConfigStringParsingError> for ChannelNameParsingError {
-    fn from(source: ConfigStringParsingError) -> Self {
+impl From<RestrictedStringParsingError> for ChannelNameParsingError {
+    fn from(source: RestrictedStringParsingError) -> Self {
         Self::BadConfigString { source }
     }
 }
@@ -85,7 +85,7 @@ impl ChannelNames {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct FixedChannelName(ConfigString);
+pub struct FixedChannelName(PeggedString<1, 1023>);
 impl TryFrom<String> for FixedChannelName {
     type Error = ChannelNameParsingError;
 

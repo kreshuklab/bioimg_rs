@@ -1,19 +1,19 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::util::ConfigString;
+use crate::util::PeggedString;
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct CiteEntry {
-    pub text: ConfigString, //(String) free text description
-    pub doi: ConfigString, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
+    pub text: PeggedString<1, 1023>, //(String) free text description
+    pub doi: PeggedString<1, 1023>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
     pub url: Url,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct CiteEntry2 {
-    pub text: ConfigString,        //(String) free text description
-    pub doi: Option<ConfigString>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
+    pub text: PeggedString<1, 1023>,        //(String) free text description
+    pub doi: Option<PeggedString<1, 1023>>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
     pub url: Option<Url>,
 }
 

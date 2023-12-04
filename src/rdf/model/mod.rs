@@ -8,6 +8,7 @@ pub mod data_type;
 pub mod input_tensor;
 pub mod preprocessing;
 pub mod shape;
+pub mod size;
 
 pub struct ModelRdf {
     pub base: Rdf,

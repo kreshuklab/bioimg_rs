@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::{ConfigString, LiteralInt};
+use crate::util::{PeggedString, LiteralInt};
 
 use super::channel_name::ChannelNames;
 
@@ -10,7 +10,7 @@ pub enum Axis {
     #[serde(rename = "batch")]
     BatchAxis {
         #[serde(default = "_default_batch_axis_name")]
-        name: ConfigString,
+        name: PeggedString<1, 1023>,
         #[serde(default)]
         description: String,
         #[serde(default)]
@@ -18,7 +18,7 @@ pub enum Axis {
     },
     ChannelAxis {
         #[serde(default = "_default_channel_axis_name")]
-        name: ConfigString,
+        name: PeggedString<1, 1023>,
         #[serde(default)]
         description: String,
         #[serde(default)]
@@ -29,9 +29,9 @@ pub enum Axis {
 
 // pub StaticChannelName
 
-fn _default_batch_axis_name() -> ConfigString {
-    ConfigString::try_from("b").unwrap()
+fn _default_batch_axis_name() -> PeggedString<1, 1023> {
+    PeggedString::try_from("b").unwrap()
 }
-fn _default_channel_axis_name() -> ConfigString {
-    ConfigString::try_from("c").unwrap()
+fn _default_channel_axis_name() -> PeggedString<1, 1023> {
+    PeggedString::try_from("c").unwrap()
 }
