@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::PeggedString;
+use crate::rdf::PeggedString;
 
 use super::file_reference::FileReference;
 

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::PeggedString;
+use crate::rdf::pegged_string::PeggedString;
 
 use super::{axes::AxisSequence, data_range::DataRange, data_type::DataType, preprocessing::Preprocessing};
 

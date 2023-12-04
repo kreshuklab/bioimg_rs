@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::PeggedString;
+use crate::rdf::PeggedString;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Author {

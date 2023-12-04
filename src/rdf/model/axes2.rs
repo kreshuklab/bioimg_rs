@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{util::{LiteralInt, PeggedString}, rdf::lowercase::Lowercase};
+use crate::rdf::{lowercase::Lowercase, literal::LiteralInt, pegged_string::PeggedString};
 
 use super::channel_name::ChannelNames;
 

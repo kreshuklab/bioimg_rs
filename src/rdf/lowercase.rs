@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error};
+use std::{borrow::Borrow, error::Error, ops::Deref};
 
 use serde::{Serialize, Deserialize};
 
@@ -16,6 +16,13 @@ pub struct Lowercase<T: Borrow<str>>(T);
 impl<T: Borrow<str>> Borrow<str> for Lowercase<T>{
     fn borrow(&self) -> &str {
         return self.0.borrow()
+    }
+}
+
+impl<T: Borrow<str>> Deref for Lowercase<T>{
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        return self.borrow()
     }
 }
 

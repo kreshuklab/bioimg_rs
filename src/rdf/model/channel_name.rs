@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::util::{PeggedString, PeggedStringParsingError};
+use crate::rdf::pegged_string::{PeggedStringParsingError, PeggedString};
+
 
 #[derive(thiserror::Error, Debug)]
 pub enum ChannelNameParsingError {

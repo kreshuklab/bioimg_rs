@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::util::PeggedString;
+use crate::rdf::PeggedString;
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct CiteEntry {

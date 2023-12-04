@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::util::PeggedString;
+use crate::rdf::pegged_string::PeggedString;
 
 use self::{
     attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, file_reference::FileReference,
@@ -19,6 +19,8 @@ pub mod license;
 pub mod maintainer;
 pub mod model;
 pub mod version;
+pub mod literal;
+pub mod pegged_string;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
