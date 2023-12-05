@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, ops::Deref};
+use std::{borrow::Borrow, error::Error, ops::Deref, fmt::Display};
 
 use serde::{Serialize, Deserialize};
 
@@ -11,11 +11,17 @@ pub enum LowercaseParsingError{
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Lowercase<T: Borrow<str>>(T);
+pub struct Lowercase<T>(T);
 
 impl<T: Borrow<str>> Borrow<str> for Lowercase<T>{
     fn borrow(&self) -> &str {
         return self.0.borrow()
+    }
+}
+
+impl<T: Display> Display for Lowercase<T>{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

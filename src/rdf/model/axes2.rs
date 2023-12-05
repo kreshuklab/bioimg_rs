@@ -1,10 +1,9 @@
-use std::{num::NonZeroUsize, error::Error};
+use std::{num::NonZeroUsize, error::Error, borrow::Borrow};
 
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{lowercase::{Lowercase, LowercaseParsingError}, literal::LiteralInt, pegged_string::PeggedString, identifier::Identifier};
-
-use super::{channel_name::ChannelNames, tensor_id::TensorId};
+use crate::rdf::{lowercase::{Lowercase, LowercaseParsingError}, literal::LiteralInt, pegged_string::PeggedString};
+use super::{channel_name::ChannelNames, tensor_id::TensorId, time_unit::TimeUnit};
 
 pub type AxisId = Lowercase<PeggedString<1, {16 - 1}>>;
 
@@ -26,14 +25,18 @@ impl From<LowercaseParsingError> for AxisSizeParsingError{
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AxisSize{
     Fixed(NonZeroUsize),
     Ref{reference: AxisSizeReference, offset: usize},
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(try_from = "String")]
+#[serde(into = "String")]
 pub enum AxisSizeReference{
-    AxisReference(AxisId),
-    TensorAxisReference{tensor_id: TensorId, axis_id: AxisId}
+    AxisRef(AxisId),
+    TensorAxisRef{tensor_id: TensorId, axis_id: AxisId},
 }
 
 impl TryFrom<String> for AxisSizeReference{
@@ -43,7 +46,7 @@ impl TryFrom<String> for AxisSizeReference{
         match TryInto::<[&str; 1]>::try_into(parts){
             Ok(single_part) => {
                 let axis_id = AxisId::try_from(String::from(single_part[0]))?;
-                Ok(AxisSizeReference::AxisReference(axis_id))
+                Ok(AxisSizeReference::AxisRef(axis_id))
             }
             Err(parts) => {
                 let Ok(two_parts) = TryInto::<[&str; 1]>::try_into(parts) else{
@@ -51,15 +54,27 @@ impl TryFrom<String> for AxisSizeReference{
                 };
                 let tensor_id = TensorId::try_from(String::from(two_parts[0]))?;
                 let axis_id = AxisId::try_from(String::from(two_parts[1]))?;
-                Ok(AxisSizeReference::TensorAxisReference { tensor_id, axis_id })
+                Ok(AxisSizeReference::TensorAxisRef { tensor_id, axis_id })
             },
         }
     }
 }
 
-pub struct TensorAxisId{
-    pub axis_id: AxisId,
-    pub tensor_id: Identifier<String>,
+impl From<AxisSizeReference> for String{
+    fn from(value: AxisSizeReference) -> Self {
+        match value{
+            AxisSizeReference::AxisRef(axis_id) => Borrow::<str>::borrow(&axis_id).into(),
+            AxisSizeReference::TensorAxisRef { tensor_id, axis_id } => {
+                format!("{}.{}", tensor_id, axis_id)
+            }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum IndexTimeSpaceAxisSize{
+    Parameterized{min: NonZeroUsize, step: NonZeroUsize},
+    AxisSize(AxisSize),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -67,7 +82,7 @@ pub struct TensorAxisId{
 pub enum Axis {
     #[serde(rename = "batch")]
     BatchAxis {
-        #[serde(default = "_default_batch_axis_name")]
+        #[serde(default = "_default_batch_axis_id")]
         id: AxisId,
         #[serde(default)]
         description: String,
@@ -76,21 +91,40 @@ pub enum Axis {
     },
     #[serde(rename = "channel")]
     ChannelAxis {
-        #[serde(default = "_default_channel_axis_name")]
+        #[serde(default = "_default_channel_axis_id")]
         id: AxisId,
         #[serde(default)]
         description: String,
         #[serde(default)]
-        channel_names: ChannelNames,
-        size: usize,
+        channel_names: ChannelNames, //FIXME: do we need to handle "#channel_names" ?
+        size: Option<AxisSize>,
+    },
+    #[serde(rename = "index")]
+    IndexAxis{
+        size: IndexTimeSpaceAxisSize,
+    },
+    #[serde(rename = "time")]
+    TimeInputAxis{
+        #[serde(default = "_default_time_axis_id")]
+        id: AxisId,
+        #[serde(default)]
+        unit: Option<TimeUnit>,
+        #[serde(default = "_default_time_input_axis_scale")]
+        scale: f32, //FIXME: enforce greater than 1
     },
 }
 
 // pub StaticChannelName
 
-fn _default_batch_axis_name() -> AxisId {
-    AxisId::try_from(String::from("b")).unwrap()
+fn _default_batch_axis_id() -> AxisId {
+    String::from("batch").try_into().unwrap()
 }
-fn _default_channel_axis_name() -> AxisId {
-    AxisId::try_from(String::from("c")).unwrap()
+fn _default_channel_axis_id() -> AxisId {
+    String::from("channel").try_into().unwrap()
+}
+fn _default_time_axis_id() -> AxisId {
+    String::from("time").try_into().unwrap()
+}
+fn _default_time_input_axis_scale() -> f32{
+    1.0
 }
