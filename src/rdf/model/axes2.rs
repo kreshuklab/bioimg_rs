@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use serde::{Deserialize, Serialize};
 
 use crate::rdf::{lowercase::Lowercase, literal::LiteralInt, pegged_string::PeggedString};
@@ -5,6 +7,16 @@ use crate::rdf::{lowercase::Lowercase, literal::LiteralInt, pegged_string::Pegge
 use super::channel_name::ChannelNames;
 
 pub type AxisId = Lowercase<PeggedString<1, {16 - 1}>>;
+
+pub enum AxisSize{
+    Fixed(NonZeroUsize),
+    Reference,
+}
+
+// pub struct TensorAxisId{
+//     tensor_id: String, //FIXME
+//     axis_id: AxisId,
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]

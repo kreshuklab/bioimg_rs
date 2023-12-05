@@ -21,6 +21,7 @@ pub mod model;
 pub mod version;
 pub mod literal;
 pub mod pegged_string;
+pub mod clamped;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {

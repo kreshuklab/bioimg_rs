@@ -3,7 +3,14 @@ use std::{borrow::Borrow, error::Error};
 use serde::{Serialize, Deserialize};
 
 
-#[derive(Serialize, Deserialize, Debug)]
+const PYTHON_KEYWORDS: [&'static str; 35] = [
+    "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif",
+    "else", "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or",
+    "pass", "raise", "return", "try", "while", "with", "yield",
+];
+
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct Identifier<T>(T);
 
@@ -19,10 +26,12 @@ pub enum IdentifierParsingError {
     BadString { source: Box<dyn Error + 'static> },
     #[error("Empty string can't be an identifier")]
     EmptyString,
-    #[error("Expected first character to be alphabetic: '{value}'")]
-    MustStartWithAlphabeticalCharacter{value: String},
+    #[error("Expected first character to be alphabetic or _: '{value}'")]
+    MustStartWithAlphabeticalOrUnderscore{value: String},
     #[error("Identifiers cannot contain whitespace: '{value}'")]
-    ContainsbadCharacter{value: String, position: usize}
+    ContainsbadCharacter{value: String, position: usize},
+    #[error("Value '{value}' is a python keyword")]
+    IsPythonKeyword{value: String},
 }
 
 impl<T, E> TryFrom<String> for Identifier<T>
@@ -42,13 +51,16 @@ where
         let Some(first_char) = inner_str.chars().next() else {
             return Err(IdentifierParsingError::EmptyString)
         };
-        if !first_char.is_alphabetic(){
-            return Err(IdentifierParsingError::MustStartWithAlphabeticalCharacter { value: inner_str.into() })
+        if !first_char.is_alphabetic() && first_char != '_'{
+            return Err(IdentifierParsingError::MustStartWithAlphabeticalOrUnderscore { value: inner_str.into() })
         }
         for (idx, c) in inner_str.char_indices(){
             if !c.is_alphanumeric() && c != '_'{
                 return Err(IdentifierParsingError::ContainsbadCharacter { value: inner_str.into(), position: idx })
             }
+        }
+        if PYTHON_KEYWORDS.iter().copied().position(|kw| kw == inner_str).is_some(){
+            return Err(IdentifierParsingError::IsPythonKeyword { value: inner_str.into() })
         }
         Ok(Self(inner))
     }
