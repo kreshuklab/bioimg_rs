@@ -3,7 +3,7 @@ use std::{num::NonZeroUsize, error::Error, borrow::Borrow};
 use serde::{Deserialize, Serialize};
 
 use crate::rdf::{lowercase::{Lowercase, LowercaseParsingError}, literal::LiteralInt, pegged_string::PeggedString};
-use super::{channel_name::ChannelNames, tensor_id::TensorId, time_unit::TimeUnit};
+use super::{channel_name::ChannelNames, tensor_id::TensorId, time_unit::TimeUnit, space_unit::SpaceUnit};
 
 pub type AxisId = Lowercase<PeggedString<1, {16 - 1}>>;
 
@@ -78,43 +78,105 @@ pub enum IndexTimeSpaceAxisSize{
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
-pub enum Axis {
-    #[serde(rename = "batch")]
-    BatchAxis {
-        #[serde(default = "_default_batch_axis_id")]
-        id: AxisId,
-        #[serde(default)]
-        description: String,
-        #[serde(default)]
-        size: Option<LiteralInt<1>>,
-    },
-    #[serde(rename = "channel")]
-    ChannelAxis {
-        #[serde(default = "_default_channel_axis_id")]
-        id: AxisId,
-        #[serde(default)]
-        description: String,
-        #[serde(default)]
-        channel_names: ChannelNames, //FIXME: do we need to handle "#channel_names" ?
-        size: Option<AxisSize>,
-    },
-    #[serde(rename = "index")]
-    IndexAxis{
-        size: IndexTimeSpaceAxisSize,
-    },
-    #[serde(rename = "time")]
-    TimeInputAxis{
-        #[serde(default = "_default_time_axis_id")]
-        id: AxisId,
-        #[serde(default)]
-        unit: Option<TimeUnit>,
-        #[serde(default = "_default_time_input_axis_scale")]
-        scale: f32, //FIXME: enforce greater than 1
-    },
+pub struct BatchAxis {
+    #[serde(default = "_default_batch_axis_id")]
+    id: AxisId,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    size: Option<LiteralInt<1>>,
 }
 
-// pub StaticChannelName
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChannelAxis {
+    #[serde(default = "_default_channel_axis_id")]
+    id: AxisId,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    channel_names: ChannelNames, //FIXME: do we need to handle "#channel_names" ?
+    size: Option<AxisSize>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct IndexAxis{
+    size: IndexTimeSpaceAxisSize,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TimeInputAxis{
+    #[serde(default = "_default_time_axis_id")]
+    id: AxisId,
+    #[serde(default)]
+    unit: Option<TimeUnit>,
+    #[serde(default = "_default_axis_scale")]
+    scale: f32, //FIXME: enforce greater than 1
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SpaceInputAxis{
+    #[serde(default = "_default_space_axis_id")]
+    id: AxisId,
+    #[serde(default)]
+    unit: Option<SpaceUnit>,
+    #[serde(default = "_default_axis_scale")]
+    scale: f32, //FIXME: enforce greater than 1
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TimeOutputAxis{
+    #[serde(default = "_default_time_axis_id")]
+    id: AxisId,
+    #[serde(default)]
+    unit: Option<TimeUnit>,
+    #[serde(default = "_default_axis_scale")]
+    scale: f32, //FIXME: enforce greater than 1
+    #[serde(default)]
+    halo: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SpaceOutputAxis{
+    #[serde(default = "_default_space_axis_id")]
+    id: AxisId,
+    #[serde(default)]
+    unit: Option<SpaceUnit>,
+    #[serde(default = "_default_axis_scale")]
+    scale: f32, //FIXME: enforce greater than 1
+    #[serde(default)]
+    halo: usize,
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum InputAxis {
+    #[serde(rename = "batch")]
+    Batch(BatchAxis),
+    #[serde(rename = "channel")]
+    Channel(ChannelAxis),
+    #[serde(rename = "index")]
+    Index(IndexAxis),
+    #[serde(rename = "time")]
+    Time(TimeInputAxis),
+    #[serde(rename = "space")]
+    Space(SpaceInputAxis),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum OutputAxis {
+    #[serde(rename = "batch")]
+    Batch(BatchAxis),
+    #[serde(rename = "channel")]
+    Channel(ChannelAxis),
+    #[serde(rename = "index")]
+    Index(IndexAxis),
+    #[serde(rename = "time")]
+    Time(TimeOutputAxis),
+    #[serde(rename = "space")]
+    Space(SpaceOutputAxis),
+}
 
 fn _default_batch_axis_id() -> AxisId {
     String::from("batch").try_into().unwrap()
@@ -125,6 +187,9 @@ fn _default_channel_axis_id() -> AxisId {
 fn _default_time_axis_id() -> AxisId {
     String::from("time").try_into().unwrap()
 }
-fn _default_time_input_axis_scale() -> f32{
+fn _default_space_axis_id() -> AxisId {
+    String::from("x").try_into().unwrap()
+}
+fn _default_axis_scale() -> f32{
     1.0
 }
