@@ -9,9 +9,10 @@ pub mod input_tensor;
 pub mod preprocessing;
 pub mod shape;
 pub mod size;
+pub mod space_unit;
+pub mod tensor_data_descr;
 pub mod tensor_id;
 pub mod time_unit;
-pub mod space_unit;
 
 pub struct ModelRdf {
     pub base: Rdf,

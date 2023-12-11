@@ -12,16 +12,18 @@ pub mod attachment;
 pub mod author;
 pub mod badge;
 pub mod cite_entry;
+pub mod clamped;
 pub mod file_reference;
 pub mod identifier;
-pub mod lowercase;
 pub mod license;
+pub mod literal;
+pub mod lowercase;
 pub mod maintainer;
 pub mod model;
-pub mod version;
-pub mod literal;
+pub mod non_empty_list;
 pub mod pegged_string;
-pub mod clamped;
+pub mod si_units;
+pub mod version;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {

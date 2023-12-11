@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DataType {
+    #[serde(rename = "bool")]
+    Bool,
     #[serde(rename = "float32")]
     Float32,
     #[serde(rename = "float64")]
