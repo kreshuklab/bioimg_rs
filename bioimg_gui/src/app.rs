@@ -1,20 +1,29 @@
 use egui::InnerResponse;
 
+use crate::widgets::from_widget::{SourceWidget, Stage};
+
 #[derive(thiserror::Error, Debug)]
 pub enum FancyStringParsingError {
     #[error("String is too long to be fancy")]
     TooLong,
 }
 
+#[derive(Clone, Debug)]
 pub struct FancyString(String);
 impl TryFrom<String> for FancyString {
     type Error = FancyStringParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.len() < 1 {
+        if value.len() > 10 {
             Err(FancyStringParsingError::TooLong)
         } else {
             Ok(Self(value))
         }
+    }
+}
+impl SourceWidget<String> for FancyString {
+    //FIXME: blanked impl for T: TryFrom ?
+    fn raw_widget(ui: &mut egui::Ui, raw: &mut String) {
+        ui.text_edit_singleline(raw);
     }
 }
 
@@ -48,16 +57,19 @@ pub enum PersonBuildError {
     BadAge(#[from] AgeParsingError),
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug)]
 pub struct StagingPerson {
-    pub name: String, //normal string, possibly empty or bad
-    pub age: u8,      //also normal int
+    pub name: Stage<FancyString, String>,
+    pub age: u8, //also normal int
 }
 
 impl TryFrom<StagingPerson> for Person {
     type Error = PersonBuildError;
     fn try_from(value: StagingPerson) -> Result<Self, Self::Error> {
-        let name = FancyString::try_from(value.name)?;
+        let name = match value.name.parsed {
+            Err(_) => return Err(PersonBuildError::BadName(FancyStringParsingError::TooLong)), //FIXME: wrong variant
+            Ok(val) => val,
+        };
         let age = Age::try_from(value.age)?;
         return Ok(Person { age, name });
     }
@@ -73,15 +85,8 @@ fn staging_person_form(ui: &mut egui::Ui, staging_person: &mut StagingPerson) ->
             })
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    let name_res = FancyString::try_from(staging_person.name.clone());
                     ui.label("Person's name: ");
-                    ui.text_edit_singleline(&mut staging_person.name);
-                    if let Err(_) = name_res {
-                        ui.label(
-                            egui::RichText::new("Bad Name")
-                                .color(egui::Color32::from_rgb(110, 0, 0)),
-                        );
-                    };
+                    staging_person.name.show(ui);
                 });
 
                 ui.horizontal(|ui| {
@@ -90,10 +95,7 @@ fn staging_person_form(ui: &mut egui::Ui, staging_person: &mut StagingPerson) ->
                     ui.label("Person's age: ");
                     ui.add(egui::DragValue::new(&mut staging_person.age).speed(1.0));
                     if let Err(_) = age_res {
-                        ui.label(
-                            egui::RichText::new("Bad age")
-                                .color(egui::Color32::from_rgb(110, 0, 0)),
-                        );
+                        ui.label(egui::RichText::new("Bad age").color(egui::Color32::from_rgb(110, 0, 0)));
                     };
                 })
             });
@@ -112,7 +114,13 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            staging_person: StagingPerson::default(),
+            staging_person: StagingPerson {
+                name: Stage {
+                    raw: String::default(),
+                    parsed: Err(FancyStringParsingError::TooLong), //FIXME: wrong variant
+                },
+                age: 0,
+            },
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
@@ -194,10 +202,7 @@ fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
         ui.label("Powered by ");
         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
         ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
+        ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/crates/eframe");
         ui.label(".");
     });
 }
