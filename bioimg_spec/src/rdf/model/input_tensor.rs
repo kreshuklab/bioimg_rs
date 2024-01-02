@@ -28,8 +28,8 @@ pub struct InputTensorDescr2 {
     pub test_tensor: FileReference,
     #[serde(default)]
     pub sample_tensor: Option<FileReference>,
-    #[serde(default = "_default_data_description")]
-    pub data: SingleOrMultiple,
+    // #[serde(default = "_default_data_description")]
+    // pub data: SingleOrMultiple,
     // pub data_type: DataType,
     // #[serde(default = "_default_input_name")]
     // pub name: PeggedString<1, 1023>,
