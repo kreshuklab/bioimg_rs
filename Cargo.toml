@@ -1,2 +1,2 @@
 [workspace]
-members = ["biospec", "biospec_app"] 
+members = ["bioimg_gui", "bioimg_spec"] 
