@@ -1,17 +1,118 @@
+use egui::InnerResponse;
+
+#[derive(thiserror::Error, Debug)]
+pub enum FancyStringParsingError {
+    #[error("String is too long to be fancy")]
+    TooLong,
+}
+
+pub struct FancyString(String);
+impl TryFrom<String> for FancyString {
+    type Error = FancyStringParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.len() < 1 {
+            Err(FancyStringParsingError::TooLong)
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum AgeParsingError {
+    #[error("Too old")]
+    TooOld,
+}
+
+pub struct Age(u8);
+impl TryFrom<u8> for Age {
+    type Error = AgeParsingError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        if value > 120 {
+            return Err(AgeParsingError::TooOld);
+        }
+        return Ok(Self(value));
+    }
+}
+
+pub struct Person {
+    name: FancyString,
+    age: Age,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum PersonBuildError {
+    #[error("Bad name: {0}")]
+    BadName(#[from] FancyStringParsingError),
+    #[error("Bad age: {0}")]
+    BadAge(#[from] AgeParsingError),
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct StagingPerson {
+    pub name: String, //normal string, possibly empty or bad
+    pub age: u8,      //also normal int
+}
+
+impl TryFrom<StagingPerson> for Person {
+    type Error = PersonBuildError;
+    fn try_from(value: StagingPerson) -> Result<Self, Self::Error> {
+        let name = FancyString::try_from(value.name)?;
+        let age = Age::try_from(value.age)?;
+        return Ok(Person { age, name });
+    }
+}
+
+fn staging_person_form(ui: &mut egui::Ui, staging_person: &mut StagingPerson) -> InnerResponse<()> {
+    ui.vertical(|ui| {
+        egui::Frame::none()
+            .fill(egui::Color32::DARK_BLUE)
+            .stroke(egui::Stroke {
+                width: 1.0,
+                color: egui::Color32::GOLD,
+            })
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let name_res = FancyString::try_from(staging_person.name.clone());
+                    ui.label("Person's name: ");
+                    ui.text_edit_singleline(&mut staging_person.name);
+                    if let Err(_) = name_res {
+                        ui.label(
+                            egui::RichText::new("Bad Name")
+                                .color(egui::Color32::from_rgb(110, 0, 0)),
+                        );
+                    };
+                });
+
+                ui.horizontal(|ui| {
+                    let age_res = Age::try_from(staging_person.age);
+
+                    ui.label("Person's age: ");
+                    ui.add(egui::DragValue::new(&mut staging_person.age).speed(1.0));
+                    if let Err(_) = age_res {
+                        ui.label(
+                            egui::RichText::new("Bad age")
+                                .color(egui::Color32::from_rgb(110, 0, 0)),
+                        );
+                    };
+                })
+            });
+    })
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
-#[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct BioBuilderApp {
+pub struct TemplateApp {
+    staging_person: StagingPerson,
+
     // Example stuff:
     label: String,
-
-    #[serde(skip)] // This how you opt-out of serialization of a field
     value: f32,
 }
 
-impl Default for BioBuilderApp {
+impl Default for TemplateApp {
     fn default() -> Self {
         Self {
+            staging_person: StagingPerson::default(),
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
@@ -19,26 +120,17 @@ impl Default for BioBuilderApp {
     }
 }
 
-impl BioBuilderApp {
+impl TemplateApp {
     /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
-        // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
-
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Default::default()
     }
 }
 
-impl eframe::App for BioBuilderApp {
+impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
+    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
+        // eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
@@ -78,6 +170,8 @@ impl eframe::App for BioBuilderApp {
             if ui.button("Increment").clicked() {
                 self.value += 1.0;
             }
+
+            staging_person_form(ui, &mut self.staging_person);
 
             ui.separator();
 
