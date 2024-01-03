@@ -1,6 +1,6 @@
 use super::ParsingWidget;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum FancyStringParsingError {
     #[error("String is too long to be fancy")]
     TooLong,
@@ -18,8 +18,9 @@ impl TryFrom<String> for FancyString {
         }
     }
 }
-impl ParsingWidget<String> for FancyString {
-    fn draw_and_parse(ui: &mut egui::Ui, raw: &mut String) -> Result<Self, Self::Error> {
+impl ParsingWidget for FancyString {
+    type Raw = String;
+    fn draw_and_parse(ui: &mut egui::Ui, raw: &mut String) -> Result<FancyString, FancyStringParsingError> {
         ui.text_edit_singleline(raw);
         let result = Self::try_from(raw.clone());
         if let Err(ref err) = result {
@@ -27,5 +28,21 @@ impl ParsingWidget<String> for FancyString {
             ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
         };
         return result
+    }
+}
+
+pub struct StagingFancy{
+    pub raw: String,
+    pub parsed: Result<FancyString, FancyStringParsingError>,
+}
+
+impl StagingFancy{
+    pub fn draw_and_update(&mut self, ui: &mut egui::Ui){
+        ui.text_edit_singleline(&mut self.raw);
+        self.parsed = FancyString::try_from(self.raw.clone());
+        if let Err(ref err) = self.parsed {
+            let error_text = format!("{err}");
+            ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
+        };
     }
 }

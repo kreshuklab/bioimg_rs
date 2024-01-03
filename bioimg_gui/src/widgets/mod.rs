@@ -4,11 +4,12 @@ pub mod person_widget;
 
 use std::fmt::Display;
 
-pub trait ParsingWidget<RAW>
+pub trait ParsingWidget
 where
-    Self: TryFrom<RAW>,
+    Self: TryFrom<Self::Raw>,
     Self::Error: Display,
-    RAW: Clone,
 {
-    fn draw_and_parse(ui: &mut egui::Ui, raw: &mut RAW) -> Result<Self, Self::Error>;
+    type Raw: Clone;
+
+    fn draw_and_parse(ui: &mut egui::Ui, raw: &mut Self::Raw) -> Result<Self, Self::Error>;
 }

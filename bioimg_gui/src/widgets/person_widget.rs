@@ -1,6 +1,6 @@
 use super::{
-    age_widget::{Age, AgeParsingError},
-    fancy_string_widget::{FancyString, FancyStringParsingError},
+    age_widget::{Age, AgeParsingError, StagingAge},
+    fancy_string_widget::{FancyString, FancyStringParsingError, StagingFancy},
     ParsingWidget,
 };
 
@@ -34,16 +34,54 @@ impl TryFrom<RawPerson> for Person {
     }
 }
 
-impl ParsingWidget<RawPerson> for Person {
-    fn draw_and_parse(ui: &mut egui::Ui, raw: &mut RawPerson) -> Result<Self, Self::Error> {
+impl ParsingWidget for Person {
+    type Raw = RawPerson;
+    fn draw_and_parse(ui: &mut egui::Ui, raw: &mut RawPerson) -> Result<Person, PersonBuildError> {
         let name = ui.horizontal(|ui|{
             ui.label("Person's name: ");
             FancyString::draw_and_parse(ui, &mut raw.name)
-        }).inner?;
+        }).inner;
         let age = ui.horizontal(|ui|{
             ui.label("Person's age: ");
             Age::draw_and_parse(ui, &mut raw.age)
-        }).inner?;
-        Ok(Person { name, age })
+        }).inner;
+        Ok(Person { name: name?, age: age? })
+    }
+}
+
+
+
+pub struct StagingPerson{
+    staging_name: StagingFancy,
+    staging_age: StagingAge,
+    parsed: Result<Person, PersonBuildError>,
+}
+
+impl StagingPerson{
+    pub fn draw_and_update(&mut self, ui: &mut egui::Ui){
+        ui.horizontal(|ui|{
+            ui.label("Person's name: ");
+            self.staging_name.draw_and_update(ui);
+        });
+        ui.horizontal(|ui|{
+            ui.label("Person's age: ");
+            self.staging_age.draw_and_update(ui);
+        });
+
+        let name = match &self.staging_name.parsed{
+            Err(err) => {
+                self.parsed = Err(err.clone().into());
+                return
+            },
+            Ok(name) => name.clone(),
+        };
+        let age = match &self.staging_age.parsed{
+            Err(err) => {
+                self.parsed = Err(err.clone().into());
+                return
+            },
+            Ok(age) => age.clone(),
+        };
+        self.parsed = Ok(Person{name, age})
     }
 }
