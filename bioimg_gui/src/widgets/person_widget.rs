@@ -50,38 +50,31 @@ impl ParsingWidget for Person {
 }
 
 
-
+#[derive(Default)]
 pub struct StagingPerson{
     staging_name: StagingFancy,
     staging_age: StagingAge,
-    parsed: Result<Person, PersonBuildError>,
 }
 
 impl StagingPerson{
-    pub fn draw_and_update(&mut self, ui: &mut egui::Ui){
-        ui.horizontal(|ui|{
+    pub fn draw_and_update(&mut self, ui: &mut egui::Ui) -> Result<Person, PersonBuildError>{
+        let name = ui.horizontal(|ui|{
             ui.label("Person's name: ");
-            self.staging_name.draw_and_update(ui);
-        });
-        ui.horizontal(|ui|{
+            self.staging_name.draw_and_update(ui)
+        }).inner;
+        let age = ui.horizontal(|ui|{
             ui.label("Person's age: ");
-            self.staging_age.draw_and_update(ui);
-        });
+            self.staging_age.draw_and_update(ui)
+        }).inner;
 
-        let name = match &self.staging_name.parsed{
-            Err(err) => {
-                self.parsed = Err(err.clone().into());
-                return
-            },
-            Ok(name) => name.clone(),
-        };
-        let age = match &self.staging_age.parsed{
-            Err(err) => {
-                self.parsed = Err(err.clone().into());
-                return
-            },
-            Ok(age) => age.clone(),
-        };
-        self.parsed = Ok(Person{name, age})
+        let name  = name?;
+        let age = age?;
+
+        if name.len() != usize::from(age){
+            let error_text = "Name does not have the same len as age =P";
+            ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
+            return Err(PersonBuildError::Empty)
+        }
+        Ok(Person{name, age})
     }
 }

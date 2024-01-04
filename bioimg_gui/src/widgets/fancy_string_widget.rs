@@ -8,6 +8,11 @@ pub enum FancyStringParsingError {
 
 #[derive(Clone, Debug)]
 pub struct FancyString(String);
+impl FancyString{
+    pub fn len(&self) -> usize{
+        return self.0.len()
+    }
+}
 impl TryFrom<String> for FancyString {
     type Error = FancyStringParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -31,18 +36,17 @@ impl ParsingWidget for FancyString {
     }
 }
 
-pub struct StagingFancy{
-    pub raw: String,
-    pub parsed: Result<FancyString, FancyStringParsingError>,
-}
+#[derive(Default)]
+pub struct StagingFancy(String);
 
 impl StagingFancy{
-    pub fn draw_and_update(&mut self, ui: &mut egui::Ui){
-        ui.text_edit_singleline(&mut self.raw);
-        self.parsed = FancyString::try_from(self.raw.clone());
-        if let Err(ref err) = self.parsed {
+    pub fn draw_and_update(&mut self, ui: &mut egui::Ui) -> Result<FancyString, FancyStringParsingError>{
+        ui.text_edit_singleline(&mut self.0);
+        let res = FancyString::try_from(self.0.clone());
+        if let Err(ref err) = res {
             let error_text = format!("{err}");
             ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
         };
+        res
     }
 }
