@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::rdf::pegged_string::PeggedString;
+use crate::rdf::bounded_string::BoundedString;
 
 use self::{
     attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, file_reference::FileReference,
@@ -21,15 +21,15 @@ pub mod lowercase;
 pub mod maintainer;
 pub mod model;
 pub mod non_empty_list;
-pub mod pegged_string;
+pub mod bounded_string;
 pub mod si_units;
 pub mod version;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
     pub format_version: Version,
-    pub description: PeggedString<1, 1023>, //FIXME: double chekc lengrhs
-    pub name: PeggedString<1, 1023>,
+    pub description: BoundedString<1, 1023>, //FIXME: double chekc lengrhs
+    pub name: BoundedString<1, 1023>,
     pub attachments: Option<Attachments>,
     pub authors: Option<Vec<Author>>,
     pub badges: Option<Vec<Badge>>,
@@ -38,14 +38,14 @@ pub struct Rdf {
     pub documentation: Option<FileReference>,
     pub download_url: Option<FileReference>,
     pub git_repo: Option<Url>,
-    pub icon: Option<PeggedString<1, 1023>>,
-    pub id: Option<PeggedString<1, 1023>>,
+    pub icon: Option<BoundedString<1, 1023>>,
+    pub id: Option<BoundedString<1, 1023>>,
     pub license: Option<SpdxLicense>,
     pub links: Option<Vec<FileReference>>,
     pub maintainers: Option<Vec<Maintainer>>,
     pub rdf_source: Option<FileReference>,
     pub source: Option<FileReference>,
-    pub tags: Option<Vec<PeggedString<1, 1023>>>,
+    pub tags: Option<Vec<BoundedString<1, 1023>>>,
     pub version: Option<Version>,
 }
 

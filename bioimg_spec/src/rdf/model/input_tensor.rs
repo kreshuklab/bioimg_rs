@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    rdf::{file_reference::FileReference, non_empty_list::NonEmptyList, pegged_string::PeggedString},
+    rdf::{file_reference::FileReference, non_empty_list::NonEmptyList, bounded_string::BoundedString},
     util::SingleOrMultiple,
 };
 
@@ -13,7 +13,7 @@ use super::{
 pub struct InputTensorDescr {
     pub axes: AxisSequence,
     pub data_type: DataType,
-    pub name: PeggedString<1, 1023>,
+    pub name: BoundedString<1, 1023>,
     pub shape: Vec<usize>,
     pub data_range: DataRange,
     pub preprocessing: Vec<Preprocessing>,
@@ -23,7 +23,7 @@ pub struct InputTensorDescr {
 pub struct InputTensorDescr2 {
     pub id: TensorId,
     #[serde(default = "_default_description")]
-    pub description: PeggedString<0, 128>,
+    pub description: BoundedString<0, 128>,
     pub axes: NonEmptyList<InputAxis>,
     pub test_tensor: FileReference,
     #[serde(default)]
@@ -38,9 +38,9 @@ pub struct InputTensorDescr2 {
     // pub preprocessing: Vec<Preprocessing>,
 }
 
-fn _default_description() -> PeggedString<0, 128> {
-    PeggedString::try_from(String::from("")).unwrap()
+fn _default_description() -> BoundedString<0, 128> {
+    BoundedString::try_from(String::from("")).unwrap()
 }
-fn _default_input_name() -> PeggedString<1, 1023> {
-    PeggedString::try_from("input").unwrap()
+fn _default_input_name() -> BoundedString<1, 1023> {
+    BoundedString::try_from("input").unwrap()
 }

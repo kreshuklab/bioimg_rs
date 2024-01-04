@@ -6,10 +6,10 @@ use super::{channel_name::ChannelNames, space_unit::SpaceUnit, tensor_id::Tensor
 use crate::rdf::{
     literal::LiteralInt,
     lowercase::{Lowercase, LowercaseParsingError},
-    pegged_string::PeggedString,
+    bounded_string::BoundedString,
 };
 
-pub type AxisId = Lowercase<PeggedString<1, { 16 - 1 }>>;
+pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AxisSizeParsingError {
