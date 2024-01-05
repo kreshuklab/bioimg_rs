@@ -1,15 +1,16 @@
-use crate::widgets::{person_widget::{RawPerson, Person, PersonBuildError, StagingPerson}, ParsingWidget};
+use crate::widgets::author_widget::StagingAuthor2;
+
 
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct TemplateApp {
-    staging_person: StagingPerson
+    staging_author: StagingAuthor2,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            staging_person: StagingPerson::default(),
+            staging_author: StagingAuthor2::default(),
         }
     }
 }
@@ -55,13 +56,13 @@ impl eframe::App for TemplateApp {
             // The central panel the region left after adding TopPanel's and SidePanel's
             ui.heading("eframe template");
 
-            match self.staging_person.draw_and_update(ui){
+            match self.staging_author.draw_and_update(ui){
                 Err(err) => ui.label(
                     egui::RichText::new(
-                        format!("Bad person: {err}")
+                        format!("Bad author: {err}")
                     ).color(egui::Color32::from_rgb(110, 0, 0))
                 ),
-                Ok(_) => ui.label(egui::RichText::new("Person validates!").color(egui::Color32::from_rgb(0, 110, 0))),
+                Ok(_) => ui.label(egui::RichText::new("Author validates!").color(egui::Color32::from_rgb(0, 110, 0))),
             };
 
             ui.separator();
