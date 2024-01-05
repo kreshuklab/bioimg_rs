@@ -86,25 +86,25 @@ STAGING: Default + Clone{
     type Parsed = Vec<STAGING::Parsed>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Self::Parsed, Self::Error> {
-        let parsed_item_results = ui.vertical(|ui|{
-            let parsed_item_results: Vec<_> = self.0.iter_mut().enumerate().map(|(idx, staging_item)| {
-                ui.label(format!("#{}", idx + 1));
-                let res = staging_item.draw_and_parse(ui);
-                ui.separator();
-                res
-            }).collect();
-            ui.separator();
-            ui.horizontal(|ui|{
-                if ui.button("+").clicked(){
-                    self.0.resize(self.0.len() + 1, STAGING::default());
-                }
-                if ui.button("-").clicked() && self.0.len() > 1{
-                    self.0.resize(self.0.len() - 1, STAGING::default());
-                }
-            });
-            parsed_item_results
-        }).inner;
-
+        let parsed_item_results = egui::Frame::none()
+            .inner_margin(20.0f32)
+            .show(ui, |ui| ui.vertical(|ui|{
+                let parsed_item_results: Vec<_> = self.0.iter_mut().enumerate().map(|(idx, staging_item)| {
+                    ui.label(format!("#{}", idx + 1));
+                    let res = staging_item.draw_and_parse(ui);
+                    ui.separator();
+                    res
+                }).collect();
+                ui.horizontal(|ui|{
+                    if ui.button("+").clicked(){
+                        self.0.resize(self.0.len() + 1, STAGING::default());
+                    }
+                    if ui.button("-").clicked() && self.0.len() > 1{
+                        self.0.resize(self.0.len() - 1, STAGING::default());
+                    }
+                });
+                parsed_item_results
+        })).inner.inner;
         let out: Result<Vec<_>, Self::Error> = parsed_item_results.into_iter().collect();
         Ok(out?)
     }
