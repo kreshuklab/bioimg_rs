@@ -1,16 +1,16 @@
-use crate::widgets::{author_widget::StagingAuthor2, StagingVec, DrawAndParse};
+use crate::widgets::{author_widget::StagingAuthor2, StagingVec, DrawAndParse, StagingOpt};
 
 
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct TemplateApp {
-    staging_authors: StagingVec<StagingAuthor2>,
+    staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            staging_authors: StagingVec::default(),
+            staging_authors: StagingOpt::default(),
         }
     }
 }

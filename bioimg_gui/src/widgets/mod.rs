@@ -39,37 +39,35 @@ T::Error : Display
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct StagingOptString<T: TryFrom<String>>(String, PhantomData<T>)
-where
-T::Error : Display;
+#[derive(Clone, Debug, Default)]
+pub struct StagingOpt<STAGING: DrawAndParse>(Option<STAGING>);
 
-impl<T: TryFrom<String>> Default for StagingOptString<T>
-where
-T::Error : Display{
-    fn default() -> Self {
-        Self(String::default(), PhantomData)
-    }
-}
 
-impl<T: TryFrom<String>> DrawAndParse for StagingOptString<T>
+impl<STAGING: DrawAndParse> DrawAndParse for StagingOpt<STAGING>
 where
-T::Error : Display
+STAGING: Default
 {
-    type Parsed = Option<T>;
-    type Error = T::Error;
+    type Parsed = Option<STAGING::Parsed>;
+    type Error = STAGING::Error;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Option<T>, T::Error>{
-        ui.text_edit_singleline(&mut self.0);
-        if self.0.len() == 0{
-            return Ok(None)
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Self::Parsed, Self::Error>{
+        match &mut self.0{
+            None => ui.horizontal(|ui|{
+                ui.label("Nothing");
+                if ui.button("Add +").clicked(){
+                    self.0.replace(STAGING::default());
+                }
+                Ok(None)
+            }).inner,
+            Some(staging) => {
+                let button_response = ui.button("Remove -");
+                let parsed_result  = staging.draw_and_parse(ui);
+                if button_response.clicked(){
+                    self.0.take();
+                }
+                Ok(Some(parsed_result?))
+            },
         }
-        let res = T::try_from(self.0.clone());
-        if let Err(ref err) = res {
-            let error_text = format!("{err}");
-            ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
-        };
-        res.map(|ok| Some(ok))
     }
 }
 

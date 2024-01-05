@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::{BoundedString, BoundedStringParsingError}, orcid::{Orcid, OrcidParsingError}};
 
-use super::{StagingString, StagingOptString, DrawAndParse};
+use super::{StagingString, DrawAndParse, StagingOpt};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -15,10 +15,10 @@ pub enum Author2ParsingError{
 #[derive(Default, Clone)]
 pub struct StagingAuthor2{
     staging_name: StagingString< ConfString >,                // (Name→String) Full name.
-    staging_affiliation: StagingOptString< ConfString >, // (String) Affiliation.
-    staging_email: StagingOptString<ConfString>,       // FIXME: make a parser here (Email) E-Mail
-    staging_github_user: StagingOptString<ConfString>, // (String) GitHub user name.
-    staging_orcid: StagingOptString<Orcid>,
+    staging_affiliation: StagingOpt<StagingString< ConfString >>, // (String) Affiliation.
+    staging_email: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
+    staging_github_user: StagingOpt<StagingString<ConfString>>, // (String) GitHub user name.
+    staging_orcid: StagingOpt<StagingString<Orcid>>,
 }
 
 impl DrawAndParse for StagingAuthor2{
