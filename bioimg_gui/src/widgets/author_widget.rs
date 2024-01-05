@@ -27,23 +27,23 @@ impl DrawAndParse for StagingAuthor2{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Author2, Author2ParsingError>{
         let name = ui.horizontal(|ui|{
-            ui.label("Name");
+            ui.label("Name: ");
             self.staging_name.draw_and_parse(ui)
         }).inner;
         let affiliation = ui.horizontal(|ui|{
-            ui.label("Affiliation");
+            ui.label("Affiliation: ");
             self.staging_affiliation.draw_and_parse(ui)
         }).inner;
         let email = ui.horizontal(|ui|{
-            ui.label("Email");
+            ui.label("Email: ");
             self.staging_email.draw_and_parse(ui)
         }).inner;
         let github_user = ui.horizontal(|ui|{
-            ui.label("Github User");
+            ui.label("Github User: ");
             self.staging_github_user.draw_and_parse(ui)
         }).inner;
         let orcid = ui.horizontal(|ui|{
-            ui.label("Orcid");
+            ui.label("Orcid: ");
             self.staging_orcid.draw_and_parse(ui)
         }).inner;
 

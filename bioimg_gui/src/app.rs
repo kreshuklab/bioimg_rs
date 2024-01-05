@@ -56,13 +56,14 @@ impl eframe::App for TemplateApp {
             // The central panel the region left after adding TopPanel's and SidePanel's
             ui.heading("eframe template");
 
+            ui.label("Authors: ");
             match self.staging_authors.draw_and_parse(ui){
                 Err(err) => ui.label(
                     egui::RichText::new(
-                        format!("Bad author: {err}")
+                        format!("Bad authors: {err}")
                     ).color(egui::Color32::from_rgb(110, 0, 0))
                 ),
-                Ok(_) => ui.label(egui::RichText::new("Author validates!").color(egui::Color32::from_rgb(0, 110, 0))),
+                Ok(_) => ui.label(egui::RichText::new("Authors validate!").color(egui::Color32::from_rgb(0, 110, 0))),
             };
 
             ui.separator();
