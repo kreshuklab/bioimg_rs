@@ -1,16 +1,16 @@
-use crate::widgets::author_widget::StagingAuthor2;
+use crate::widgets::{author_widget::StagingAuthor2, StagingVec, DrawAndParse};
 
 
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct TemplateApp {
-    staging_author: StagingAuthor2,
+    staging_authors: StagingVec<StagingAuthor2>,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            staging_author: StagingAuthor2::default(),
+            staging_authors: StagingVec::default(),
         }
     }
 }
@@ -56,7 +56,7 @@ impl eframe::App for TemplateApp {
             // The central panel the region left after adding TopPanel's and SidePanel's
             ui.heading("eframe template");
 
-            match self.staging_author.draw_and_update(ui){
+            match self.staging_authors.draw_and_parse(ui){
                 Err(err) => ui.label(
                     egui::RichText::new(
                         format!("Bad author: {err}")

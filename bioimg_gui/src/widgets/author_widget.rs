@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::{BoundedString, BoundedStringParsingError}, orcid::{Orcid, OrcidParsingError}};
 
-use super::{StagingString, StagingOptString};
+use super::{StagingString, StagingOptString, DrawAndParse};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -12,7 +12,7 @@ pub enum Author2ParsingError{
     BadOrcid(#[from] #[source] OrcidParsingError),
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StagingAuthor2{
     staging_name: StagingString< ConfString >,                // (Name→String) Full name.
     staging_affiliation: StagingOptString< ConfString >, // (String) Affiliation.
@@ -21,27 +21,30 @@ pub struct StagingAuthor2{
     staging_orcid: StagingOptString<Orcid>,
 }
 
-impl StagingAuthor2{
-    pub fn draw_and_update(&mut self, ui: &mut egui::Ui) -> Result<Author2, Author2ParsingError>{
+impl DrawAndParse for StagingAuthor2{
+    type Error = Author2ParsingError;
+    type Parsed = Author2;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Author2, Author2ParsingError>{
         let name = ui.horizontal(|ui|{
             ui.label("Name");
-            self.staging_name.draw_and_update(ui)
+            self.staging_name.draw_and_parse(ui)
         }).inner;
         let affiliation = ui.horizontal(|ui|{
             ui.label("Affiliation");
-            self.staging_affiliation.draw_and_update(ui)
+            self.staging_affiliation.draw_and_parse(ui)
         }).inner;
         let email = ui.horizontal(|ui|{
             ui.label("Email");
-            self.staging_email.draw_and_update(ui)
+            self.staging_email.draw_and_parse(ui)
         }).inner;
         let github_user = ui.horizontal(|ui|{
             ui.label("Github User");
-            self.staging_github_user.draw_and_update(ui)
+            self.staging_github_user.draw_and_parse(ui)
         }).inner;
         let orcid = ui.horizontal(|ui|{
             ui.label("Orcid");
-            self.staging_orcid.draw_and_update(ui)
+            self.staging_orcid.draw_and_parse(ui)
         }).inner;
 
         Ok(Author2{
