@@ -24,6 +24,7 @@ pub mod non_empty_list;
 pub mod bounded_string;
 pub mod si_units;
 pub mod version;
+pub mod orcid;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
@@ -113,7 +114,7 @@ fn test_model_rdf_serde() {
             affiliation: "Some University".try_into().unwrap(),
             email: "john.doe@some_university.com".try_into().unwrap(),
             github_user: "john_doe".try_into().unwrap(),
-            orcid: "111-111-111".try_into().unwrap(), //FIXME
+            orcid: "0000-0002-8205-121X".to_owned().try_into().unwrap(), //FIXME
         }]),
         badges: Some(vec![Badge {
             label: "x".try_into().unwrap(),

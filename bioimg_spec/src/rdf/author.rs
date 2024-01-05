@@ -2,13 +2,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::rdf::BoundedString;
 
+use super::orcid::Orcid;
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Author {
     pub name: BoundedString<1, 1023>,        // (Name→String) Full name. FIXME: disallow / and \.
     pub affiliation: BoundedString<1, 1023>, // (String) Affiliation.
     pub email: BoundedString<1, 1023>,       // FIXME: make a parser here (Email) E-Mail
     pub github_user: BoundedString<1, 1023>, // (String) GitHub user name.
-    pub orcid: BoundedString<1, 1023>, // FIXME!! more string than string! orcid id in hyphenated groups of 4 digits, e.g. '0000-0001-2345-6789' (and valid as per ISO 7064 11,2.)
+    pub orcid: Orcid,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -17,7 +19,7 @@ pub struct Author2 {
     pub affiliation: Option<BoundedString<1, 1023>>, // (String) Affiliation.
     pub email: Option<BoundedString<1, 1023>>,       // FIXME: make a parser here (Email) E-Mail
     pub github_user: Option<BoundedString<1, 1023>>, // (String) GitHub user name.
-    pub orcid: Option<BoundedString<1, 1023>>, // FIXME!! more string than string! orcid id in hyphenated groups of 4 digits, e.g. '0000-0001-2345-6789' (and valid as per ISO 7064 11,2.)
+    pub orcid: Option<Orcid>,
 }
 
 impl From<Author> for Author2 {
