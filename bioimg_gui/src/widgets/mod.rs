@@ -53,14 +53,14 @@ STAGING: Default
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error>{
         match &mut self.0{
             None => ui.horizontal(|ui|{
-                ui.label("Nothing");
+                ui.label("None");
                 if ui.button("Add +").clicked(){
                     self.0.replace(STAGING::default());
                 }
                 Ok(None)
             }).inner,
             Some(staging) => {
-                let button_response = ui.button("Remove -");
+                let button_response = ui.button("None");
                 let parsed_result  = staging.draw_and_parse(ui, id);
                 if button_response.clicked(){
                     self.0.take();

@@ -27,23 +27,23 @@ impl DrawAndParse for StagingAuthor2{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Author2, Author2ParsingError>{
         egui::Grid::new(id).show(ui, |ui| {
-            ui.label("Name: ");
+            ui.strong("Name: ");
             let name = self.staging_name.draw_and_parse(ui, id.with("Name"));
             ui.end_row();
 
-            ui.label("Affiliation: ");
+            ui.strong("Affiliation: ");
             let affiliation = self.staging_affiliation.draw_and_parse(ui, id.with("Affiliation"));
             ui.end_row();
 
-            ui.label("Email: ");
+            ui.strong("Email: ");
             let email = self.staging_email.draw_and_parse(ui, id.with("Email"));
             ui.end_row();
 
-            ui.label("Github User: ");
+            ui.strong("Github User: ");
             let github_user = self.staging_github_user.draw_and_parse(ui, id.with("Github User"));
             ui.end_row();
 
-            ui.label("Orcid: ");
+            ui.strong("Orcid: ");
             let orcid = self.staging_orcid.draw_and_parse(ui, id.with("Orcid"));
             ui.end_row();
 

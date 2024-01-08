@@ -56,8 +56,14 @@ impl eframe::App for TemplateApp {
             // The central panel the region left after adding TopPanel's and SidePanel's
             ui.heading("eframe template");
 
-            ui.label("Authors: ");
-            match self.staging_authors.draw_and_parse(ui, egui::Id::from("authors")){
+            let authors_result = egui::Grid::new("app").show(ui, |ui|{
+                ui.strong("Authors: ");
+                let authors_result = self.staging_authors.draw_and_parse(ui, egui::Id::from("authors"));
+                ui.end_row();
+                authors_result
+            }).inner;
+
+            match authors_result{
                 Err(err) => ui.label(
                     egui::RichText::new(
                         format!("Bad authors: {err}")
