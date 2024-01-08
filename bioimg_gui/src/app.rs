@@ -57,7 +57,7 @@ impl eframe::App for TemplateApp {
             ui.heading("eframe template");
 
             ui.label("Authors: ");
-            match self.staging_authors.draw_and_parse(ui){
+            match self.staging_authors.draw_and_parse(ui, egui::Id::from("authors")){
                 Err(err) => ui.label(
                     egui::RichText::new(
                         format!("Bad authors: {err}")

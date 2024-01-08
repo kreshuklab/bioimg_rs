@@ -25,34 +25,35 @@ impl DrawAndParse for StagingAuthor2{
     type Error = Author2ParsingError;
     type Parsed = Author2;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Author2, Author2ParsingError>{
-        let name = ui.horizontal(|ui|{
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Author2, Author2ParsingError>{
+        egui::Grid::new(id).show(ui, |ui| {
             ui.label("Name: ");
-            self.staging_name.draw_and_parse(ui)
-        }).inner;
-        let affiliation = ui.horizontal(|ui|{
-            ui.label("Affiliation: ");
-            self.staging_affiliation.draw_and_parse(ui)
-        }).inner;
-        let email = ui.horizontal(|ui|{
-            ui.label("Email: ");
-            self.staging_email.draw_and_parse(ui)
-        }).inner;
-        let github_user = ui.horizontal(|ui|{
-            ui.label("Github User: ");
-            self.staging_github_user.draw_and_parse(ui)
-        }).inner;
-        let orcid = ui.horizontal(|ui|{
-            ui.label("Orcid: ");
-            self.staging_orcid.draw_and_parse(ui)
-        }).inner;
+            let name = self.staging_name.draw_and_parse(ui, id.with("Name"));
+            ui.end_row();
 
-        Ok(Author2{
-            name: name?,
-            affiliation: affiliation?,
-            email: email?,
-            github_user: github_user?,
-            orcid: orcid?,
-        })
+            ui.label("Affiliation: ");
+            let affiliation = self.staging_affiliation.draw_and_parse(ui, id.with("Affiliation"));
+            ui.end_row();
+
+            ui.label("Email: ");
+            let email = self.staging_email.draw_and_parse(ui, id.with("Email"));
+            ui.end_row();
+
+            ui.label("Github User: ");
+            let github_user = self.staging_github_user.draw_and_parse(ui, id.with("Github User"));
+            ui.end_row();
+
+            ui.label("Orcid: ");
+            let orcid = self.staging_orcid.draw_and_parse(ui, id.with("Orcid"));
+            ui.end_row();
+
+            Ok(Author2{
+                name: name?,
+                affiliation: affiliation?,
+                email: email?,
+                github_user: github_user?,
+                orcid: orcid?,
+            })
+        }).inner
     }
 }

@@ -5,7 +5,7 @@ use std::{fmt::Display, marker::PhantomData};
 pub trait DrawAndParse{
     type Parsed;
     type Error;
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Self::Parsed, Self::Error>;
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error>;
 }
 
 #[derive(Clone, Debug)]
@@ -28,7 +28,7 @@ T::Error : Display
     type Parsed = T;
     type Error = T::Error;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<T, T::Error>{
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<T, T::Error>{
         ui.text_edit_singleline(&mut self.0);
         let res = T::try_from(self.0.clone());
         if let Err(ref err) = res {
@@ -50,7 +50,7 @@ STAGING: Default
     type Parsed = Option<STAGING::Parsed>;
     type Error = STAGING::Error;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Self::Parsed, Self::Error>{
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error>{
         match &mut self.0{
             None => ui.horizontal(|ui|{
                 ui.label("Nothing");
@@ -61,7 +61,7 @@ STAGING: Default
             }).inner,
             Some(staging) => {
                 let button_response = ui.button("Remove -");
-                let parsed_result  = staging.draw_and_parse(ui);
+                let parsed_result  = staging.draw_and_parse(ui, id);
                 if button_response.clicked(){
                     self.0.take();
                 }
@@ -85,13 +85,13 @@ STAGING: Default + Clone{
     type Error = STAGING::Error;
     type Parsed = Vec<STAGING::Parsed>;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui) -> Result<Self::Parsed, Self::Error> {
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error> {
         let parsed_item_results = egui::Frame::none()
             .inner_margin(20.0f32)
             .show(ui, |ui| ui.vertical(|ui|{
                 let parsed_item_results: Vec<_> = self.0.iter_mut().enumerate().map(|(idx, staging_item)| {
                     ui.label(format!("#{}", idx + 1));
-                    let res = staging_item.draw_and_parse(ui);
+                    let res = staging_item.draw_and_parse(ui, id.with(idx));
                     ui.separator();
                     res
                 }).collect();
