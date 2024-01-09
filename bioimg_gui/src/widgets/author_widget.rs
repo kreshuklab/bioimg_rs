@@ -26,34 +26,36 @@ impl DrawAndParse for StagingAuthor2{
     type Parsed = Author2;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Author2, Author2ParsingError>{
-        egui::Grid::new(id).show(ui, |ui| {
-            ui.strong("Name: ");
-            let name = self.staging_name.draw_and_parse(ui, id.with("Name"));
-            ui.end_row();
+        ui.scope(|ui|{
+            egui::Grid::new(id).show(ui, |ui| {
+                ui.strong("Name: ");
+                let name = self.staging_name.draw_and_parse(ui, id.with("Name"));
+                ui.end_row();
 
-            ui.strong("Affiliation: ");
-            let affiliation = self.staging_affiliation.draw_and_parse(ui, id.with("Affiliation"));
-            ui.end_row();
+                ui.strong("Affiliation: ");
+                let affiliation = self.staging_affiliation.draw_and_parse(ui, id.with("Affiliation"));
+                ui.end_row();
 
-            ui.strong("Email: ");
-            let email = self.staging_email.draw_and_parse(ui, id.with("Email"));
-            ui.end_row();
+                ui.strong("Email: ");
+                let email = self.staging_email.draw_and_parse(ui, id.with("Email"));
+                ui.end_row();
 
-            ui.strong("Github User: ");
-            let github_user = self.staging_github_user.draw_and_parse(ui, id.with("Github User"));
-            ui.end_row();
+                ui.strong("Github User: ");
+                let github_user = self.staging_github_user.draw_and_parse(ui, id.with("Github User"));
+                ui.end_row();
 
-            ui.strong("Orcid: ");
-            let orcid = self.staging_orcid.draw_and_parse(ui, id.with("Orcid"));
-            ui.end_row();
+                ui.strong("Orcid: ");
+                let orcid = self.staging_orcid.draw_and_parse(ui, id.with("Orcid"));
+                ui.end_row();
 
-            Ok(Author2{
-                name: name?,
-                affiliation: affiliation?,
-                email: email?,
-                github_user: github_user?,
-                orcid: orcid?,
-            })
+                Ok(Author2{
+                    name: name?,
+                    affiliation: affiliation?,
+                    email: email?,
+                    github_user: github_user?,
+                    orcid: orcid?,
+                })
+            }).inner
         }).inner
     }
 }

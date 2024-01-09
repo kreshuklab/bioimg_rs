@@ -51,22 +51,24 @@ STAGING: Default
     type Error = STAGING::Error;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error>{
-        match &mut self.0{
-            None => ui.horizontal(|ui|{
+        if let Some(staging) = &mut self.0{
+            let (parsed_result, button_response) = ui.horizontal_top(move |ui|{
+                let button_response = ui.button("None");
+                let parsed_result  = staging.draw_and_parse(ui, id);
+                (parsed_result, button_response)
+            }).inner;
+            if button_response.clicked(){
+                self.0.take();
+            }
+            Ok(Some(parsed_result?))
+        }else{
+            ui.horizontal(|ui|{
                 ui.label("None");
                 if ui.button("Add +").clicked(){
                     self.0.replace(STAGING::default());
                 }
-                Ok(None)
-            }).inner,
-            Some(staging) => {
-                let button_response = ui.button("None");
-                let parsed_result  = staging.draw_and_parse(ui, id);
-                if button_response.clicked(){
-                    self.0.take();
-                }
-                Ok(Some(parsed_result?))
-            },
+            });
+            Ok(None)
         }
     }
 }
@@ -86,25 +88,23 @@ STAGING: Default + Clone{
     type Parsed = Vec<STAGING::Parsed>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error> {
-        let parsed_item_results = egui::Frame::none()
-            .inner_margin(20.0f32)
-            .show(ui, |ui| ui.vertical(|ui|{
-                let parsed_item_results: Vec<_> = self.0.iter_mut().enumerate().map(|(idx, staging_item)| {
-                    ui.label(format!("#{}", idx + 1));
-                    let res = staging_item.draw_and_parse(ui, id.with(idx));
-                    ui.separator();
-                    res
-                }).collect();
-                ui.horizontal(|ui|{
-                    if ui.button("+").clicked(){
-                        self.0.resize(self.0.len() + 1, STAGING::default());
-                    }
-                    if ui.button("-").clicked() && self.0.len() > 1{
-                        self.0.resize(self.0.len() - 1, STAGING::default());
-                    }
-                });
-                parsed_item_results
-        })).inner.inner;
+        let parsed_item_results = ui.vertical(|ui|{
+            let parsed_item_results: Vec<_> = self.0.iter_mut().enumerate().map(|(idx, staging_item)| {
+                ui.label(format!("#{}", idx + 1));
+                let res = staging_item.draw_and_parse(ui, id.with(idx));
+                ui.separator();
+                res
+            }).collect();
+            ui.horizontal(|ui|{
+                if ui.button("+").clicked(){
+                    self.0.resize(self.0.len() + 1, STAGING::default());
+                }
+                if ui.button("-").clicked() && self.0.len() > 1{
+                    self.0.resize(self.0.len() - 1, STAGING::default());
+                }
+            });
+            parsed_item_results
+        }).inner;
         let out: Result<Vec<_>, Self::Error> = parsed_item_results.into_iter().collect();
         Ok(out?)
     }
