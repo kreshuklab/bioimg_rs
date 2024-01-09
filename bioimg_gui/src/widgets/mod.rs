@@ -9,15 +9,35 @@ pub trait DrawAndParse{
 }
 
 #[derive(Clone, Debug)]
-pub struct StagingString<T: TryFrom<String>>(String, PhantomData<T>)
+pub enum InputLines{
+    SingleLine,
+    Multiline
+}
+
+#[derive(Clone, Debug)]
+pub struct StagingString<T: TryFrom<String>>
 where
-T::Error : Display;
+T::Error : Display
+{
+    raw: String,
+    input_lines: InputLines,
+    marker: PhantomData<T>,
+}
+
+impl<T: TryFrom<String>> StagingString<T>
+where
+T::Error : Display{
+    pub fn multiline() -> Self{
+        Self{raw: String::default(), input_lines: InputLines::Multiline, marker: PhantomData}
+    }
+}
+
 
 impl<T: TryFrom<String>> Default for StagingString<T>
 where
 T::Error : Display{
     fn default() -> Self {
-        Self(String::default(), PhantomData)
+        Self{raw: String::default(), input_lines: InputLines::SingleLine, marker: PhantomData}
     }
 }
 
@@ -29,8 +49,12 @@ T::Error : Display
     type Error = T::Error;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<T, T::Error>{
-        ui.text_edit_singleline(&mut self.0);
-        let res = T::try_from(self.0.clone());
+        match self.input_lines{
+            InputLines::SingleLine => {ui.text_edit_singleline(&mut self.raw);},
+            InputLines::Multiline => {ui.text_edit_multiline(&mut self.raw);},
+        }
+
+        let res = T::try_from(self.raw.clone());
         if let Err(ref err) = res {
             let error_text = format!("{err}");
             ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
