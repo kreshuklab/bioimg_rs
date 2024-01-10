@@ -22,8 +22,8 @@ pub struct StagingAuthor2{
 }
 
 impl DrawAndParse for StagingAuthor2{
+    type Parsed<'p> = Author2;
     type Error = Author2ParsingError;
-    type Parsed = Author2;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Author2, Author2ParsingError>{
         ui.scope(|ui|{

@@ -4,9 +4,9 @@ pub mod file_widget;
 use std::{fmt::Display, marker::PhantomData};
 
 pub trait DrawAndParse{
-    type Parsed;
+    type Parsed<'p> where Self: 'p;
     type Error;
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error>;
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error>;
 }
 
 #[derive(Clone, Debug)]
@@ -42,11 +42,12 @@ T::Error : Display{
     }
 }
 
-impl<T: TryFrom<String>> DrawAndParse for StagingString<T>
+impl<T> DrawAndParse for StagingString<T>
 where
-T::Error : Display
+T: TryFrom<String>,
+T::Error : Display,
 {
-    type Parsed = T;
+    type Parsed<'a> = T where T: 'a;
     type Error = T::Error;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<T, T::Error>{
@@ -68,32 +69,29 @@ T::Error : Display
 pub struct StagingOpt<STAGING: DrawAndParse>(Option<STAGING>);
 
 
-impl<STAGING: DrawAndParse> DrawAndParse for StagingOpt<STAGING>
+impl<STAGING> DrawAndParse for StagingOpt<STAGING>
 where
-STAGING: Default
+STAGING: Default + DrawAndParse,
 {
-    type Parsed = Option<STAGING::Parsed>;
+    type Parsed<'p> = Option<STAGING::Parsed<'p>> where STAGING: 'p;
     type Error = STAGING::Error;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error>{
-        if let Some(staging) = &mut self.0{
-            let (parsed_result, button_response) = ui.horizontal_top(move |ui|{
-                let button_response = ui.button("None");
-                let parsed_result  = staging.draw_and_parse(ui, id);
-                (parsed_result, button_response)
-            }).inner;
-            if button_response.clicked(){
-                self.0.take();
-            }
-            Ok(Some(parsed_result?))
-        }else{
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error>{
+        if self.0.is_none(){
             ui.horizontal(|ui|{
                 ui.label("None");
-                if ui.button("Add +").clicked(){
+                if ui.button("Add").clicked(){
                     self.0.replace(STAGING::default());
                 }
             });
-            Ok(None)
+            return  Ok(None)
+        }
+        let staging = self.0.as_mut().unwrap(); //FIXME: https://github.com/rust-lang/rust/issues/51545
+        let parsed_result = staging.draw_and_parse(ui, id);
+        if ui.button("Remove").clicked(){
+            return Ok(None)
+        }else{
+            return parsed_result.map(|v| Some(v))
         }
     }
 }
@@ -109,10 +107,10 @@ impl<STAGING: DrawAndParse> DrawAndParse for StagingVec<STAGING>
 where
 STAGING::Error : Display,
 STAGING: Default + Clone{
+    type Parsed<'p> = Vec<STAGING::Parsed<'p>> where STAGING: 'p;
     type Error = STAGING::Error;
-    type Parsed = Vec<STAGING::Parsed>;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed, Self::Error> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error> {
         let parsed_item_results = ui.vertical(|ui|{
             let parsed_item_results: Vec<_> = self.0.iter_mut().enumerate().map(|(idx, staging_item)| {
                 ui.label(format!("#{}", idx + 1));
