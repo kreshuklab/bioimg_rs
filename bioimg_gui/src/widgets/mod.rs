@@ -1,4 +1,5 @@
 pub mod author_widget;
+pub mod file_widget;
 
 use std::{fmt::Display, marker::PhantomData};
 
