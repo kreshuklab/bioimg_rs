@@ -2,28 +2,6 @@ use std::path::PathBuf;
 
 use super::DrawAndParse;
 
-#[derive(thiserror::Error, Debug)]
-pub enum FilePickerError{
-    #[error("Empty")]
-    Empty,
-    #[error("User cancelled")]
-    UserCancelled,
-    #[error("{0}")]
-    IoError(#[source] #[from] std::io::Error),
-}
-
-pub struct ImageWidget{
-    contents: Option<(PathBuf, Vec<u8>)>,
-}
-impl ImageWidget{
-    pub fn path(&self) -> Option<&PathBuf>{
-        self.contents.as_ref().map(|(path, _)| path)
-    }
-    pub fn data(&self) -> Option<&[u8]>{
-        self.contents.as_ref().map(|(_, data)| data.as_slice())
-    }
-}
-
 // impl<'data> DrawAndParse for &'data mut ImageWidget{
 //     type Parsed = &'data [u8];
 //     type Error = FilePickerError;
