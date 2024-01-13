@@ -1,21 +1,19 @@
 pub mod author_widget;
 pub mod file_widget;
 
-use std::{fmt::Display, marker::PhantomData, path::PathBuf};
+use std::{fmt::Display, path::PathBuf};
 
 pub trait DrawAndParse{
     type Parsed<'p> where Self: 'p;
-    type Error;
+    type Error<'p> where Self: 'p;
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id);
-    fn parsed<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error>;
+    fn result<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error<'p>>;
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum FilePickerError{
     #[error("Empty")]
     Empty,
-    #[error("User cancelled")]
-    UserCancelled,
     #[error("Could not open {path}: {reason}")]
     IoError{path: PathBuf, reason: String},
 }
@@ -27,16 +25,16 @@ impl ImageWidget{
     pub fn path(&self) -> Option<&PathBuf>{
         self.contents.as_ref().ok().map(|(path, _)| path)
     }
-    pub fn data(&self) -> Option<&[u8]>{
-        self.contents.as_ref().ok().map(|(_, data)| data.as_slice())
-    }
+    // pub fn data(&self) -> Option<&[u8]>{
+    //     self.contents.as_ref().ok().map(|(_, data)| data.as_slice())
+    // }
 }
 
 impl DrawAndParse for ImageWidget{
-    type Parsed<'p> = &'p [u8];
-    type Error = FilePickerError;
+    type Parsed<'p> = &'p (PathBuf, Vec<u8>);
+    type Error<'p> = FilePickerError;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id){
         ui.horizontal(|ui|{
             match &self.path(){
                 None => ui.label("None"),
@@ -66,10 +64,8 @@ impl DrawAndParse for ImageWidget{
         });
     }
 
-    fn parsed<'p>(&'p self) -> Result<&'p [u8], Self::Error> {
-        let a = self.contents.as_ref().map(|(_, data)| data.as_slice());
-        let b = a.map_err(|e| (*e).clone());
-        b
+    fn result(&self) -> Result<&(PathBuf, Vec<u8>), FilePickerError> {
+        self.contents.as_ref().map_err(|err| err.clone())
     }
 }
 
@@ -115,10 +111,10 @@ impl<T: TryFrom<String>> StagingString<T> where T::Error : Display{
 impl<T> DrawAndParse for StagingString<T>
 where
     T: TryFrom<String>,
-    T::Error : Display + Clone,
+    T::Error : Display,
 {
     type Parsed<'p> = &'p T where T: 'p;
-    type Error = T::Error;
+    type Error<'p> = &'p T::Error where T::Error : 'p, T: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id){
         match self.input_lines{
@@ -133,72 +129,82 @@ where
         };
     }
 
-    fn parsed(&self) -> Result<&T, Self::Error> {
-        match &self.parsed{
-            Ok(v) => Ok(v),
-            Err(err) => Err(err.clone()) //FIXME?
-        }
+    fn result<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error<'p>> {
+        self.parsed.as_ref()
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct StagingOpt<STG: DrawAndParse>(Option<STG>);
 
-impl<STG: DrawAndParse> StagingOpt<STG>{
+#[derive(Clone, Debug)]
+pub struct StagingOpt<Stg: DrawAndParse>(Option<Stg>);
+
+impl<Stg: DrawAndParse> StagingOpt<Stg>{
     pub fn new() -> Self{
         Self(None)
     }
 }
 
+impl<Stg> DrawAndParse for StagingOpt<Stg> where Stg: Default + DrawAndParse{
+    type Parsed<'p> = Option<Stg::Parsed<'p>>
+    where
+        Stg::Parsed<'p>: 'p,
+        Stg: 'p;
 
-impl<STG> DrawAndParse for StagingOpt<STG> where STG: Default + DrawAndParse{
-    type Parsed<'p> = Option<STG::Parsed<'p>> where STG: 'p;
-    type Error = STG::Error;
+    type Error<'p> = Stg::Error<'p>
+    where
+        Stg::Error<'p>: 'p,
+        Stg: 'p;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
-        if self.0.is_none(){
-            ui.horizontal(|ui|{
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+        let contents = &mut self.0;
+        ui.horizontal(|ui|{
+            let Some(staging) = contents else{
                 ui.label("None");
                 if ui.button("Add").clicked(){
-                    self.0.replace(STG::default());
-                }
-            });
-        }
-        let staging = self.0.as_mut().unwrap(); //FIXME: no ref return, so we can match
-        staging.draw_and_parse(ui, id);
-        if ui.button("Remove").clicked(){
-            self.0.take();
-        }
+                    contents.replace(Stg::default());
+                };
+                return
+            };
+            let remove_clicked = ui.button("🗙").clicked();
+            staging.draw_and_parse(ui, id);
+            if remove_clicked{
+                contents.take();
+            }
+        });
     }
 
-    fn parsed<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error> {
-        let Some(staging) = &self.0 else{
+    fn result<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error<'p>> {
+        let Some(ref staging) = self.0 else{
             return Ok(None)
         };
-        staging.parsed().map(|v| Some(v))
+        staging.result().map(|v| Some(v))
     }
 }
 
-pub struct StagingVec<STG> where STG: DrawAndParse{
-    staging: Vec<STG>,
-    // parsed: Result<STG::Parsed, STG::Error>,
+pub struct StagingVec<Stg> where Stg: DrawAndParse{
+    staging: Vec<Stg>,
 }
 
-impl<STG: DrawAndParse + Default> Default for StagingVec<STG>{
+impl<Stg: DrawAndParse + Default> Default for StagingVec<Stg>{
     fn default() -> Self {
-        Self{staging: vec![STG::default()]}
+        Self{staging: vec![Stg::default()]}
     }
 }
 
-impl<STAGING: DrawAndParse> DrawAndParse for StagingVec<STAGING>
+impl<Stg: DrawAndParse> DrawAndParse for StagingVec<Stg>
 where
-    STAGING::Error : Display,
-    STAGING: Default + Clone
-{
-    type Parsed<'p> = Vec<STAGING::Parsed<'p>> where STAGING: 'p;
-    type Error = STAGING::Error;
+Stg: Default{
+    type Parsed<'p> = Vec<Stg::Parsed<'p>>
+    where
+        Stg: 'p,
+        Stg::Parsed<'p>: 'p;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
+    type Error<'p> = Stg::Error<'p>
+    where
+        Stg: 'p,
+        Stg::Parsed<'p>: 'p;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.vertical(|ui|{
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
                 ui.label(format!("#{}", idx + 1));
@@ -208,17 +214,16 @@ where
             });
             ui.horizontal(|ui|{
                 if ui.button("+").clicked(){
-                    self.staging.resize(self.staging.len() + 1, STAGING::default());
+                    self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
                 if ui.button("-").clicked() && self.staging.len() > 1{
-                    self.staging.resize(self.staging.len() - 1, STAGING::default());
+                    self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });
         });
     }
 
-    fn parsed<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error> {
-        let v: Result<Vec<_>, _> = self.staging.iter().map(|stg| stg.parsed()).collect();
-        v
+    fn result<'p>(&'p self) -> Result<Self::Parsed<'p>, Self::Error<'p>> {
+        self.staging.iter().map(|stg| stg.result()).collect()
     }
 }
