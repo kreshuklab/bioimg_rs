@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{/*author_widget::StagingAuthor2,*/ /*StagingVec,*/ DrawAndParse, StagingString, InputLines, StagingVec, StagingOpt, ImageWidget};
+use crate::widgets::{/*author_widget::StagingAuthor2,*/ /*StagingVec,*/ DrawAndParse, StagingString, InputLines, StagingVec, StagingOpt, ImageWidget, author_widget::StagingAuthor2};
 
 
 
@@ -8,9 +8,8 @@ pub struct TemplateApp {
     staging_name: StagingString<BoundedString<1, 127>>,
     test_file_vec: StagingVec<ImageWidget>,
     test_opt: StagingOpt<StagingString<BoundedString<1, 127>>>,
-    test_vec: StagingVec<StagingString<BoundedString<1, 127>>>,
     // staging_description: StagingString<BoundedString<1, 1023>>,
-    // staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
+    staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
 }
 
 impl Default for TemplateApp {
@@ -19,7 +18,7 @@ impl Default for TemplateApp {
             staging_name: StagingString::new(InputLines::SingleLine),
             test_file_vec: Default::default(),
             test_opt: StagingOpt::new(),
-            test_vec: StagingVec::default(),
+            staging_authors: StagingOpt::default(),
             // staging_description: StagingString::multiline(),
             // staging_authors: StagingOpt::default(),
         }
@@ -56,7 +55,9 @@ impl eframe::App for TemplateApp {
                 ui.end_row();
 
                 ui.strong("Test vec: ");
-                let _test_vec_result = self.test_vec.draw_and_parse(ui, egui::Id::from("test_vec"));
+                let _test_auth_vec_result = ui.horizontal_top(|ui|{
+                    self.staging_authors.draw_and_parse(ui, egui::Id::from("test_vec"))
+                }).inner;
                 ui.end_row();
 
                 // ui.strong("Description: ");
