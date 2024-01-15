@@ -200,12 +200,13 @@ Stg: Default{
                 if ui.button("+").clicked(){
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
+
                 if ui.button("-").clicked() && self.staging.len() > 1{
                     self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });
             ui.separator();
-            let x = self.staging.iter_mut()
+            let x: Vec<_> = self.staging.iter_mut()
                 .enumerate()
                 .map(|(idx, staging_item)| {
                     ui.label(format!("#{}", idx + 1));
@@ -214,7 +215,8 @@ Stg: Default{
                     res
                 })
                 .collect();
-            return x
+            let res: Result<Vec<_>, _> = x.into_iter().collect();
+            res
         }).inner
     }
 }
