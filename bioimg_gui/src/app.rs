@@ -1,12 +1,13 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{/*author_widget::StagingAuthor2,*/ /*StagingVec,*/ DrawAndParse, StagingOpt, StagingString, InputLines, StagingVec};
+use crate::widgets::{/*author_widget::StagingAuthor2,*/ /*StagingVec,*/ DrawAndParse, StagingString, InputLines, StagingVec, StagingOpt, ImageWidget};
 
 
 
 pub struct TemplateApp {
     staging_name: StagingString<BoundedString<1, 127>>,
-    blas: StagingOpt<StagingString<BoundedString<1, 127>>>,
+    test_file_vec: StagingVec<ImageWidget>,
+    test_opt: StagingOpt<StagingString<BoundedString<1, 127>>>,
     test_vec: StagingVec<StagingString<BoundedString<1, 127>>>,
     // staging_description: StagingString<BoundedString<1, 1023>>,
     // staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
@@ -16,7 +17,8 @@ impl Default for TemplateApp {
     fn default() -> Self {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
-            blas: StagingOpt::new(),
+            test_file_vec: Default::default(),
+            test_opt: StagingOpt::new(),
             test_vec: StagingVec::default(),
             // staging_description: StagingString::multiline(),
             // staging_authors: StagingOpt::default(),
@@ -42,17 +44,19 @@ impl eframe::App for TemplateApp {
 
             egui::Grid::new("app").num_columns(2).striped(true).show(ui, |ui|{
                 ui.strong("Name: ");
-                self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
-                let _name_result = self.staging_name.result();
+                let _name_result = self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
+                ui.end_row();
+
+                ui.strong("Pick some images: ");
+                let _images = self.test_file_vec.draw_and_parse(ui, egui::Id::from("pick some images"));
                 ui.end_row();
 
                 ui.strong("Bla: ");
-                self.blas.draw_and_parse(ui, egui::Id::from("Bla"));
-                let _blas_result = self.blas.result();
+                let _test_opt_result = self.test_opt.draw_and_parse(ui, egui::Id::from("Bla"));
                 ui.end_row();
 
-                ui.strong("test vec: ");
-                self.test_vec.draw_and_parse(ui, egui::Id::from("test_vec"));
+                ui.strong("Test vec: ");
+                let _test_vec_result = self.test_vec.draw_and_parse(ui, egui::Id::from("test_vec"));
                 ui.end_row();
 
                 // ui.strong("Description: ");
