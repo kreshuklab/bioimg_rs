@@ -135,7 +135,7 @@ where
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct StagingOpt<Stg: DrawAndParse>(Option<Stg>);
 
 impl<Stg: DrawAndParse> StagingOpt<Stg>{
@@ -208,9 +208,8 @@ Stg: Default{
         ui.vertical(|ui|{
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
                 ui.label(format!("#{}", idx + 1));
-                let res = staging_item.draw_and_parse(ui, id.with(idx));
+                staging_item.draw_and_parse(ui, id.with(idx));
                 ui.separator();
-                res
             });
             ui.horizontal(|ui|{
                 if ui.button("+").clicked(){
