@@ -124,15 +124,7 @@ where
             InputLines::SingleLine => {ui.text_edit_singleline(&mut self.raw);},
             InputLines::Multiline => {ui.text_edit_multiline(&mut self.raw);},
         }
-
-        let parsed = T::try_from(self.raw.clone());
-        if let Err(ref err) = parsed {
-            let error_text = format!("{err}");
-            ui.label(egui::RichText::new(error_text).color(egui::Color32::from_rgb(110, 0, 0)));
-        }else{
-            ui.label("");
-        }
-        parsed
+        T::try_from(self.raw.clone())
     }
 }
 
@@ -155,20 +147,22 @@ impl<Stg> DrawAndParse for StagingOpt<Stg> where Stg: Default + DrawAndParse{
     type Error = Stg::Error;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error> {
-        ui.horizontal(|ui|{
-            if self.0.is_none(){  // FIXME: https://github.com/rust-lang/rust/issues/51545
+        if self.0.is_none(){  // FIXME: https://github.com/rust-lang/rust/issues/51545
+            ui.horizontal(|ui|{
                 ui.label("None");
                 if ui.button("Add").clicked(){
                     self.0.replace(Stg::default());
                 };
-                return Ok(None) //FIXME: "state-tearing"?
-            }
+            });
+            return Ok(None) //FIXME: "state-tearing"?
+        }
 
+        ui.horizontal(|ui|{
             if ui.button("🗙").clicked(){
                 self.0.take();
                 return Ok(None)
             }
-            //FIXME: like above, unwrap becausehttps://github.com/rust-lang/rust/issues/51545
+            //FIXME: like above, unwrap because https://github.com/rust-lang/rust/issues/51545
             self.0.as_mut().unwrap().draw_and_parse(ui, id).map(|v| Some(v))
         }).inner
     }
@@ -205,13 +199,13 @@ Stg: Default{
                     self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });
-            ui.separator();
+            // ui.separator();
             let x: Vec<_> = self.staging.iter_mut()
                 .enumerate()
                 .map(|(idx, staging_item)| {
                     ui.label(format!("#{}", idx + 1));
                     let res = staging_item.draw_and_parse(ui, id.with(idx));
-                    ui.separator();
+                    // ui.separator();
                     res
                 })
                 .collect();
