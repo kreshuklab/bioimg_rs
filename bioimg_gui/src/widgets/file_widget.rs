@@ -13,8 +13,21 @@ pub enum FilePickerError{
     IoError{path: PathBuf, reason: String},
 }
 
+pub struct LoadedFile{
+    path: PathBuf,
+    contents: Vec<u8>,
+}
+impl LoadedFile{
+    fn path(&self) -> &PathBuf{
+        &self.path
+    }
+    fn contents(&self) -> &[u8]{
+        &self.contents
+    }
+}
+
 pub struct FileWidget{
-    contents: Result<(PathBuf, Vec<u8>), FilePickerError>,
+    contents: Result<LoadedFile, FilePickerError>,
 }
 
 impl Default for FileWidget{
@@ -25,12 +38,12 @@ impl Default for FileWidget{
 
 impl FileWidget{
     pub fn path(&self) -> Option<&PathBuf>{
-        self.contents.as_ref().ok().map(|(path, _)| path)
+        self.contents.as_ref().ok().map(|loaded_file| &loaded_file.path)
     }
 }
 
 impl DrawAndParse for FileWidget{
-    type Parsed<'p> = &'p (PathBuf, Vec<u8>);
+    type Parsed<'p> = &'p LoadedFile;
     type Error= FilePickerError;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error>{
@@ -53,7 +66,7 @@ impl DrawAndParse for FileWidget{
                     };
                     match std::fs::read(&pth){
                         Ok(d) => {
-                            self.contents = Ok((pth, d));
+                            self.contents = Ok(LoadedFile{path: pth, contents: d});
                         },
                         Err(err) => {
                             self.contents = Err(FilePickerError::IoError { path: pth, reason: err.to_string() });
