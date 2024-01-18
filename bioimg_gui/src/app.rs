@@ -2,13 +2,13 @@ use std::fmt::Display;
 
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{/*author_widget::StagingAuthor2,*/ /*StagingVec,*/ DrawAndParse, StagingString, InputLines, StagingVec, StagingOpt, ImageWidget, author_widget::StagingAuthor2};
+use crate::widgets::{DrawAndParse, StagingString, InputLines, StagingVec, StagingOpt, author_widget::StagingAuthor2, file_widget::FileWidget};
 
 
 
 pub struct TemplateApp {
     staging_name: StagingString<BoundedString<1, 127>>,
-    test_file_vec: StagingVec<ImageWidget>,
+    test_file_vec: StagingVec<FileWidget>,
     test_opt: StagingOpt<StagingString<BoundedString<1, 127>>>,
     // staging_description: StagingString<BoundedString<1, 1023>>,
     staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
