@@ -1,6 +1,8 @@
-use std::{path::PathBuf, sync::{Mutex, Arc}};
+use std::{path::PathBuf, sync::{Arc}, time::Duration};
 
-use crate::task::GenerationalMutex;
+use parking_lot::{Mutex, MutexGuard, MappedMutexGuard};
+
+use crate::task::run_task;
 
 use super::DrawAndParse;
 
@@ -10,7 +12,7 @@ pub enum FilePickerError{
     #[error("Empty")]
     Empty,
     #[error("Loading")]
-    Loading,
+    Loading{path: PathBuf},
     #[error("Could not open {path}: {reason}")]
     IoError{path: PathBuf, reason: String},
 }
@@ -42,54 +44,73 @@ impl Default for FileWidget{
 
 
 impl DrawAndParse for FileWidget{
-    type Parsed<'p> = &'p LoadedFile;
+    type Parsed<'p> = MappedMutexGuard<'p, LoadedFile>;
     type Error= FilePickerError;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error>{
-        let out = ui.horizontal(|ui|{
-            let contents_lock = self.contents.lock().unwrap();
-            match &*contents_lock{
-                Ok(loaded_file) => ui.label(loaded_file.path.to_string_lossy()),
-                Err(_) => ui.label("None"),
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<MappedMutexGuard<'p, LoadedFile>, FilePickerError>{
+        ui.horizontal(|ui|{
+            let mut contents_lock = self.contents.lock();
+            let open_clicked: bool = match &*contents_lock{
+                Ok(loaded_file) => {
+                    ui.label(loaded_file.path.to_string_lossy());
+                    ui.button("Open...").clicked()
+                },
+                Err(err) => match err {
+                    FilePickerError::Empty => {
+                        ui.label("None");
+                        ui.button("Open...").clicked()
+                    },
+                    FilePickerError::Loading{path} => {
+                        ui.add_enabled(false, egui::Button::new("Loading...")).on_hover_ui(|ui|{
+                            ui.label(format!("Loading {}", path.to_string_lossy()));
+
+                        });
+                        false
+                    },
+                    FilePickerError::IoError { path, reason } => {
+                        ui.label(format!("Error")).on_hover_ui(|ui|{
+                            ui.label(format!("Could not open {}: {reason}", path.to_string_lossy()));
+                        });
+                        ui.button("Open...").clicked()
+                    }
+                },
             };
 
-            if ui.button("Open...").clicked(){
-                // FIXME: async + web
-                let path_buf = rfd::FileDialog::new()
+            'file_read: {
+                if !open_clicked{
+                    break 'file_read;
+                }
+                let path_buf = rfd::FileDialog::new() //FIXME: web?
                     .set_directory("/")
                     .pick_file();
+                let Some(pth) = path_buf else{
+                    *contents_lock = Err(FilePickerError::Empty);
+                    break 'file_read;
+                };
 
-                'file_read: {
-                    let Some(pth) = path_buf else{
-                        self.contents = GenerationalMutexArc::new(Err(FilePickerError::Empty)); //FIXME
-                        break 'file_read;
-                    };
+                *contents_lock = Err(FilePickerError::Loading{path: pth.clone()});
 
-                    {
-                        self.contents = Arc::new(Err(FilePickerError::Empty));
-                        let mut contents = Arc::clone(&self.contents);
-                        std::thread::Builder::new()
-                            .name("my_file_loader".into())
-                            .spawn(move ||{
-                                match std::fs::read(&pth){
-                                    Ok(d) => {
-                                        *Arc::get_mut(&mut contents).unwrap() = Ok(LoadedFile{path: pth, contents: d});
-                                    },
-                                    Err(err) => {
-                                        *Arc::get_mut(&mut contents).unwrap() = Err(
-                                            FilePickerError::IoError { path: pth, reason: err.to_string() }
-                                        );
-                                    }
-                                }
-                            })
-                            .expect("Could not spawn thread");
+                let contents = Arc::clone(&self.contents);
+                run_task(move ||{
+                    match std::fs::read(&pth){
+                        Ok(d) => {
+                            *contents.lock() = Ok(LoadedFile{path: pth, contents: d});
+                        },
+                        Err(err) => {
+                            *contents.lock() = Err(
+                                FilePickerError::IoError { path: pth, reason: err.to_string() }
+                            );
+                        }
                     }
-                }
+                })
             }
 
-            let x = self.contents.as_ref().as_ref().map_err(|err| err.clone());
-            x
-        }).inner;
-        return out
+            match &mut (*contents_lock){
+                Ok(_) => Ok(MutexGuard::map(contents_lock, |v|{
+                    v.as_mut().unwrap() //FIXME?
+                })),
+                Err(err) => Err(err.clone())
+            }
+        }).inner
     }
 }

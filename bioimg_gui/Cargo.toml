@@ -21,6 +21,7 @@ bioimg_spec = {path = "../bioimg_spec"}
 serde = { version = "1", features = ["derive"] }
 thiserror = "1.0.50"
 rfd = "0.12.1"
+parking_lot = "0.12.1"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

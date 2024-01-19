@@ -130,6 +130,7 @@ dependencies = [
  "egui",
  "env_logger",
  "log",
+ "parking_lot",
  "rfd",
  "serde",
  "thiserror",
