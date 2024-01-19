@@ -2,4 +2,5 @@
 
 mod app;
 mod widgets;
+mod task;
 pub use app::TemplateApp;
