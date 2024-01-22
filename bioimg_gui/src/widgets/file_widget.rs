@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::{Arc}, time::Duration};
+use std::{path::PathBuf, sync::Arc};
 
 use parking_lot::{Mutex, MutexGuard, MappedMutexGuard};
 
@@ -22,10 +22,10 @@ pub struct LoadedFile{
     contents: Vec<u8>,
 }
 impl LoadedFile{
-    fn path(&self) -> &PathBuf{
+    pub fn path(&self) -> &PathBuf{
         &self.path
     }
-    fn contents(&self) -> &[u8]{
+    pub fn contents(&self) -> &[u8]{
         &self.contents
     }
 }
@@ -41,7 +41,6 @@ impl Default for FileWidget{
         }
     }
 }
-
 
 impl DrawAndParse for FileWidget{
     type Parsed<'p> = MappedMutexGuard<'p, LoadedFile>;
@@ -63,7 +62,6 @@ impl DrawAndParse for FileWidget{
                     FilePickerError::Loading{path} => {
                         ui.add_enabled(false, egui::Button::new("Loading...")).on_hover_ui(|ui|{
                             ui.label(format!("Loading {}", path.to_string_lossy()));
-
                         });
                         false
                     },
