@@ -1,5 +1,6 @@
 pub mod author_widget;
 pub mod file_widget;
+pub mod cover_image_widget;
 
 use std::{fmt::Display, path::PathBuf, marker::PhantomData};
 

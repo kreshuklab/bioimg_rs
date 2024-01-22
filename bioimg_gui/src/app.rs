@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{DrawAndParse, StagingString, InputLines, StagingVec, StagingOpt, author_widget::StagingAuthor2, file_widget::FileWidget};
+use crate::widgets::{author_widget::StagingAuthor2, cover_image_widget::CoverImageWidget, file_widget::FileWidget, DrawAndParse, InputLines, StagingOpt, StagingString, StagingVec};
 
 
 
@@ -12,6 +12,7 @@ pub struct TemplateApp {
     test_opt: StagingOpt<StagingString<BoundedString<1, 127>>>,
     // staging_description: StagingString<BoundedString<1, 1023>>,
     staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
+    cover_image: CoverImageWidget,
 }
 
 impl Default for TemplateApp {
@@ -23,6 +24,7 @@ impl Default for TemplateApp {
             staging_authors: StagingOpt::default(),
             // staging_description: StagingString::multiline(),
             // staging_authors: StagingOpt::default(),
+            cover_image: CoverImageWidget::default(),
         }
     }
 }
@@ -69,6 +71,11 @@ impl eframe::App for TemplateApp {
                 let _test_auth_vec_result = ui.horizontal_top(|ui|{
                     self.staging_authors.draw_and_parse(ui, egui::Id::from("test_vec"))
                 }).inner;
+                ui.end_row();
+
+                ui.strong("Cover Image: ");
+                let cover_img_result = self.cover_image.draw_and_parse(ui, egui::Id::from("cover image"));
+                show_if_error(ui, &cover_img_result);
                 ui.end_row();
 
                 // ui.strong("Description: ");
