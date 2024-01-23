@@ -12,7 +12,7 @@ pub struct TemplateApp {
     test_opt: StagingOpt<StagingString<BoundedString<1, 127>>>,
     // staging_description: StagingString<BoundedString<1, 1023>>,
     staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
-    cover_image: CoverImageWidget,
+    cover_image: StagingVec<CoverImageWidget>,
 }
 
 impl Default for TemplateApp {
@@ -24,7 +24,7 @@ impl Default for TemplateApp {
             staging_authors: StagingOpt::default(),
             // staging_description: StagingString::multiline(),
             // staging_authors: StagingOpt::default(),
-            cover_image: CoverImageWidget::default(),
+            cover_image: Default::default(),
         }
     }
 }
