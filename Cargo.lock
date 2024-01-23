@@ -148,6 +148,7 @@ dependencies = [
  "rfd",
  "serde",
  "thiserror",
+ "url",
  "wasm-bindgen-futures",
 ]
 

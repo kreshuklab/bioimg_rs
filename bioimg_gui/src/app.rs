@@ -2,29 +2,29 @@ use std::fmt::Display;
 
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{author_widget::StagingAuthor2, cover_image_widget::CoverImageWidget, file_widget::FileWidget, DrawAndParse, InputLines, StagingOpt, StagingString, StagingVec};
+use crate::widgets::{author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, DrawAndParse, InputLines, StagingString, StagingVec};
 
 
 
 pub struct TemplateApp {
     staging_name: StagingString<BoundedString<1, 127>>,
-    test_file_vec: StagingVec<FileWidget>,
-    test_opt: StagingOpt<StagingString<BoundedString<1, 127>>>,
-    // staging_description: StagingString<BoundedString<1, 1023>>,
-    staging_authors: StagingOpt<StagingVec<StagingAuthor2>>,
+    staging_description: StagingString<BoundedString<1, 1023>>,
     cover_image: StagingVec<CoverImageWidget>,
+    // id?
+    staging_authors: StagingVec<StagingAuthor2>,
+    //attachments
+    staging_citations: StagingVec<StagingCiteEntry2>,
+
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
-            test_file_vec: Default::default(),
-            test_opt: StagingOpt::new(),
-            staging_authors: StagingOpt::default(),
-            // staging_description: StagingString::multiline(),
-            // staging_authors: StagingOpt::default(),
+            staging_description: StagingString::new(InputLines::Multiline),
             cover_image: Default::default(),
+            staging_authors: Default::default(),
+            staging_citations: StagingVec::default(),
         }
     }
 }
@@ -42,7 +42,6 @@ impl eframe::App for TemplateApp {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
             fn show_error(ui: &mut egui::Ui, message: impl Display){
                 ui.label(egui::RichText::new(message.to_string()).color(egui::Color32::RED));
             }
@@ -58,35 +57,25 @@ impl eframe::App for TemplateApp {
                 show_if_error(ui, &name_result);
                 ui.end_row();
 
-                ui.strong("Pick some images: ");
-                let _images = self.test_file_vec.draw_and_parse(ui, egui::Id::from("pick some images"));
+                ui.strong("Description: ");
+                let name_result = self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
+                show_if_error(ui, &name_result);
                 ui.end_row();
 
-                ui.strong("Bla: ");
-                let test_opt_result = self.test_opt.draw_and_parse(ui, egui::Id::from("Bla"));
-                show_if_error(ui, &test_opt_result);
-                ui.end_row();
-
-                ui.strong("Test vec: ");
-                let _test_auth_vec_result = ui.horizontal_top(|ui|{
-                    self.staging_authors.draw_and_parse(ui, egui::Id::from("test_vec"))
-                }).inner;
-                ui.end_row();
-
-                ui.strong("Cover Image: ");
-                let cover_img_result = self.cover_image.draw_and_parse(ui, egui::Id::from("cover image"));
+                ui.strong("Cover Images: ");
+                let cover_img_result = self.cover_image.draw_and_parse(ui, egui::Id::from("Cover Images"));
                 show_if_error(ui, &cover_img_result);
                 ui.end_row();
 
-                // ui.strong("Description: ");
-                // let _description_result = self.staging_description.draw_and_parse(ui, egui::Id::from("Description"));
-                // ui.end_row();
+                ui.strong("Authors: ");
+                let authors_result = self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
+                show_if_error(ui, &authors_result);
+                ui.end_row();
 
-                // ui.strong("Authors: ");
-                // let _authors_result = self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
-                // ui.end_row();
-
-                // ui.end_row();
+                ui.strong("Cite: ");
+                let citations_result = self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
+                show_if_error(ui, &citations_result);
+                ui.end_row();
             }).inner;
         });
     }

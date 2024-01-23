@@ -1,8 +1,10 @@
 pub mod author_widget;
 pub mod file_widget;
 pub mod cover_image_widget;
+pub mod url_widget;
+pub mod cite_widget;
 
-use std::{fmt::Display, path::PathBuf, marker::PhantomData};
+use std::{fmt::Display, marker::PhantomData};
 
 pub trait DrawAndParse{
     type Parsed<'p> where Self: 'p;
@@ -70,12 +72,6 @@ where
 
 #[derive(Clone, Debug, Default)]
 pub struct StagingOpt<Stg: DrawAndParse>(Option<Stg>);
-
-impl<Stg: DrawAndParse> StagingOpt<Stg>{
-    pub fn new() -> Self{
-        Self(None)
-    }
-}
 
 impl<Stg> DrawAndParse for StagingOpt<Stg> where Stg: Default + DrawAndParse{
     type Parsed<'p> = Option<Stg::Parsed<'p>>
