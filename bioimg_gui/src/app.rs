@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, DrawAndParse, InputLines, StagingString, StagingVec};
