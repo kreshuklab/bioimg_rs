@@ -22,8 +22,7 @@ pub struct StagingCiteEntry2{
 }
 
 impl DrawAndParse for StagingCiteEntry2{
-    type Parsed<'p> = CiteEntry2;
-    type Error = CiteEntry2ParsingError;
+    type Value<'p> = Result<CiteEntry2, CiteEntry2ParsingError>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<CiteEntry2, CiteEntry2ParsingError>{
         ui.scope(|ui|{
@@ -35,18 +34,22 @@ impl DrawAndParse for StagingCiteEntry2{
 
                 ui.strong("Doi: ");
                 let doi_res = self.staging_doi.draw_and_parse(ui, id.with("Doi"));
-                show_if_error(ui, &doi_res);
+                if let Some(res) = &doi_res{
+                    show_if_error(ui, &res);
+                }
                 ui.end_row();
 
                 ui.strong("Url: ");
                 let url_res = self.staging_url.draw_and_parse(ui, id.with("Url"));
-                show_if_error(ui, &url_res);
+                if let Some(res) = &url_res{
+                    show_if_error(ui, res);
+                }
                 ui.end_row();
 
                 Ok(CiteEntry2{
                     text: text_res?,
-                    doi: doi_res?,
-                    url: url_res?
+                    doi: doi_res.transpose()?,
+                    url: url_res.transpose()?,
                 })
             }).inner
         }).inner

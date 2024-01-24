@@ -43,8 +43,7 @@ impl Default for FileWidget{
 }
 
 impl DrawAndParse for FileWidget{
-    type Parsed<'p> = MappedMutexGuard<'p, LoadedFile>;
-    type Error= FilePickerError;
+    type Value<'p> = Result<MappedMutexGuard<'p, LoadedFile>, FilePickerError>;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<MappedMutexGuard<'p, LoadedFile>, FilePickerError>{
         ui.horizontal(|ui|{

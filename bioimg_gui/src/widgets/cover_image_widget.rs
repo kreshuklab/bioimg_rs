@@ -52,10 +52,9 @@ impl Default for CoverImageWidget{
 }
 
 impl DrawAndParse for CoverImageWidget{
-    type Parsed<'p> = &'p LoadedImage;
-    type Error = CoverImageError;
+    type Value<'p> = Result<&'p LoadedImage, CoverImageError>;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<&'p LoadedImage, CoverImageError> {
         let loaded_file = match self.file_widget.draw_and_parse(ui, id){
             Err(err) => {
                 self.contents = Err(err.clone().into());

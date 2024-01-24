@@ -8,10 +8,9 @@ pub struct StagingUrl{
 }
 
 impl DrawAndParse for StagingUrl{
-    type Parsed<'p> = Url;
-    type Error = url::ParseError;
+    type Value<'p> = Result<Url, url::ParseError>;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Self::Value<'p> {
 
         ui.add(
             egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2{x: 200.0, y: 10.0})

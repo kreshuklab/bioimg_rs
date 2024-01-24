@@ -52,18 +52,15 @@ impl eframe::App for TemplateApp {
                 ui.end_row();
 
                 ui.strong("Cover Images: ");
-                let cover_img_result = self.cover_image.draw_and_parse(ui, egui::Id::from("Cover Images"));
-                show_if_error(ui, &cover_img_result);
+                let cover_img_results = self.cover_image.draw_and_parse(ui, egui::Id::from("Cover Images"));
                 ui.end_row();
 
                 ui.strong("Authors: ");
-                let authors_result = self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
-                show_if_error(ui, &authors_result);
+                let author_results = self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
                 ui.end_row();
 
                 ui.strong("Cite: ");
-                let citations_result = self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
-                show_if_error(ui, &citations_result);
+                let citation_results = self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
                 ui.end_row();
             }).inner;
         });

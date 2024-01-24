@@ -8,9 +8,8 @@ pub mod error_display;
 use std::{fmt::Display, marker::PhantomData};
 
 pub trait DrawAndParse{
-    type Parsed<'p> where Self: 'p;
-    type Error;
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error>;
+    type Value<'p> where Self: 'p;
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Self::Value<'p>;
 }
 
 
@@ -58,12 +57,15 @@ where
     T: TryFrom<String>,
     T::Error : Display,
 {
-    type Parsed<'p> = T where T: 'p;
-    type Error = T::Error;
+    type Value<'p> = Result<T, T::Error> where T: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<T, T::Error> {
         match self.input_lines{
-            InputLines::SingleLine => {ui.text_edit_singleline(&mut self.raw);},
+            InputLines::SingleLine => {
+                ui.add( //FIXME: any way we can not hardcode this? at least use font size?
+                    egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2{x: 200.0, y: 10.0})
+                );
+            },
             InputLines::Multiline => {ui.text_edit_multiline(&mut self.raw);},
         }
         T::try_from(self.raw.clone())
@@ -75,14 +77,12 @@ where
 pub struct StagingOpt<Stg: DrawAndParse>(Option<Stg>);
 
 impl<Stg> DrawAndParse for StagingOpt<Stg> where Stg: Default + DrawAndParse{
-    type Parsed<'p> = Option<Stg::Parsed<'p>>
+    type Value<'p> = Option<Stg::Value<'p>>
     where
-        Stg::Parsed<'p>: 'p,
+        Stg::Value<'p>: 'p,
         Stg: 'p;
 
-    type Error = Stg::Error;
-
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Option<Stg::Value<'p>> {
         if self.0.is_none(){  // FIXME: https://github.com/rust-lang/rust/issues/51545
             ui.horizontal(|ui|{
                 ui.label("None");
@@ -90,16 +90,16 @@ impl<Stg> DrawAndParse for StagingOpt<Stg> where Stg: Default + DrawAndParse{
                     self.0.replace(Stg::default());
                 };
             });
-            return Ok(None) //FIXME: "state-tearing"?
+            return None //FIXME: "state-tearing"?
         }
 
         ui.horizontal(|ui|{
             if ui.button("🗙").clicked(){
                 self.0.take();
-                return Ok(None)
+                return None
             }
             //FIXME: like above, unwrap because https://github.com/rust-lang/rust/issues/51545
-            self.0.as_mut().unwrap().draw_and_parse(ui, id).map(|v| Some(v))
+            Some(self.0.as_mut().unwrap().draw_and_parse(ui, id))
         }).inner
     }
 }
@@ -117,14 +117,12 @@ impl<Stg: DrawAndParse + Default> Default for StagingVec<Stg>{
 impl<Stg: DrawAndParse> DrawAndParse for StagingVec<Stg>
 where
 Stg: Default{
-    type Parsed<'p> = Vec<Stg::Parsed<'p>>
+    type Value<'p> = Vec<Stg::Value<'p>>
     where
         Stg: 'p,
-        Stg::Parsed<'p>: 'p;
+        Stg::Value<'p>: 'p;
 
-    type Error = Stg::Error;
-
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Self::Parsed<'p>, Self::Error> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Vec<Stg::Value<'p>> {
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 if ui.button("+").clicked(){
@@ -136,7 +134,7 @@ Stg: Default{
                 }
             });
             // ui.separator();
-            let x: Vec<_> = self.staging.iter_mut()
+            self.staging.iter_mut()
                 .enumerate()
                 .map(|(idx, staging_item)| {
                     ui.label(format!("#{}", idx + 1));
@@ -144,9 +142,7 @@ Stg: Default{
                     // ui.separator();
                     res
                 })
-                .collect();
-            let res: Result<Vec<_>, _> = x.into_iter().collect();
-            res
+                .collect()
         }).inner
     }
 }
