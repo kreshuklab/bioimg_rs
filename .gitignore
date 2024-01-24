@@ -1,2 +1,3 @@
 venv/
 target/
+.cargo/config.toml
