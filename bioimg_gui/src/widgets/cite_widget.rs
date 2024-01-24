@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{bounded_string::{BoundedString, BoundedStringParsingError}, cite_entry::CiteEntry2};
 
-use super::{url_widget::StagingUrl, DrawAndParse, StagingOpt, StagingString};
+use super::{error_display::show_if_error, url_widget::StagingUrl, DrawAndParse, StagingOpt, StagingString};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -29,21 +29,24 @@ impl DrawAndParse for StagingCiteEntry2{
         ui.scope(|ui|{
             egui::Grid::new(id).show(ui, |ui| {
                 ui.strong("Text: ");
-                let text = self.staging_text.draw_and_parse(ui, id.with("Text"));
+                let text_res = self.staging_text.draw_and_parse(ui, id.with("Text"));
+                show_if_error(ui, &text_res);
                 ui.end_row();
 
                 ui.strong("Doi: ");
-                let doi = self.staging_doi.draw_and_parse(ui, id.with("Doi"));
+                let doi_res = self.staging_doi.draw_and_parse(ui, id.with("Doi"));
+                show_if_error(ui, &doi_res);
                 ui.end_row();
 
                 ui.strong("Url: ");
-                let url = self.staging_url.draw_and_parse(ui, id.with("Url"));
+                let url_res = self.staging_url.draw_and_parse(ui, id.with("Url"));
+                show_if_error(ui, &url_res);
                 ui.end_row();
 
                 Ok(CiteEntry2{
-                    text: text?,
-                    doi: doi?,
-                    url: url?
+                    text: text_res?,
+                    doi: doi_res?,
+                    url: url_res?
                 })
             }).inner
         }).inner

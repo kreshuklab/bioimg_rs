@@ -3,6 +3,7 @@ pub mod file_widget;
 pub mod cover_image_widget;
 pub mod url_widget;
 pub mod cite_widget;
+pub mod error_display;
 
 use std::{fmt::Display, marker::PhantomData};
 
