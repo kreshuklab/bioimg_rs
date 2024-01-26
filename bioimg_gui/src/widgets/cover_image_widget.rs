@@ -1,136 +1,164 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use egui::{load::SizedTexture, ImageSource};
 use image::{io::Reader as ImageReader, DynamicImage};
 
-use super::{file_widget::{FilePickerError, FileWidget}, DrawAndParse};
-
+use super::{
+    file_widget::{FilePickerError, FileWidget, FileWidgetState},
+    DrawAndParse,
+};
 
 #[derive(thiserror::Error, Debug, Clone)]
-pub  enum CoverImageError{
-    #[error("{0}")]
-    FileError(#[from] FilePickerError),
+pub enum CoverImageError {
     #[error("Image is too big ({size} bytes), must be up to 500KB")]
-    TooBig{size: usize},
-    #[error("{reason}")]
-    ImageError{path: PathBuf, reason: String},
+    TooBig { path: PathBuf, size: usize },
     #[error("Bad aspect ratio (width / height): {ratio}, expected 2:1 or 1:1")]
-    BadAspectRation{ratio: f32},
+    BadAspectRation { path: PathBuf, ratio: f32 },
+    #[error("{reason}")]
+    ImageError { path: PathBuf, reason: String },
+}
+impl CoverImageError {
+    pub fn path(&self) -> &Path {
+        match self {
+            Self::TooBig { path, .. } => path,
+            Self::ImageError { path, .. } => path,
+            Self::BadAspectRation { path, .. } => path,
+        }
+    }
 }
 
 #[derive(Clone)]
-pub struct LoadedImage{
+pub struct LoadedImage {
     path: PathBuf,
     contents: DynamicImage,
     texture_handle: egui::TextureHandle,
     size: egui::Vec2,
 }
 
-impl LoadedImage{
-    fn as_image_source(&self) -> egui::ImageSource<'_>{
-        ImageSource::Texture(
-            SizedTexture{
-                id: self.texture_handle.id(),
-                size: egui::Vec2{x: 50.0, y: 50.0},
-            }
-        )
+impl LoadedImage {
+    fn as_image_source(&self) -> egui::ImageSource<'_> {
+        ImageSource::Texture(SizedTexture {
+            id: self.texture_handle.id(),
+            size: egui::Vec2 { x: 50.0, y: 50.0 },
+        })
     }
 }
 
-pub struct CoverImageWidget{
-    file_widget: FileWidget,
-    contents: Result<LoadedImage, CoverImageError>,
+pub enum CoverImageState {
+    Empty,
+    FilePickerError(FilePickerError),
+    CoverImageError(CoverImageError),
+    Loaded(LoadedImage),
 }
 
-impl Default for CoverImageWidget{
+pub struct CoverImageWidget {
+    file_widget: FileWidget,
+    state: CoverImageState,
+}
+
+impl Default for CoverImageWidget {
     fn default() -> Self {
-        Self{
+        Self {
             file_widget: FileWidget::default(),
-            contents: Err(CoverImageError::FileError(FilePickerError::Empty))
+            state: CoverImageState::Empty,
         }
     }
 }
 
-impl DrawAndParse for CoverImageWidget{
-    type Value<'p> = Result<&'p LoadedImage, CoverImageError>;
+impl DrawAndParse for CoverImageWidget {
+    type Value<'p> = &'p CoverImageState;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<&'p LoadedImage, CoverImageError> {
-        let loaded_file = match self.file_widget.draw_and_parse(ui, id){
-            Err(err) => {
-                self.contents = Err(err.clone().into());
-                return Err(err.into())
-            },
-            Ok(loaded_file) => loaded_file
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> &'p CoverImageState {
+        let (file_path, file_data) = 'get_file: {
+            let new_state = match self.file_widget.draw_and_parse(ui, id) {
+                FileWidgetState::Loaded { path, data } => break 'get_file (path, data),
+                FileWidgetState::Empty => CoverImageState::Empty,
+                FileWidgetState::Loading { .. } => CoverImageState::Empty,
+                FileWidgetState::Failed(err) => CoverImageState::FilePickerError(err.clone()),
+            };
+            if let CoverImageState::Loaded(last_img) = &self.state {
+                ui.ctx().forget_image(&last_img.path.to_string_lossy());
+            }
+            self.state = new_state;
+            return &self.state;
         };
 
         'parse_image: {
-            if let Ok(current_image) = &self.contents{
-                if &current_image.path == loaded_file.path(){
-                    break 'parse_image
+            if let CoverImageState::Loaded(loaded_image) = &self.state {
+                if &loaded_image.path == file_path {
+                    break 'parse_image;
                 }
             }
-            if let Err(CoverImageError::ImageError{path, ..}) = &self.contents{
-                if path == loaded_file.path(){
-                    break 'parse_image
+            if let CoverImageState::CoverImageError(err) = &self.state {
+                if err.path() == file_path {
+                    break 'parse_image;
                 }
             }
-            let data_size = loaded_file.contents().len();
-            if data_size > 500 * 1024{
-                self.contents = Err(CoverImageError::TooBig { size: data_size });
-                break 'parse_image
+
+            let data_size = file_data.len();
+            if data_size > 500 * 1024 {
+                self.state = CoverImageState::CoverImageError(CoverImageError::TooBig {
+                    path: file_path.clone(),
+                    size: data_size,
+                });
+                break 'parse_image;
             }
-            let cursor = std::io::Cursor::new(loaded_file.contents());
-            let img = match ImageReader::new(cursor).with_guessed_format().unwrap().decode(){
+
+            let cursor = std::io::Cursor::new(file_data);
+            let img = match ImageReader::new(cursor).with_guessed_format().unwrap().decode() {
                 Ok(image) => image,
                 Err(err) => {
-                    self.contents = Err(CoverImageError::ImageError {
-                        path: loaded_file.path().clone(),
+                    self.state = CoverImageState::CoverImageError(CoverImageError::ImageError {
+                        path: file_path.clone(),
                         reason: err.to_string(),
                     });
-                    break 'parse_image
+                    break 'parse_image;
                 }
             };
 
             let ratio = (img.width() as f32) / (img.height() as f32);
-            if ratio != 2.0 && ratio != 1.0{
-                self.contents = Err(CoverImageError::BadAspectRation{ratio});
-                break 'parse_image
+            if ratio != 2.0 && ratio != 1.0 {
+                self.state = CoverImageState::CoverImageError(CoverImageError::BadAspectRation {
+                    path: file_path.clone(),
+                    ratio,
+                });
+                break 'parse_image;
             }
 
             let size = [img.width() as _, img.height() as _];
             let rgb_image = img.to_rgb8();
             let pixels = rgb_image.as_flat_samples();
 
-            let texture_image = egui::ColorImage::from_rgb(
-                size,
-                pixels.as_slice(),
-            );
+            let texture_image = egui::ColorImage::from_rgb(size, pixels.as_slice());
 
-            if let Ok(ref last_img) = self.contents{
+            if let CoverImageState::Loaded(last_img) = &self.state {
                 ui.ctx().forget_image(&last_img.path.to_string_lossy());
             }
 
             let texture_handle = ui.ctx().load_texture(
-                loaded_file.path().to_string_lossy(),
+                file_path.to_string_lossy(),
                 texture_image,
                 egui::TextureOptions {
                     magnification: egui::TextureFilter::Linear,
                     minification: egui::TextureFilter::Nearest,
-                }
+                },
             );
-            self.contents = Ok(LoadedImage{
-                path: loaded_file.path().clone(),
+            self.state = CoverImageState::Loaded(LoadedImage {
+                path: file_path.clone(),
                 contents: img,
                 texture_handle: texture_handle.clone(),
-                size: egui::Vec2{x: size[0] as f32, y: size[1] as f32},
-            });
-        }
+                size: egui::Vec2 {
+                    x: size[0] as f32,
+                    y: size[1] as f32,
+                },
+            })
+        };
 
-        if let Ok(ref img) = self.contents{
+        if let CoverImageState::Loaded(img) = &self.state {
             let ui_img = egui::Image::new(img.as_image_source());
             ui.add(ui_img);
         }
 
-        self.contents.as_ref().map_err(|err| err.clone())
+        &self.state
     }
 }
