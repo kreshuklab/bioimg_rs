@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, thread::JoinHandle};
 
 use parking_lot::{Mutex, MutexGuard, MappedMutexGuard};
 
@@ -11,10 +11,15 @@ use super::DrawAndParse;
 pub enum FilePickerError{
     #[error("Empty")]
     Empty,
-    #[error("Loading")]
-    Loading{path: PathBuf},
     #[error("Could not open {path}: {reason}")]
     IoError{path: PathBuf, reason: String},
+}
+
+enum FileWidgetState{
+    Empty,
+    Loading{path: PathBuf, resolver: JoinHandle<Vec<u8>>},
+    Loaded{path: PathBuf, data: Vec<u8>},
+    Failed,
 }
 
 pub struct LoadedFile{
@@ -31,13 +36,13 @@ impl LoadedFile{
 }
 
 pub struct FileWidget{
-    contents: Arc<Mutex<Result<LoadedFile, FilePickerError>>>,
+    state: FileWidgetState,
 }
 
 impl Default for FileWidget{
     fn default() -> Self {
         Self{
-            contents: Arc::new(Mutex::new(Err(FilePickerError::Empty)))
+            state: FileWidgetState::Empty,
         }
     }
 }
@@ -47,6 +52,44 @@ impl DrawAndParse for FileWidget{
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<MappedMutexGuard<'p, LoadedFile>, FilePickerError>{
         ui.horizontal(|ui|{
+            self.state = match self.state{
+                FileWidgetState::Empty => {
+                    ui.label("None");
+                    FileWidgetState::Empty
+                },
+                FileWidgetState::Failed => {
+                    ui.label(format!("Could not load file"));
+                    FileWidgetState::Failed
+                },
+                FileWidgetState::Loaded {path, data} => {
+                    ui.label(path.to_string_lossy());
+                    FileWidgetState::Loaded {path, data}
+                },
+                FileWidgetState::Loading { path, resolver } => {
+                    if resolver.is_finished(){
+                        match resolver.join(){
+                            Ok(data) => FileWidgetState::Loaded { path, data },
+                            Err(err) => FileWidgetState::Failed,
+                        }
+                    }else{
+                        FileWidgetState::Loading { path, resolver }                         
+                    }
+                },
+            };
+
+            if ui.button("Open...").clicked(){
+                let path_buf = rfd::FileDialog::new() //FIXME: web?
+                    .pick_file();
+                let Some(pth) = path_buf else{
+                    self.state = FileWidgetState::Empty;
+                    panic!("asdas")
+                };
+                self.state = std::thread::spawn(||{
+                    
+                })
+            }
+
+            
             let mut contents_lock = self.contents.lock();
             let open_clicked: bool = match &*contents_lock{
                 Ok(loaded_file) => {
