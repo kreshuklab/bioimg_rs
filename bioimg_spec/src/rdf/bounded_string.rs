@@ -2,7 +2,7 @@ use std::{ops::RangeInclusive, fmt::Display, borrow::Borrow};
 
 use serde::{Serialize, Deserialize};
 
-#[derive(thiserror::Error, PartialEq, Eq, Debug)]
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone)]
 pub enum BoundedStringParsingError {
     #[error("Expected a string with length in {allowed:?}")]
     BadLength { value: String, allowed: RangeInclusive<usize> },

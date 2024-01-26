@@ -1,6 +1,6 @@
 use std::{path::PathBuf, thread::JoinHandle};
 
-use super::DrawAndParse;
+use super::StatefulWidget;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum FilePickerError {
@@ -35,10 +35,10 @@ impl Default for FileWidget {
     }
 }
 
-impl DrawAndParse for FileWidget {
+impl StatefulWidget for FileWidget {
     type Value<'p> = &'p FileWidgetState;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> &'p FileWidgetState {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id){
         ui.horizontal(|ui| {
             self.state = match std::mem::replace(&mut self.state, FileWidgetState::Empty) {
                 FileWidgetState::Empty => {
@@ -87,6 +87,9 @@ impl DrawAndParse for FileWidget {
                 };
             }
         });
-        return &self.state;
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        &self.state
     }
 }

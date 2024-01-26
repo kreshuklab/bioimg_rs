@@ -10,7 +10,7 @@ pub struct CiteEntry {
     pub url: Url,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct CiteEntry2 {
     pub text: BoundedString<1, 1023>,        //(String) free text description
     pub doi: Option<BoundedString<1, 1023>>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)

@@ -5,7 +5,7 @@ use image::{io::Reader as ImageReader, DynamicImage};
 
 use super::{
     file_widget::{FilePickerError, FileWidget, FileWidgetState},
-    DrawAndParse,
+    StatefulWidget,
 };
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -65,12 +65,13 @@ impl Default for CoverImageWidget {
     }
 }
 
-impl DrawAndParse for CoverImageWidget {
+impl StatefulWidget for CoverImageWidget {
     type Value<'p> = &'p CoverImageState;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> &'p CoverImageState {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
         let (file_path, file_data) = 'get_file: {
-            let new_state = match self.file_widget.draw_and_parse(ui, id) {
+            self.file_widget.draw_and_parse(ui, id);
+            let new_state = match self.file_widget.state() {
                 FileWidgetState::Loaded { path, data } => break 'get_file (path, data),
                 FileWidgetState::Empty => CoverImageState::Empty,
                 FileWidgetState::Loading { .. } => CoverImageState::Empty,
@@ -80,7 +81,7 @@ impl DrawAndParse for CoverImageWidget {
                 ui.ctx().forget_image(&last_img.path.to_string_lossy());
             }
             self.state = new_state;
-            return &self.state;
+            return;
         };
 
         'parse_image: {
@@ -158,7 +159,9 @@ impl DrawAndParse for CoverImageWidget {
             let ui_img = egui::Image::new(img.as_image_source());
             ui.add(ui_img);
         }
+    }
 
+    fn state<'p>(&'p self) -> Self::Value<'p> {
         &self.state
     }
 }

@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, DrawAndParse, InputLines, StagingString, StagingVec};
+use crate::widgets::{author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, StatefulWidget, InputLines, StagingString, StagingVec};
 
 
 
@@ -42,25 +42,30 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::Grid::new("app").num_columns(2).striped(true).show(ui, |ui|{
                 ui.strong("Name: ");
-                let name_result = self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
+                self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
+                let name_result = self.staging_name.state();
                 show_if_error(ui, &name_result);
                 ui.end_row();
 
                 ui.strong("Description: ");
-                let name_result = self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
+                self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
+                let name_result = self.staging_description.state();
                 show_if_error(ui, &name_result);
                 ui.end_row();
 
                 ui.strong("Cover Images: ");
-                let cover_img_results = self.cover_image.draw_and_parse(ui, egui::Id::from("Cover Images"));
+                self.cover_image.draw_and_parse(ui, egui::Id::from("Cover Images"));
+                let cover_img_results = self.cover_image.state();
                 ui.end_row();
 
                 ui.strong("Authors: ");
-                let author_results = self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
+                self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
+                let author_results = self.staging_authors.state();
                 ui.end_row();
 
                 ui.strong("Cite: ");
-                let citation_results = self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
+                self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
+                let citation_results = self.staging_citations.state();
                 ui.end_row();
             }).inner;
         });

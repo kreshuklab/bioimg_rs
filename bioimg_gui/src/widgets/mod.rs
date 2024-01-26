@@ -4,12 +4,12 @@ pub mod cover_image_widget;
 pub mod url_widget;
 pub mod cite_widget;
 pub mod error_display;
+pub mod functional;
 
-use std::{fmt::Display, marker::PhantomData};
-
-pub trait DrawAndParse{
+pub trait StatefulWidget{
     type Value<'p> where Self: 'p;
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Self::Value<'p>;
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id);
+    fn state<'p>(&'p self) -> Self::Value<'p>;
 }
 
 
@@ -20,46 +20,40 @@ pub enum InputLines{
 }
 
 #[derive(Debug)]
-pub struct StagingString<T: TryFrom<String>>
-where
-T::Error : Display
-{
+pub struct StagingString<T: TryFrom<String>>{
     raw: String,
+    parsed: Result<T, T::Error>,
     input_lines: InputLines,
-    marker: PhantomData<T>,
 }
 
-impl<T: TryFrom<String>> Default for StagingString<T>
-where
-    T::Error : Display
-{
+impl<T: TryFrom<String>> Default for StagingString<T>{
     fn default() -> Self {
         let raw = String::default();
         Self {
-            raw: raw.clone(), input_lines: InputLines::SingleLine, marker: PhantomData
+            raw: raw.clone(), parsed: T::try_from(raw), input_lines: InputLines::SingleLine
         }
     }
 }
 
-impl<T: TryFrom<String>> StagingString<T> where T::Error : Display{
+impl<T: TryFrom<String>> StagingString<T>{
     pub fn new(input_lines: InputLines) -> Self{
         let raw = String::default();
         Self{
-            raw,
+            raw: raw.clone(),
+            parsed: T::try_from(raw),
             input_lines,
-            marker: PhantomData,
         }
     }
 }
 
-impl<T> DrawAndParse for StagingString<T>
+impl<T> StatefulWidget for StagingString<T>
 where
-    T: TryFrom<String>,
-    T::Error : Display,
+    T: TryFrom<String> + Clone,
+    T::Error: Clone,
 {
     type Value<'p> = Result<T, T::Error> where T: 'p;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) -> Result<T, T::Error> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id){
         match self.input_lines{
             InputLines::SingleLine => {
                 ui.add( //FIXME: any way we can not hardcode this? at least use font size?
@@ -68,53 +62,57 @@ where
             },
             InputLines::Multiline => {ui.text_edit_multiline(&mut self.raw);},
         }
-        T::try_from(self.raw.clone())
+        self.parsed = T::try_from(self.raw.clone())
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        self.parsed.clone()
     }
 }
 
 
 #[derive(Clone, Debug, Default)]
-pub struct StagingOpt<Stg: DrawAndParse>(Option<Stg>);
+pub struct StagingOpt<Stg: StatefulWidget>(Option<Stg>);
 
-impl<Stg> DrawAndParse for StagingOpt<Stg> where Stg: Default + DrawAndParse{
+impl<Stg> StatefulWidget for StagingOpt<Stg> where Stg: Default + StatefulWidget{
     type Value<'p> = Option<Stg::Value<'p>>
     where
         Stg::Value<'p>: 'p,
         Stg: 'p;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Option<Stg::Value<'p>> {
-        if self.0.is_none(){  // FIXME: https://github.com/rust-lang/rust/issues/51545
-            ui.horizontal(|ui|{
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
+        ui.horizontal(|ui|{
+            if self.0.is_none(){
                 ui.label("None");
                 if ui.button("Add").clicked(){
-                    self.0.replace(Stg::default());
-                };
-            });
-            return None //FIXME: "state-tearing"?
-        }
-
-        ui.horizontal(|ui|{
-            if ui.button("🗙").clicked(){
-                self.0.take();
-                return None
+                    self.0 = Some(Stg::default())
+                }
+            }else{
+                let x_clicked = ui.button("🗙").clicked();
+                self.0.as_mut().unwrap().draw_and_parse(ui, id);
+                if x_clicked{
+                    self.0.take();
+                }
             }
-            //FIXME: like above, unwrap because https://github.com/rust-lang/rust/issues/51545
-            Some(self.0.as_mut().unwrap().draw_and_parse(ui, id))
-        }).inner
+        });
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        self.0.as_ref().map(|inner_widget| inner_widget.state())
     }
 }
 
-pub struct StagingVec<Stg> where Stg: DrawAndParse{
+pub struct StagingVec<Stg> where Stg: StatefulWidget{
     staging: Vec<Stg>,
 }
 
-impl<Stg: DrawAndParse + Default> Default for StagingVec<Stg>{
+impl<Stg: StatefulWidget + Default> Default for StagingVec<Stg>{
     fn default() -> Self {
         Self{staging: vec![Stg::default()]}
     }
 }
 
-impl<Stg: DrawAndParse> DrawAndParse for StagingVec<Stg>
+impl<Stg: StatefulWidget> StatefulWidget for StagingVec<Stg>
 where
 Stg: Default{
     type Value<'p> = Vec<Stg::Value<'p>>
@@ -122,27 +120,28 @@ Stg: Default{
         Stg: 'p,
         Stg::Value<'p>: 'p;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) -> Vec<Stg::Value<'p>> {
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.vertical(|ui|{
+            self.staging.iter_mut()
+                .enumerate()
+                .for_each(|(idx, staging_item)| {
+                    ui.label(format!("#{}", idx + 1));
+                    staging_item.draw_and_parse(ui, id.with(idx));
+                    // ui.separator();
+                });
+            // ui.separator();
             ui.horizontal(|ui|{
                 if ui.button("+").clicked(){
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
-
                 if ui.button("-").clicked() && self.staging.len() > 1{
                     self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });
-            // ui.separator();
-            self.staging.iter_mut()
-                .enumerate()
-                .map(|(idx, staging_item)| {
-                    ui.label(format!("#{}", idx + 1));
-                    let res = staging_item.draw_and_parse(ui, id.with(idx));
-                    // ui.separator();
-                    res
-                })
-                .collect()
-        }).inner
+        });
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        self.staging.iter().map(|item_widget| item_widget.state()).collect()
     }
 }
