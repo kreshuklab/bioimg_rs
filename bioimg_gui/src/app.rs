@@ -1,8 +1,9 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::widgets::{author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, StatefulWidget, InputLines, StagingString, StagingVec};
-
-
+use crate::widgets::{
+    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
+    error_display::show_if_error, InputLines, StagingString, StagingVec, StatefulWidget,
+};
 
 pub struct TemplateApp {
     staging_name: StagingString<BoundedString<1, 127>>,
@@ -12,7 +13,6 @@ pub struct TemplateApp {
     staging_authors: StagingVec<StagingAuthor2>,
     //attachments
     staging_citations: StagingVec<StagingCiteEntry2>,
-
 }
 
 impl Default for TemplateApp {
@@ -20,9 +20,9 @@ impl Default for TemplateApp {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
             staging_description: StagingString::new(InputLines::Multiline),
-            cover_image: Default::default(),
-            staging_authors: Default::default(),
-            staging_citations: StagingVec::default(),
+            cover_image: StagingVec::new("Cover Image"),
+            staging_authors: StagingVec::new("Author"),
+            staging_citations: StagingVec::new("Cite"),
         }
     }
 }

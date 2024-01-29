@@ -103,12 +103,13 @@ impl<Stg> StatefulWidget for StagingOpt<Stg> where Stg: Default + StatefulWidget
 }
 
 pub struct StagingVec<Stg> where Stg: StatefulWidget{
+    item_name: String,
     staging: Vec<Stg>,
 }
 
-impl<Stg: StatefulWidget + Default> Default for StagingVec<Stg>{
-    fn default() -> Self {
-        Self{staging: vec![Stg::default()]}
+impl<Stg: StatefulWidget + Default> StagingVec<Stg>{
+    pub fn new(item_name: impl Into<String>) -> Self {
+        Self{staging: vec![Stg::default()], item_name: item_name.into()}
     }
 }
 
@@ -121,20 +122,20 @@ Stg: Default{
         Stg::Value<'p>: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
+        let item_name = &self.item_name;
         ui.vertical(|ui|{
             self.staging.iter_mut()
                 .enumerate()
                 .for_each(|(idx, staging_item)| {
-                    ui.label(format!("#{}", idx + 1));
+                    ui.label(format!("{item_name} #{}", idx + 1));
                     staging_item.draw_and_parse(ui, id.with(idx));
-                    // ui.separator();
+                    ui.separator();
                 });
-            // ui.separator();
             ui.horizontal(|ui|{
-                if ui.button("+").clicked(){
+                if ui.button(format!("+ Add {item_name}")).clicked(){
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
-                if ui.button("-").clicked() && self.staging.len() > 1{
+                if ui.button(format!("- Remove {item_name}")).clicked() && self.staging.len() > 1{
                     self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });
