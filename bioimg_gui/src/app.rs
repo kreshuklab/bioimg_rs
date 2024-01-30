@@ -1,8 +1,7 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
-    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
-    error_display::show_if_error, InputLines, StagingString, StagingVec, StatefulWidget,
+    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget
 };
 
 pub struct TemplateApp {
@@ -13,6 +12,8 @@ pub struct TemplateApp {
     staging_authors: StagingVec<StagingAuthor2>,
     //attachments
     staging_citations: StagingVec<StagingCiteEntry2>,
+    //config
+    staging_git_repo: StagingOpt<StagingUrl>,
 }
 
 impl Default for TemplateApp {
@@ -23,6 +24,7 @@ impl Default for TemplateApp {
             cover_image: StagingVec::new("Cover Image"),
             staging_authors: StagingVec::new("Author"),
             staging_citations: StagingVec::new("Cite"),
+            staging_git_repo: Default::default(),
         }
     }
 }
@@ -66,6 +68,11 @@ impl eframe::App for TemplateApp {
                 ui.strong("Cite: ");
                 self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
                 let citation_results = self.staging_citations.state();
+                ui.end_row();
+
+                ui.strong("Git Repo: ");
+                self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
+                let git_repo_result = self.staging_git_repo.state();
                 ui.end_row();
             }).inner;
         });

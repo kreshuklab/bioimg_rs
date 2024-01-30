@@ -5,6 +5,7 @@ pub mod url_widget;
 pub mod cite_widget;
 pub mod error_display;
 pub mod functional;
+pub mod icon_widget;
 
 pub trait StatefulWidget{
     type Value<'p> where Self: 'p;

@@ -25,6 +25,7 @@ pub mod bounded_string;
 pub mod si_units;
 pub mod version;
 pub mod orcid;
+pub mod icon;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
