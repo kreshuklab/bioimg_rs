@@ -1,7 +1,7 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
-    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::{GuiCoverImage, CoverImageWidget}, error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget, file_widget::FileWidget
+    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget
 };
 
 pub struct TemplateApp {

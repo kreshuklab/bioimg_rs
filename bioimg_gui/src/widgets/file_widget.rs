@@ -55,7 +55,7 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
                     ui.ctx().request_repaint();
                     if promise.is_finished() {
                         match promise.join() {
-                            Err(join_err) => FileWidgetState::Failed{ path, reason: "Could not join thread".into() },
+                            Err(_) => FileWidgetState::Failed{ path, reason: "Could not join thread".into() },
                             Ok(value) => FileWidgetState::Finished { path, value },
                         }
                     }else {
