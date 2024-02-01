@@ -2,32 +2,29 @@ use std::{path::PathBuf, thread::JoinHandle};
 
 use super::StatefulWidget;
 
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum FilePickerError {
-    #[error("Could not open {path}: {reason}")]
-    IoError { path: PathBuf, reason: String },
-    #[error("Could not join loader thread")]
-    ThreadJoinError,
+pub trait ParsedFile : Send + 'static{
+    fn parse(path: PathBuf, ctx: egui::Context) -> Self;
+    fn render(&self, ui: &mut egui::Ui, id: egui::Id);
 }
 
-pub enum FileWidgetState {
+pub enum FileWidgetState<V> {
     Empty,
     Loading {
         path: PathBuf,
-        resolver: JoinHandle<std::io::Result<Vec<u8>>>,
+        promise: JoinHandle<V>,
     },
-    Loaded {
+    Finished {
         path: PathBuf,
-        data: Vec<u8>,
+        value: V,
     },
-    Failed(FilePickerError),
+    Failed{path: PathBuf, reason: String},
 }
 
-pub struct FileWidget {
-    state: FileWidgetState,
+pub struct FileWidget<PF: ParsedFile> {
+    state: FileWidgetState<PF>,
 }
 
-impl Default for FileWidget {
+impl<PF: ParsedFile> Default for FileWidget<PF> {
     fn default() -> Self {
         Self {
             state: FileWidgetState::Empty,
@@ -35,39 +32,35 @@ impl Default for FileWidget {
     }
 }
 
-impl StatefulWidget for FileWidget {
-    type Value<'p> = &'p FileWidgetState;
+impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
+    type Value<'p> = &'p FileWidgetState<PF>;
 
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id){
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.horizontal(|ui| {
             self.state = match std::mem::replace(&mut self.state, FileWidgetState::Empty) {
                 FileWidgetState::Empty => {
                     ui.label("None");
                     FileWidgetState::Empty
                 }
-                FileWidgetState::Failed(err) => {
-                    ui.label(format!("Could not load file"));
-                    FileWidgetState::Failed(err)
+                FileWidgetState::Failed{path, reason} => {
+                    ui.label(format!("Could not load file")); //FIMXE: tooltip with reason?
+                    FileWidgetState::Failed{path, reason}
                 }
-                FileWidgetState::Loaded { path, data } => {
+                FileWidgetState::Finished { path, value } => {
                     ui.label(path.to_string_lossy());
-                    FileWidgetState::Loaded { path, data }
+                    value.render(ui, id.with("value"));
+                    FileWidgetState::Finished { path, value }
                 }
-                FileWidgetState::Loading { path, resolver } => 'joining: {
-                    if !resolver.is_finished() {
+                FileWidgetState::Loading { path, promise } => {
+                    ui.ctx().request_repaint();
+                    if promise.is_finished() {
+                        match promise.join() {
+                            Err(join_err) => FileWidgetState::Failed{ path, reason: "Could not join thread".into() },
+                            Ok(value) => FileWidgetState::Finished { path, value },
+                        }
+                    }else {
                         ui.label("Loading...");
-                        break 'joining FileWidgetState::Loading { path, resolver };
-                    }
-                    let join_value = match resolver.join() {
-                        Err(join_err) => break 'joining FileWidgetState::Failed(FilePickerError::ThreadJoinError),
-                        Ok(val) => val,
-                    };
-                    match join_value {
-                        Ok(data) => FileWidgetState::Loaded { path, data },
-                        Err(err) => FileWidgetState::Failed(FilePickerError::IoError {
-                            path,
-                            reason: err.to_string(),
-                        }),
+                        FileWidgetState::Loading { path, promise }
                     }
                 }
             };
@@ -75,17 +68,16 @@ impl StatefulWidget for FileWidget {
             if !ui.button("Open...").clicked() {
                 return;
             }
-            self.state = 'open_dialog: {
-                let path_buf = rfd::FileDialog::new() //FIXME: web?
-                    .pick_file();
-                let Some(pth) = path_buf else {
-                    break 'open_dialog FileWidgetState::Empty;
-                };
-                break 'open_dialog FileWidgetState::Loading {
+            let context = ui.ctx().clone();
+            let path_buf = rfd::FileDialog::new().pick_file(); //FIXME: web? async?
+            self.state = if let Some(pth) = path_buf {
+                FileWidgetState::Loading {
                     path: pth.clone(),
-                    resolver: std::thread::spawn(move || std::fs::read(pth)),
-                };
-            }
+                    promise: std::thread::spawn(move || PF::parse(pth, context)),
+                }
+            }else{
+                FileWidgetState::Empty
+            };
         });
     }
 

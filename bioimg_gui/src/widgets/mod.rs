@@ -1,5 +1,6 @@
 pub mod author_widget;
 pub mod file_widget;
+pub mod image_file_widget;
 pub mod cover_image_widget;
 pub mod url_widget;
 pub mod cite_widget;

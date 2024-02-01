@@ -1,13 +1,13 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
-    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget
+    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::{GuiCoverImage, CoverImageWidget}, error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget, file_widget::FileWidget
 };
 
 pub struct TemplateApp {
     staging_name: StagingString<BoundedString<1, 127>>,
     staging_description: StagingString<BoundedString<1, 1023>>,
-    cover_image: StagingVec<CoverImageWidget>,
+    cover_images: StagingVec<CoverImageWidget>,
     // id?
     staging_authors: StagingVec<StagingAuthor2>,
     //attachments
@@ -21,7 +21,7 @@ impl Default for TemplateApp {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
             staging_description: StagingString::new(InputLines::Multiline),
-            cover_image: StagingVec::new("Cover Image"),
+            cover_images: StagingVec::new("Cover Image"),
             staging_authors: StagingVec::new("Author"),
             staging_citations: StagingVec::new("Cite"),
             staging_git_repo: Default::default(),
@@ -56,8 +56,8 @@ impl eframe::App for TemplateApp {
                 ui.end_row();
 
                 ui.strong("Cover Images: ");
-                self.cover_image.draw_and_parse(ui, egui::Id::from("Cover Images"));
-                let cover_img_results = self.cover_image.state();
+                self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
+                let cover_img_results = self.cover_images.state();
                 ui.end_row();
 
                 ui.strong("Authors: ");
