@@ -11,9 +11,11 @@ use self::{
 pub mod attachment;
 pub mod author;
 pub mod badge;
+pub mod bounded_string;
 pub mod cite_entry;
 pub mod clamped;
 pub mod file_reference;
+pub mod icon;
 pub mod identifier;
 pub mod license;
 pub mod literal;
@@ -21,11 +23,11 @@ pub mod lowercase;
 pub mod maintainer;
 pub mod model;
 pub mod non_empty_list;
-pub mod bounded_string;
+pub mod orcid;
 pub mod si_units;
 pub mod version;
-pub mod orcid;
-pub mod icon;
+
+pub use icon::{EmojiIcon, Icon, IconParsingError};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {

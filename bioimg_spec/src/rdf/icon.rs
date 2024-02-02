@@ -1,40 +1,48 @@
 use super::file_reference::FileReference;
 
-#[derive(thiserror::Error, Debug)]
-pub enum IconParsingError{
-    #[error("{0}")]
-    EmojiParsingError(EmojiParsingError)
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum IconParsingError {
+    #[error("Not emoji: {0}")]
+    NotEmoji(String),
 }
 
-pub enum Icon{
-    FileReference(FileReference),
-    Emoji(String),
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub enum Icon {
+    Emoji(EmojiIcon),
+    FileRef(FileReference),
 }
 
 #[derive(thiserror::Error, Clone, Debug)]
-pub enum EmojiParsingError{
+pub enum EmojiParsingError {
     #[error("Bad string: {0}")]
     BadString(String),
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
-#[serde(try_from="String")]
-#[serde(into="String")]
+#[serde(try_from = "String")]
+#[serde(into = "String")]
 pub struct EmojiIcon(String);
 
-impl TryFrom<String> for EmojiIcon{
-    type Error = EmojiParsingError;
+impl TryFrom<String> for EmojiIcon {
+    type Error = IconParsingError;
     //FIXME: check that characters/glyphs,graphemes/whatever are emoji
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if !(1..=2).contains(&value.chars().count()){
-            return Err(EmojiParsingError::BadString(value))
+        if !(1..=2).contains(&value.chars().count()) {
+            return Err(IconParsingError::NotEmoji(value));
         }
-        return Ok(Self(value))
+        return Ok(Self(value));
     }
 }
 
-impl From<EmojiIcon> for String{
+impl TryFrom<String> for Icon {
+    type Error = IconParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Ok(Icon::Emoji(EmojiIcon::try_from(value)?))
+    }
+}
+
+impl From<EmojiIcon> for String {
     fn from(value: EmojiIcon) -> Self {
-        return value.0
+        return value.0;
     }
 }
