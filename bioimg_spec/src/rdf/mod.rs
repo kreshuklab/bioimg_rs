@@ -25,6 +25,7 @@ pub mod model;
 pub mod non_empty_list;
 pub mod orcid;
 pub mod si_units;
+pub mod slashless_string;
 pub mod version;
 
 pub use icon::{EmojiIcon, Icon, IconParsingError};
