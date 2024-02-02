@@ -1,7 +1,8 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
-    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget, error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget
+    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
+    error_display::show_if_error, url_widget::StagingUrl, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -42,39 +43,43 @@ impl eframe::App for TemplateApp {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Grid::new("app").num_columns(2).striped(true).show(ui, |ui|{
-                ui.strong("Name: ");
-                self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
-                let name_result = self.staging_name.state();
-                show_if_error(ui, &name_result);
-                ui.end_row();
+            egui::Grid::new("app")
+                .num_columns(2)
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.strong("Name: ");
+                    self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
+                    let name_result = self.staging_name.state();
+                    show_if_error(ui, &name_result);
+                    ui.end_row();
 
-                ui.strong("Description: ");
-                self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
-                let name_result = self.staging_description.state();
-                show_if_error(ui, &name_result);
-                ui.end_row();
+                    ui.strong("Description: ");
+                    self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
+                    let name_result = self.staging_description.state();
+                    show_if_error(ui, &name_result);
+                    ui.end_row();
 
-                ui.strong("Cover Images: ");
-                self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
-                let cover_img_results = self.cover_images.state();
-                ui.end_row();
+                    ui.strong("Cover Images: ");
+                    self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
+                    // let cover_img_results = self.cover_images.state();
+                    ui.end_row();
 
-                ui.strong("Authors: ");
-                self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
-                let author_results = self.staging_authors.state();
-                ui.end_row();
+                    ui.strong("Authors: ");
+                    self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
+                    // let author_results = self.staging_authors.state();
+                    ui.end_row();
 
-                ui.strong("Cite: ");
-                self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
-                let citation_results = self.staging_citations.state();
-                ui.end_row();
+                    ui.strong("Cite: ");
+                    self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
+                    // let citation_results = self.staging_citations.state();
+                    ui.end_row();
 
-                ui.strong("Git Repo: ");
-                self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
-                let git_repo_result = self.staging_git_repo.state();
-                ui.end_row();
-            }).inner;
+                    ui.strong("Git Repo: ");
+                    self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
+                    // let git_repo_result = self.staging_git_repo.state();
+                    ui.end_row();
+                })
+                .inner;
         });
     }
 }
