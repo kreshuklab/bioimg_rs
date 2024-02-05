@@ -2,8 +2,8 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
-    error_display::show_if_error, icon_widget::StagingIcon, url_widget::StagingUrl, InputLines, StagingOpt, StagingString,
-    StagingVec, StatefulWidget,
+    error_display::show_if_error, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
+    InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -17,6 +17,8 @@ pub struct TemplateApp {
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
     staging_icon: StagingIcon,
+    //links
+    staging_maintainers: StagingVec<StagingMaintainer>,
 }
 
 impl Default for TemplateApp {
@@ -29,6 +31,7 @@ impl Default for TemplateApp {
             staging_citations: StagingVec::new("Cite"),
             staging_git_repo: Default::default(),
             staging_icon: Default::default(),
+            staging_maintainers: StagingVec::new("Maintainer"),
         }
     }
 }
@@ -84,6 +87,10 @@ impl eframe::App for TemplateApp {
 
                     ui.strong("Icon: ");
                     self.staging_icon.draw_and_parse(ui, egui::Id::from("Icon"));
+                    ui.end_row();
+
+                    ui.strong("Maintainers: ");
+                    self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
                     ui.end_row();
                 })
                 .inner;
