@@ -3,7 +3,7 @@ use std::{fmt::Display, num::ParseIntError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum VersionParsingError {
     #[error("Expected 3 fields, found {found}")]
     WrongNumberOfComponents { found: usize },
@@ -93,9 +93,7 @@ fn test_version_parsing() {
 #[serde(into = "Version")]
 pub struct LiteralVersion<const MAJOR: usize, const MINOR: usize, const PATCH: usize>;
 
-impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> Into<Version>
-    for LiteralVersion<MAJOR, MINOR, PATCH>
-{
+impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> Into<Version> for LiteralVersion<MAJOR, MINOR, PATCH> {
     fn into(self) -> Version {
         return Version {
             major: MAJOR,
@@ -105,9 +103,7 @@ impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> Into<Version>
     }
 }
 
-impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> TryFrom<Version>
-    for LiteralVersion<MAJOR, MINOR, PATCH>
-{
+impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> TryFrom<Version> for LiteralVersion<MAJOR, MINOR, PATCH> {
     type Error = VersionParsingError;
 
     fn try_from(value: Version) -> Result<Self, Self::Error> {

@@ -2,7 +2,7 @@ use super::file_reference::FileReference;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum IconParsingError {
-    #[error("Not emoji: {0}")]
+    #[error("Not emoji: '{0}'")]
     NotEmoji(String),
 }
 

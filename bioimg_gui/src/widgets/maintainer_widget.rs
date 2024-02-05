@@ -32,7 +32,6 @@ impl StagingMaintainer {
                     ui.strong("Github User: ");
                     self.github_user.draw_and_parse(ui, id.with("github_user"));
                     let github_user = self.github_user.state();
-                    show_if_error(ui, &github_user);
                     github_user
                 })
                 .inner;
@@ -42,9 +41,6 @@ impl StagingMaintainer {
                     ui.strong("Affiliation: ");
                     self.affiliation.draw_and_parse(ui, id.with("affiliation"));
                     let affiliation = self.affiliation.state();
-                    if let Some(res) = &affiliation {
-                        show_if_error(ui, res);
-                    }
                     affiliation
                 })
                 .inner;
@@ -54,9 +50,6 @@ impl StagingMaintainer {
                     ui.strong("Email: ");
                     self.email.draw_and_parse(ui, id.with("email"));
                     let email = self.email.state();
-                    if let Some(res) = &email {
-                        show_if_error(ui, res);
-                    }
                     email
                 })
                 .inner;
@@ -66,9 +59,6 @@ impl StagingMaintainer {
                     ui.strong("Orcid: ");
                     self.orcid.draw_and_parse(ui, id.with("orcid"));
                     let orcid = self.orcid.state();
-                    if let Some(res) = &orcid {
-                        show_if_error(ui, res);
-                    }
                     orcid
                 })
                 .inner;
@@ -78,9 +68,6 @@ impl StagingMaintainer {
                     ui.strong("Name: ");
                     self.name.draw_and_parse(ui, id.with("name"));
                     let name = self.name.state();
-                    if let Some(name_res) = &name {
-                        show_if_error(ui, name_res);
-                    }
                     name
                 })
                 .inner;

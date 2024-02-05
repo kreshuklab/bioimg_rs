@@ -77,18 +77,16 @@ impl StatefulWidget for StagingIcon {
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
-            ui.radio_value(&mut self.input_mode, InputMode::Emoji, "Emoji Icon");
-            ui.add_enabled_ui(self.input_mode == InputMode::Emoji, |ui| {
+            ui.horizontal(|ui| {
+                ui.radio_value(&mut self.input_mode, InputMode::Emoji, "Emoji Icon");
+                ui.radio_value(&mut self.input_mode, InputMode::File, "Image File Icon");
+            });
+            if self.input_mode == InputMode::Emoji {
                 self.emoji_icon_widget.draw_and_parse(ui, id.with("Emoji Icon"));
-                if self.input_mode == InputMode::Emoji {
-                    show_if_error(ui, &self.emoji_icon_widget.state());
-                }
-            });
-
-            ui.radio_value(&mut self.input_mode, InputMode::File, "Image File Icon");
-            ui.add_enabled_ui(self.input_mode == InputMode::File, |ui| {
+            }
+            if self.input_mode == InputMode::File {
                 self.image_icon_widget.draw_and_parse(ui, id.with("Image File Icon"));
-            });
+            };
         });
     }
 

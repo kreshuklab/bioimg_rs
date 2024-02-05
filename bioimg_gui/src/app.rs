@@ -1,9 +1,10 @@
+use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
-    error_display::show_if_error, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
-    InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget,
+    icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, InputLines, StagingOpt,
+    StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -20,6 +21,7 @@ pub struct TemplateApp {
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
+    staging_version: StagingString<rdf::Version>,
 }
 
 impl Default for TemplateApp {
@@ -34,6 +36,7 @@ impl Default for TemplateApp {
             staging_icon: Default::default(),
             staging_maintainers: StagingVec::new("Maintainer"),
             staging_tags: StagingVec::new("Tag"),
+            staging_version: Default::default(),
         }
     }
 }
@@ -59,15 +62,13 @@ impl eframe::App for TemplateApp {
                     ui.strong("Name: ");
                     self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
                     let name_result = self.staging_name.state();
-                    show_if_error(ui, &name_result);
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Description: ");
                     self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
-                    let name_result = self.staging_description.state();
-                    show_if_error(ui, &name_result);
+                    let description_result = self.staging_description.state();
                 });
                 ui.add_space(10.0);
 
@@ -114,6 +115,12 @@ impl eframe::App for TemplateApp {
                 ui.horizontal_top(|ui| {
                     ui.strong("Tags: ");
                     self.staging_tags.draw_and_parse(ui, egui::Id::from("Tags"));
+                });
+                ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
+                    ui.strong("Resource Version: ");
+                    self.staging_version.draw_and_parse(ui, egui::Id::from("Version"));
                 });
                 ui.add_space(10.0);
             });

@@ -1,3 +1,7 @@
+use std::fmt::Display;
+
+use self::error_display::show_if_error;
+
 pub mod author_widget;
 pub mod cite_widget;
 pub mod cover_image_widget;
@@ -55,23 +59,26 @@ impl<T: TryFrom<String>> StagingString<T> {
 impl<T> StatefulWidget for StagingString<T>
 where
     T: TryFrom<String> + Clone,
-    T::Error: Clone,
+    T::Error: Clone + Display,
 {
     type Value<'p> = Result<T, T::Error> where T: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
-        match self.input_lines {
-            InputLines::SingleLine => {
-                ui.add(
-                    //FIXME: any way we can not hardcode this? at least use font size?
-                    egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }),
-                );
+        ui.horizontal(|ui| {
+            match self.input_lines {
+                InputLines::SingleLine => {
+                    ui.add(
+                        //FIXME: any way we can not hardcode this? at least use font size?
+                        egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }),
+                    );
+                }
+                InputLines::Multiline => {
+                    ui.text_edit_multiline(&mut self.raw);
+                }
             }
-            InputLines::Multiline => {
-                ui.text_edit_multiline(&mut self.raw);
-            }
-        }
-        self.parsed = T::try_from(self.raw.clone())
+            self.parsed = T::try_from(self.raw.clone());
+            show_if_error(ui, &self.parsed);
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
