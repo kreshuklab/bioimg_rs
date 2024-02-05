@@ -19,6 +19,7 @@ pub struct TemplateApp {
     staging_icon: StagingIcon,
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
+    staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
 }
 
 impl Default for TemplateApp {
@@ -32,6 +33,7 @@ impl Default for TemplateApp {
             staging_git_repo: Default::default(),
             staging_icon: Default::default(),
             staging_maintainers: StagingVec::new("Maintainer"),
+            staging_tags: StagingVec::new("Tag"),
         }
     }
 }
@@ -49,51 +51,72 @@ impl eframe::App for TemplateApp {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Grid::new("app")
-                .num_columns(2)
-                .striped(true)
-                .show(ui, |ui| {
+            ui.style_mut().spacing.item_spacing = egui::Vec2 { x: 10.0, y: 10.0 };
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.heading("Model Properties");
+
+                ui.horizontal_top(|ui| {
                     ui.strong("Name: ");
                     self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
                     let name_result = self.staging_name.state();
                     show_if_error(ui, &name_result);
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Description: ");
                     self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
                     let name_result = self.staging_description.state();
                     show_if_error(ui, &name_result);
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Cover Images: ");
                     self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
                     // let cover_img_results = self.cover_images.state();
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Authors: ");
                     self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
                     // let author_results = self.staging_authors.state();
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Cite: ");
                     self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
                     // let citation_results = self.staging_citations.state();
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Git Repo: ");
                     self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
                     // let git_repo_result = self.staging_git_repo.state();
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Icon: ");
                     self.staging_icon.draw_and_parse(ui, egui::Id::from("Icon"));
-                    ui.end_row();
+                });
+                ui.add_space(10.0);
 
+                ui.horizontal_top(|ui| {
                     ui.strong("Maintainers: ");
                     self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
-                    ui.end_row();
-                })
-                .inner;
+                });
+                ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
+                    ui.strong("Tags: ");
+                    self.staging_tags.draw_and_parse(ui, egui::Id::from("Tags"));
+                });
+                ui.add_space(10.0);
+            });
         });
     }
 }
