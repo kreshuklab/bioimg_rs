@@ -2,9 +2,9 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
-    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
-    icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
-    StagingOpt, StagingString, StagingVec, StatefulWidget,
+    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
+    cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
+    util::group_frame, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -22,6 +22,8 @@ pub struct TemplateApp {
     staging_maintainers: StagingVec<StagingMaintainer>,
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
     staging_version: StagingString<rdf::Version>,
+
+    staging_documentation: StagingOpt<CodeEditorWidget>,
 }
 
 impl Default for TemplateApp {
@@ -37,6 +39,7 @@ impl Default for TemplateApp {
             staging_maintainers: StagingVec::new("Maintainer"),
             staging_tags: StagingVec::new("Tag"),
             staging_version: Default::default(),
+            staging_documentation: Default::default(),
         }
     }
 }
@@ -125,6 +128,11 @@ impl eframe::App for TemplateApp {
                     self.staging_version.draw_and_parse(ui, egui::Id::from("Version"));
                 });
                 ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
+                    ui.strong("Documentation (markdown): ");
+                    self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
+                })
             });
         });
     }
