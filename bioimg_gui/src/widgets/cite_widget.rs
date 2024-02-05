@@ -3,7 +3,7 @@ use bioimg_spec::rdf::{
     cite_entry::CiteEntry2,
 };
 
-use super::{error_display::show_if_error, url_widget::StagingUrl, StagingOpt, StagingString, StatefulWidget};
+use super::{url_widget::StagingUrl, StagingOpt, StagingString, StatefulWidget};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -41,33 +41,30 @@ impl Default for StagingCiteEntry2 {
 
 impl StagingCiteEntry2 {
     fn do_draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<CiteEntry2, CiteEntry2ParsingError> {
-        ui.scope(|ui| {
-            egui::Grid::new(id)
-                .show(ui, |ui| {
-                    ui.strong("Text: ");
-                    self.staging_text.draw_and_parse(ui, id.with("Text"));
-                    let text_res = self.staging_text.state();
-                    ui.end_row();
+        egui::Grid::new(id)
+            .show(ui, |ui| {
+                ui.strong("Text: ");
+                self.staging_text.draw_and_parse(ui, id.with("Text"));
+                let text_res = self.staging_text.state();
+                ui.end_row();
 
-                    ui.strong("Doi: ");
-                    self.staging_doi.draw_and_parse(ui, id.with("Doi"));
-                    let doi_res = self.staging_doi.state();
-                    ui.end_row();
+                ui.strong("Doi: ");
+                self.staging_doi.draw_and_parse(ui, id.with("Doi"));
+                let doi_res = self.staging_doi.state();
+                ui.end_row();
 
-                    ui.strong("Url: ");
-                    self.staging_url.draw_and_parse(ui, id.with("Url"));
-                    let url_res = self.staging_url.state();
-                    ui.end_row();
+                ui.strong("Url: ");
+                self.staging_url.draw_and_parse(ui, id.with("Url"));
+                let url_res = self.staging_url.state();
+                ui.end_row();
 
-                    Ok(CiteEntry2 {
-                        text: text_res?,
-                        doi: doi_res.transpose()?,
-                        url: url_res.transpose()?,
-                    })
+                Ok(CiteEntry2 {
+                    text: text_res?,
+                    doi: doi_res.transpose()?,
+                    url: url_res.transpose()?,
                 })
-                .inner
-        })
-        .inner
+            })
+            .inner
     }
 }
 

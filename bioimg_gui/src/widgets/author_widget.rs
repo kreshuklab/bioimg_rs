@@ -4,7 +4,7 @@ use bioimg_spec::rdf::{
     orcid::{Orcid, OrcidParsingError},
 };
 
-use super::{error_display::show_if_error, StagingOpt, StagingString, StatefulWidget};
+use super::{StagingOpt, StagingString, StatefulWidget};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -52,45 +52,38 @@ impl Default for StagingAuthor2 {
 
 impl StagingAuthor2 {
     fn do_draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<Author2, Author2ParsingError> {
-        ui.scope(|ui| {
-            egui::Grid::new(id)
-                .show(ui, |ui| {
-                    ui.strong("Name: ");
-                    self.staging_name.draw_and_parse(ui, id.with("Name"));
-                    let name_res = self.staging_name.state();
-                    ui.end_row();
+        egui::Grid::new(id)
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.strong("Name: ");
+                self.staging_name.draw_and_parse(ui, id.with("Name"));
+                ui.end_row();
 
-                    ui.strong("Affiliation: ");
-                    self.staging_affiliation.draw_and_parse(ui, id.with("Affiliation"));
-                    let affiliation_res = self.staging_affiliation.state();
-                    ui.end_row();
+                ui.strong("Affiliation: ");
+                self.staging_affiliation.draw_and_parse(ui, id.with("Affiliation"));
+                ui.end_row();
 
-                    ui.strong("Email: ");
-                    self.staging_email.draw_and_parse(ui, id.with("Email"));
-                    let email_res = self.staging_email.state();
-                    ui.end_row();
+                ui.strong("Email: ");
+                self.staging_email.draw_and_parse(ui, id.with("Email"));
+                ui.end_row();
 
-                    ui.strong("Github User: ");
-                    self.staging_github_user.draw_and_parse(ui, id.with("Github User"));
-                    let github_user_res = self.staging_github_user.state();
-                    ui.end_row();
+                ui.strong("Github User: ");
+                self.staging_github_user.draw_and_parse(ui, id.with("Github User"));
+                ui.end_row();
 
-                    ui.strong("Orcid: ");
-                    self.staging_orcid.draw_and_parse(ui, id.with("Orcid"));
-                    let orcid_res = self.staging_orcid.state();
-                    ui.end_row();
+                ui.strong("Orcid: ");
+                self.staging_orcid.draw_and_parse(ui, id.with("Orcid"));
+                ui.end_row();
 
-                    Ok(Author2 {
-                        name: name_res.clone()?,
-                        affiliation: affiliation_res.transpose()?,
-                        email: email_res.transpose()?,
-                        github_user: github_user_res.transpose()?,
-                        orcid: orcid_res.transpose()?,
-                    })
+                Ok(Author2 {
+                    name: self.staging_name.state().clone()?,
+                    affiliation: self.staging_affiliation.state().transpose()?,
+                    email: self.staging_email.state().transpose()?,
+                    github_user: self.staging_github_user.state().transpose()?,
+                    orcid: self.staging_orcid.state().transpose()?,
                 })
-                .inner
-        })
-        .inner
+            })
+            .inner
     }
 }
 

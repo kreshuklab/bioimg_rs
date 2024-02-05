@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{bounded_string::BoundedString, maintainer::Maintainer, orcid::Orcid, slashless_string::SlashlessString};
 
-use super::{error_display::show_if_error, StagingOpt, StagingString, StatefulWidget};
+use super::{StagingOpt, StagingString, StatefulWidget};
 
 pub struct StagingMaintainer {
     github_user: StagingString<BoundedString<1, 1023>>, //FIXME validate this somehow}
@@ -26,61 +26,38 @@ impl Default for StagingMaintainer {
 
 impl StagingMaintainer {
     fn do_render_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> anyhow::Result<Maintainer> {
-        ui.vertical(|ui| {
-            let github_user = ui
-                .horizontal(|ui| {
-                    ui.strong("Github User: ");
-                    self.github_user.draw_and_parse(ui, id.with("github_user"));
-                    let github_user = self.github_user.state();
-                    github_user
-                })
-                .inner;
+        egui::Grid::new(id)
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.strong("Github User: ");
+                self.github_user.draw_and_parse(ui, id.with("github_user"));
+                ui.end_row();
 
-            let affiliation = ui
-                .horizontal(|ui| {
-                    ui.strong("Affiliation: ");
-                    self.affiliation.draw_and_parse(ui, id.with("affiliation"));
-                    let affiliation = self.affiliation.state();
-                    affiliation
-                })
-                .inner;
+                ui.strong("Affiliation: ");
+                self.affiliation.draw_and_parse(ui, id.with("affiliation"));
+                ui.end_row();
 
-            let email = ui
-                .horizontal(|ui| {
-                    ui.strong("Email: ");
-                    self.email.draw_and_parse(ui, id.with("email"));
-                    let email = self.email.state();
-                    email
-                })
-                .inner;
+                ui.strong("Email: ");
+                self.email.draw_and_parse(ui, id.with("email"));
+                ui.end_row();
 
-            let orcid = ui
-                .horizontal(|ui| {
-                    ui.strong("Orcid: ");
-                    self.orcid.draw_and_parse(ui, id.with("orcid"));
-                    let orcid = self.orcid.state();
-                    orcid
-                })
-                .inner;
+                ui.strong("Orcid: ");
+                self.orcid.draw_and_parse(ui, id.with("orcid"));
+                ui.end_row();
 
-            let name = ui
-                .horizontal(|ui| {
-                    ui.strong("Name: ");
-                    self.name.draw_and_parse(ui, id.with("name"));
-                    let name = self.name.state();
-                    name
-                })
-                .inner;
+                ui.strong("Name: ");
+                self.name.draw_and_parse(ui, id.with("name"));
+                ui.end_row();
 
-            Ok(Maintainer {
-                github_user: github_user?,
-                name: name.transpose()?,
-                affiliation: affiliation.transpose()?,
-                email: email.transpose()?,
-                orcid: orcid.transpose()?,
+                Ok(Maintainer {
+                    github_user: self.github_user.state()?,
+                    name: self.name.state().transpose()?,
+                    affiliation: self.affiliation.state().transpose()?,
+                    email: self.email.state().transpose()?,
+                    orcid: self.orcid.state().transpose()?,
+                })
             })
-        })
-        .inner
+            .inner
     }
 }
 

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use self::error_display::show_if_error;
+use self::{error_display::show_if_error, util::group_frame};
 
 pub mod author_widget;
 pub mod cite_widget;
@@ -107,7 +107,9 @@ where
                 }
             } else {
                 let x_clicked = ui.button("🗙").clicked();
-                self.0.as_mut().unwrap().draw_and_parse(ui, id);
+                group_frame(ui, |ui| {
+                    self.0.as_mut().unwrap().draw_and_parse(ui, id);
+                });
                 if x_clicked {
                     self.0.take();
                 }
@@ -151,8 +153,9 @@ where
         ui.vertical(|ui| {
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
                 ui.label(format!("{item_name} #{}", idx + 1));
-                staging_item.draw_and_parse(ui, id.with(idx));
-                ui.separator();
+                group_frame(ui, |ui| {
+                    staging_item.draw_and_parse(ui, id.with(idx));
+                });
             });
             ui.horizontal(|ui| {
                 if ui.button(format!("+ Add {item_name}")).clicked() {

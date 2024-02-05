@@ -3,8 +3,8 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, cover_image_widget::CoverImageWidget,
-    icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, InputLines, StagingOpt,
-    StagingString, StagingVec, StatefulWidget,
+    icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
+    StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -102,7 +102,9 @@ impl eframe::App for TemplateApp {
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Icon: ");
-                    self.staging_icon.draw_and_parse(ui, egui::Id::from("Icon"));
+                    group_frame(ui, |ui| {
+                        self.staging_icon.draw_and_parse(ui, egui::Id::from("Icon"));
+                    });
                 });
                 ui.add_space(10.0);
 
