@@ -10,6 +10,7 @@ pub mod error_display;
 pub mod file_widget;
 pub mod functional;
 pub mod icon_widget;
+pub mod license_Widget;
 pub mod maintainer_widget;
 pub mod url_widget;
 pub mod util;

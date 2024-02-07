@@ -1,10 +1,23 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
+impl Display for SpdxLicense {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        //FIXME: to_string can produce weird escape sequences
+        let quoted_string = serde_json::to_string(self).unwrap();
+        let unquoted: String = quoted_string.as_str().chars().skip(1).take(quoted_string.len() - 2).collect();
+        write!(f, "{}", unquoted)
+    }
+}
+
 #[allow(non_camel_case_types)]
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+#[derive(
+    Serialize, Deserialize, Eq, PartialEq, Debug, Copy, Clone, strum::VariantNames, strum::VariantArray, strum::FromRepr,
+)]
 pub enum SpdxLicense {
     #[serde(rename = "Glide")]
-    Glide,
+    Glide = 0,
     #[serde(rename = "Abstyles")]
     Abstyles,
     #[serde(rename = "AFL-1.1")]

@@ -5,7 +5,7 @@ use crate::rdf::bounded_string::BoundedString;
 
 use self::{
     attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, file_reference::FileReference,
-    license::SpdxLicense, maintainer::Maintainer,
+    maintainer::Maintainer,
 };
 
 pub mod attachment;
@@ -29,6 +29,7 @@ pub mod slashless_string;
 pub mod version;
 
 pub use icon::{EmojiIcon, Icon, IconParsingError};
+pub use license::SpdxLicense;
 pub use version::Version;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]

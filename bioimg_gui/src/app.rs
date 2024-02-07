@@ -3,8 +3,9 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
-    cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
-    util::group_frame, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget,
+    cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, license_Widget::LicenseWidget,
+    maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines, StagingOpt, StagingString,
+    StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -24,6 +25,7 @@ pub struct TemplateApp {
     staging_version: StagingString<rdf::Version>,
 
     staging_documentation: StagingOpt<CodeEditorWidget>,
+    staging_license: LicenseWidget,
 }
 
 impl Default for TemplateApp {
@@ -40,6 +42,7 @@ impl Default for TemplateApp {
             staging_tags: StagingVec::new("Tag"),
             staging_version: Default::default(),
             staging_documentation: Default::default(),
+            staging_license: Default::default(),
         }
     }
 }
@@ -132,6 +135,11 @@ impl eframe::App for TemplateApp {
                 ui.horizontal_top(|ui| {
                     ui.strong("Documentation (markdown): ");
                     self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
+                });
+
+                ui.horizontal(|ui| {
+                    ui.strong("License: ");
+                    self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 })
             });
         });
