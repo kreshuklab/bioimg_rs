@@ -3,9 +3,9 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
-    cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, license_Widget::LicenseWidget,
-    maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines, StagingOpt, StagingString,
-    StagingVec, StatefulWidget,
+    cover_image_widget::CoverImageWidget, example_tensor_widget::GuiNpyArray, file_widget::FileWidget, icon_widget::StagingIcon,
+    license_Widget::LicenseWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
+    StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -26,6 +26,8 @@ pub struct TemplateApp {
 
     staging_documentation: StagingOpt<CodeEditorWidget>,
     staging_license: LicenseWidget,
+    //badges
+    staging_example_tensor: FileWidget<anyhow::Result<GuiNpyArray>>,
 }
 
 impl Default for TemplateApp {
@@ -43,6 +45,8 @@ impl Default for TemplateApp {
             staging_version: Default::default(),
             staging_documentation: Default::default(),
             staging_license: Default::default(),
+
+            staging_example_tensor: Default::default(),
         }
     }
 }
@@ -140,7 +144,13 @@ impl eframe::App for TemplateApp {
                 ui.horizontal(|ui| {
                     ui.strong("License: ");
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
-                })
+                });
+
+                ui.horizontal(|ui| {
+                    ui.strong("Example tensor: ");
+                    self.staging_example_tensor
+                        .draw_and_parse(ui, egui::Id::from("Example Tensor"));
+                });
             });
         });
     }
