@@ -4,7 +4,7 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     cover_image_widget::CoverImageWidget, example_tensor_widget::GuiNpyArray, file_widget::FileWidget, icon_widget::StagingIcon,
-    license_Widget::LicenseWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
+    license_widget::LicenseWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
     StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
