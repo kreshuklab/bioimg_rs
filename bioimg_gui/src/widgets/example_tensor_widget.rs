@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
 use bioimg_spec::rdf::model::shape;
 use egui::{load::SizedTexture, ImageSource};
@@ -29,10 +32,10 @@ macro_rules! impl_NpyArray_try_read {
                     anyhow::bail!("Can't interpret npy file at {}", npy_path.to_string_lossy())
                 }
 
-                pub fn shape(&self) -> Vec<usize> {
+                pub fn shape(&self) -> &[usize] {
                     match self {
                         $(
-                            Self::[<Array $element_type:upper>](arr) => arr.shape().into(),
+                            Self::[<Array $element_type:upper>](arr) => arr.shape(),
                         )*
                     }
                 }
@@ -48,6 +51,13 @@ pub struct GuiNpyArray {
     contents: NpyArray,
     context: egui::Context,
     texture_handle: Option<egui::TextureHandle>,
+}
+
+impl Deref for GuiNpyArray {
+    type Target = NpyArray;
+    fn deref(&self) -> &Self::Target {
+        &self.contents
+    }
 }
 
 impl Drop for GuiNpyArray {
@@ -101,6 +111,6 @@ impl ParsedFile for anyhow::Result<GuiNpyArray> {
                     }
                     acc
                 });
-        ui.label(format!("C-order shape: [{shape_str}]"));
+        ui.weak(format!("C-order shape: [{shape_str}]"));
     }
 }
