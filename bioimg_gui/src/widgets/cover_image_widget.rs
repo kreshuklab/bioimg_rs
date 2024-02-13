@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::result::Result;
 use bioimg_spec::runtime as rt;
 use egui::{load::SizedTexture, ImageSource};
 
@@ -22,7 +23,7 @@ impl Drop for GuiCoverImage {
     }
 }
 
-impl ParsedFile for anyhow::Result<GuiCoverImage> {
+impl ParsedFile for Result<GuiCoverImage> {
     //FIXME: specific error?
     fn parse(path: PathBuf, ctx: egui::Context) -> Self {
         let contents = std::fs::read(&path)?;
@@ -51,4 +52,4 @@ impl ParsedFile for anyhow::Result<GuiCoverImage> {
     }
 }
 
-pub type CoverImageWidget = FileWidget<anyhow::Result<GuiCoverImage>>;
+pub type CoverImageWidget = FileWidget<Result<GuiCoverImage>>;

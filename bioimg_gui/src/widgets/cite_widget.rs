@@ -1,3 +1,4 @@
+use crate::result::Result;
 use bioimg_spec::rdf::{
     bounded_string::{BoundedString, BoundedStringParsingError},
     cite_entry::CiteEntry2,
@@ -39,43 +40,30 @@ impl Default for StagingCiteEntry2 {
     }
 }
 
-impl StagingCiteEntry2 {
-    fn do_draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Result<CiteEntry2, CiteEntry2ParsingError> {
-        egui::Grid::new(id)
-            .show(ui, |ui| {
-                ui.strong("Text: ");
-                self.staging_text.draw_and_parse(ui, id.with("Text"));
-                let text_res = self.staging_text.state();
-                ui.end_row();
-
-                ui.strong("Doi: ");
-                self.staging_doi.draw_and_parse(ui, id.with("Doi"));
-                let doi_res = self.staging_doi.state();
-                ui.end_row();
-
-                ui.strong("Url: ");
-                self.staging_url.draw_and_parse(ui, id.with("Url"));
-                let url_res = self.staging_url.state();
-                ui.end_row();
-
-                Ok(CiteEntry2 {
-                    text: text_res?,
-                    doi: doi_res.transpose()?,
-                    url: url_res.transpose()?,
-                })
-            })
-            .inner
-    }
-}
-
 impl StatefulWidget for StagingCiteEntry2 {
-    type Value<'p> = Result<CiteEntry2, CiteEntry2ParsingError>;
+    type Value<'p> = Result<CiteEntry2>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.parsed = self.do_draw_and_parse(ui, id)
+        egui::Grid::new(id).show(ui, |ui| {
+            ui.strong("Text: ");
+            self.staging_text.draw_and_parse(ui, id.with("Text"));
+            ui.end_row();
+
+            ui.strong("Doi: ");
+            self.staging_doi.draw_and_parse(ui, id.with("Doi"));
+            ui.end_row();
+
+            ui.strong("Url: ");
+            self.staging_url.draw_and_parse(ui, id.with("Url"));
+            ui.end_row();
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        self.parsed.clone()
+        Ok(CiteEntry2 {
+            text: self.staging_text.state().to_owned()?,
+            doi: self.staging_doi.state().to_owned().transpose()?,
+            url: self.staging_url.state().to_owned().transpose()?,
+        })
     }
 }

@@ -1,6 +1,7 @@
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
+use crate::result::Result;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     cover_image_widget::CoverImageWidget, example_tensor_widget::GuiNpyArray, file_widget::FileWidget, icon_widget::StagingIcon,
@@ -27,7 +28,7 @@ pub struct TemplateApp {
     staging_documentation: StagingOpt<CodeEditorWidget>,
     staging_license: LicenseWidget,
     //badges
-    staging_example_tensor: FileWidget<anyhow::Result<GuiNpyArray>>,
+    staging_example_tensor: FileWidget<Result<GuiNpyArray>>,
 }
 
 impl Default for TemplateApp {

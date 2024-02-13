@@ -14,6 +14,8 @@ pub mod tensor_data_descr;
 pub mod tensor_id;
 pub mod time_unit;
 
+pub use axes2::{AxisId, BatchAxis};
+
 pub struct ModelRdf {
     pub base: Rdf,
     // inputs: u32

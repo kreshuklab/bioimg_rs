@@ -3,10 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use bioimg_spec::rdf::model::shape;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{error_display::show_error, file_widget::ParsedFile};
+use crate::result::{GuiError, Result};
 
 macro_rules! impl_NpyArray_try_read {
     ($($element_type:ident),+) => {
@@ -19,17 +19,19 @@ macro_rules! impl_NpyArray_try_read {
             }
 
             impl NpyArray {
-                fn try_read(npy_path: &Path) -> anyhow::Result<Self> {
+                fn try_read(npy_path: &Path) -> Result<Self> {
                     $(
                         match ndarray_npy::read_npy::<_, ndarray::ArrayD<$element_type>>(npy_path) {
                             Ok(arr) => return Ok(Self::[<Array $element_type:upper>](arr)),
                             Err(err) => match err {
                                 ndarray_npy::ReadNpyError::WrongDescriptor(_) => (),
-                                other_err => anyhow::bail!(other_err),
+                                other_err => return Err(GuiError::from(other_err)),
                             },
-                        }
+                        };
                     )+
-                    anyhow::bail!("Can't interpret npy file at {}", npy_path.to_string_lossy())
+                    return Err(GuiError::new(
+                        format!("Can't interpret npy file at {}", npy_path.to_string_lossy())
+                    ))
                 }
 
                 pub fn shape(&self) -> &[usize] {
@@ -68,7 +70,7 @@ impl Drop for GuiNpyArray {
     }
 }
 
-impl ParsedFile for anyhow::Result<GuiNpyArray> {
+impl ParsedFile for Result<GuiNpyArray> {
     fn parse(path: PathBuf, ctx: egui::Context) -> Self {
         let npy_array = NpyArray::try_read(&path)?;
         Ok(GuiNpyArray {

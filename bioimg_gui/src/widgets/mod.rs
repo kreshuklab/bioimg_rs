@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use self::{error_display::show_if_error, util::group_frame};
+use crate::result::{GuiError, Result};
 
 pub mod author_widget;
 pub mod cite_widget;
@@ -11,8 +12,10 @@ pub mod example_tensor_widget;
 pub mod file_widget;
 pub mod functional;
 pub mod icon_widget;
+pub mod input_tensor_widget;
 pub mod license_widget;
 pub mod maintainer_widget;
+pub mod tensor_axis_widget;
 pub mod url_widget;
 pub mod util;
 
@@ -31,29 +34,37 @@ pub enum InputLines {
 }
 
 #[derive(Debug)]
-pub struct StagingString<T: TryFrom<String>> {
+pub struct StagingString<T> {
     raw: String,
-    parsed: Result<T, T::Error>,
+    parsed: Result<T>,
     input_lines: InputLines,
 }
 
-impl<T: TryFrom<String>> Default for StagingString<T> {
+impl<T> Default for StagingString<T>
+where
+    T: TryFrom<String>,
+    T::Error: Display,
+{
     fn default() -> Self {
         let raw = String::default();
         Self {
             raw: raw.clone(),
-            parsed: T::try_from(raw),
+            parsed: T::try_from(raw).map_err(|err| GuiError::new(err.to_string())),
             input_lines: InputLines::SingleLine,
         }
     }
 }
 
-impl<T: TryFrom<String>> StagingString<T> {
+impl<T> StagingString<T>
+where
+    T: TryFrom<String>,
+    T::Error: Display,
+{
     pub fn new(input_lines: InputLines) -> Self {
         let raw = String::default();
         Self {
             raw: raw.clone(),
-            parsed: T::try_from(raw),
+            parsed: T::try_from(raw).map_err(|err| GuiError::new(err.to_string())),
             input_lines,
         }
     }
@@ -62,9 +73,9 @@ impl<T: TryFrom<String>> StagingString<T> {
 impl<T> StatefulWidget for StagingString<T>
 where
     T: TryFrom<String> + Clone,
-    T::Error: Clone + Display,
+    T::Error: Display,
 {
-    type Value<'p> = Result<T, T::Error> where T: 'p;
+    type Value<'p> = Result<T> where T: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.horizontal(|ui| {
@@ -79,7 +90,7 @@ where
                     ui.text_edit_multiline(&mut self.raw);
                 }
             }
-            self.parsed = T::try_from(self.raw.clone());
+            self.parsed = T::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()));
             show_if_error(ui, &self.parsed);
         });
     }

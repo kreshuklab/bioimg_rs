@@ -1,7 +1,8 @@
 use bioimg_spec::rdf;
 
-use super::{error_display::show_if_error, util::DynamicImageExt, StagingString, StatefulWidget};
+use super::{util::DynamicImageExt, StagingString, StatefulWidget};
 
+use crate::result::Result;
 use std::path::PathBuf;
 
 use bioimg_spec::runtime as rt;
@@ -25,7 +26,7 @@ impl Drop for GuiIconImage {
     }
 }
 
-impl ParsedFile for anyhow::Result<GuiIconImage> {
+impl ParsedFile for Result<GuiIconImage> {
     fn parse(path: PathBuf, ctx: egui::Context) -> Self {
         let img = image::io::Reader::open(&path)?.decode()?;
         let icon = rt::Icon::try_from(img.clone())?;
@@ -68,12 +69,12 @@ impl Default for InputMode {
 #[derive(Default)]
 pub struct StagingIcon {
     emoji_icon_widget: StagingString<rdf::Icon>,
-    image_icon_widget: FileWidget<anyhow::Result<GuiIconImage>>,
+    image_icon_widget: FileWidget<Result<GuiIconImage>>,
     input_mode: InputMode,
 }
 
 impl StatefulWidget for StagingIcon {
-    type Value<'p> = &'p anyhow::Result<rt::Icon>;
+    type Value<'p> = Result<rt::Icon>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
@@ -91,6 +92,6 @@ impl StatefulWidget for StagingIcon {
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        unimplemented!("maybe make StagingString use anyhow::error?")
+        unimplemented!("Create a rt::Icon")
     }
 }

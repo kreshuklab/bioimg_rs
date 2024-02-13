@@ -3,6 +3,7 @@ use std::borrow::Borrow;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(transparent)]
 pub struct NonEmptyList<T>(Vec<T>);
 
 impl<T> TryFrom<Vec<T>> for NonEmptyList<T> {
