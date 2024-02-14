@@ -1,6 +1,6 @@
-use std::{ops::RangeInclusive, fmt::Display, borrow::Borrow};
+use std::{borrow::Borrow, fmt::Display, ops::RangeInclusive};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(thiserror::Error, PartialEq, Eq, Debug, Clone)]
 pub enum BoundedStringParsingError {
@@ -12,6 +12,12 @@ pub enum BoundedStringParsingError {
 #[serde(try_from = "String")]
 #[serde(into = "String")]
 pub struct BoundedString<const MIN_CHARS: usize, const EXTRA_CHARS: usize>(String);
+
+impl<const EXTRA_CHARS: usize> Default for BoundedString<0, EXTRA_CHARS> {
+    fn default() -> Self {
+        Self(String::new())
+    }
+}
 
 impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> TryFrom<String> for BoundedString<MIN_CHARS, EXTRA_CHARS> {
     type Error = BoundedStringParsingError;

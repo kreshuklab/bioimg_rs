@@ -1,154 +1,81 @@
-use std::{borrow::Borrow, error::Error, num::NonZeroUsize};
-
 use serde::{Deserialize, Serialize};
 
-use super::{channel_name::ChannelNames, space_unit::SpaceUnit, tensor_id::TensorId, time_unit::TimeUnit};
-use crate::rdf::{
-    literal::LiteralInt,
-    lowercase::{Lowercase, LowercaseParsingError},
-    bounded_string::BoundedString,
+use super::{
+    axis_size::{AnyAxisSize, FixedAxisSize},
+    channel_name::ChannelNames,
+    space_unit::SpaceUnit,
+    time_unit::TimeUnit,
 };
+use crate::rdf::{bounded_string::BoundedString, literal::LiteralInt, lowercase::Lowercase};
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
-
-#[derive(thiserror::Error, Debug)]
-pub enum AxisSizeParsingError {
-    #[error("Bad component:  {source}")]
-    BadComponent { source: Box<dyn Error + 'static> },
-    #[error("Bad identifier")]
-    BadIdentifier { value: String, ident: String },
-    #[error("Expected at most 2 period-separated components: '{value}'")]
-    WrongNumberOfComponents { value: String },
-    #[error("Cant have an empty component before or after the period: '{value}'")]
-    EmptyComponent { value: String },
-}
-
-impl From<LowercaseParsingError> for AxisSizeParsingError {
-    fn from(value: LowercaseParsingError) -> Self {
-        AxisSizeParsingError::BadComponent { source: Box::new(value) }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum AxisSize {
-    Fixed(NonZeroUsize),
-    Ref { reference: AxisSizeReference, offset: usize },
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(try_from = "String")]
-#[serde(into = "String")]
-pub enum AxisSizeReference {
-    AxisRef(AxisId),
-    TensorAxisRef { tensor_id: TensorId, axis_id: AxisId },
-}
-
-impl TryFrom<String> for AxisSizeReference {
-    type Error = AxisSizeParsingError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let parts: Vec<&str> = value.split(".").collect();
-        match TryInto::<[&str; 1]>::try_into(parts) {
-            Ok(single_part) => {
-                let axis_id = AxisId::try_from(String::from(single_part[0]))?;
-                Ok(AxisSizeReference::AxisRef(axis_id))
-            }
-            Err(parts) => {
-                let Ok(two_parts) = TryInto::<[&str; 2]>::try_into(parts) else {
-                    return Err(AxisSizeParsingError::WrongNumberOfComponents { value });
-                };
-                let tensor_id = TensorId::try_from(String::from(two_parts[0]))?;
-                let axis_id = AxisId::try_from(String::from(two_parts[1]))?;
-                Ok(AxisSizeReference::TensorAxisRef { tensor_id, axis_id })
-            }
-        }
-    }
-}
-
-impl From<AxisSizeReference> for String {
-    fn from(value: AxisSizeReference) -> Self {
-        match value {
-            AxisSizeReference::AxisRef(axis_id) => Borrow::<str>::borrow(&axis_id).into(),
-            AxisSizeReference::TensorAxisRef { tensor_id, axis_id } => {
-                format!("{}.{}", tensor_id, axis_id)
-            }
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum IndexTimeSpaceAxisSize {
-    Parameterized { min: NonZeroUsize, step: NonZeroUsize },
-    AxisSize(AxisSize),
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchAxis {
     #[serde(default = "_default_batch_axis_id")]
-    id: AxisId,
+    pub id: AxisId,
     #[serde(default)]
-    description: String,
+    pub description: BoundedString<0, { 128 - 1 }>,
     #[serde(default)]
-    size: Option<LiteralInt<1>>,
+    pub size: Option<LiteralInt<1>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChannelAxis {
     #[serde(default = "_default_channel_axis_id")]
-    id: AxisId,
+    pub id: AxisId,
     #[serde(default)]
-    description: String,
+    pub description: BoundedString<0, { 128 - 1 }>,
+    pub size: FixedAxisSize,
     #[serde(default)]
-    channel_names: ChannelNames, //FIXME: do we need to handle "#channel_names" ?
-    size: Option<AxisSize>,
+    pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IndexAxis {
-    size: IndexTimeSpaceAxisSize,
+    #[serde(default = "_default_index_axis_id")]
+    pub id: AxisId,
+    #[serde(default)]
+    pub description: BoundedString<0, { 128 - 1 }>,
+    pub size: AnyAxisSize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TimeInputAxis {
     #[serde(default = "_default_time_axis_id")]
-    id: AxisId,
+    pub id: AxisId,
     #[serde(default)]
-    unit: Option<TimeUnit>,
+    pub unit: Option<TimeUnit>,
     #[serde(default = "_default_axis_scale")]
-    scale: f32, //FIXME: enforce greater than 1
+    pub scale: f32, //FIXME: enforce greater than 0
+    pub size: AnyAxisSize,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TimeOutputAxis {
+    #[serde(flatten)]
+    pub base: TimeInputAxis,
+    #[serde(default)]
+    pub halo: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpaceInputAxis {
     #[serde(default = "_default_space_axis_id")]
-    id: AxisId,
+    pub id: AxisId,
     #[serde(default)]
-    unit: Option<SpaceUnit>,
+    pub unit: Option<SpaceUnit>,
     #[serde(default = "_default_axis_scale")]
-    scale: f32, //FIXME: enforce greater than 1
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TimeOutputAxis {
-    #[serde(default = "_default_time_axis_id")]
-    id: AxisId,
-    #[serde(default)]
-    unit: Option<TimeUnit>,
-    #[serde(default = "_default_axis_scale")]
-    scale: f32, //FIXME: enforce greater than 1
-    #[serde(default)]
-    halo: usize,
+    pub scale: f32, //FIXME: enforce greater than 0
+    pub size: AnyAxisSize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpaceOutputAxis {
-    #[serde(default = "_default_space_axis_id")]
-    id: AxisId,
+    #[serde(flatten)]
+    pub base: SpaceInputAxis,
     #[serde(default)]
-    unit: Option<SpaceUnit>,
-    #[serde(default = "_default_axis_scale")]
-    scale: f32, //FIXME: enforce greater than 1
-    #[serde(default)]
-    halo: usize,
+    pub halo: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -189,6 +116,9 @@ fn _default_channel_axis_id() -> AxisId {
 }
 fn _default_time_axis_id() -> AxisId {
     String::from("time").try_into().unwrap()
+}
+fn _default_index_axis_id() -> AxisId {
+    String::from("index").try_into().unwrap()
 }
 fn _default_space_axis_id() -> AxisId {
     String::from("x").try_into().unwrap()

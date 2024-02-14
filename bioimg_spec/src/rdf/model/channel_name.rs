@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{bounded_string::BoundedStringParsingError, identifier::Identifier};
-
+use crate::rdf::{
+    bounded_string::BoundedStringParsingError,
+    identifier::{Identifier, IdentifierParsingError},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ChannelNameParsingError {
@@ -25,12 +27,21 @@ pub enum ChannelNames {
     Fixed(Vec<Identifier<String>>),
 }
 
+impl ChannelNames {
+    pub fn try_resolve(&self, size: usize) -> Result<Vec<Identifier<String>>, IdentifierParsingError> {
+        match self {
+            Self::Dynamic(dynamic) => (0..size).map(|idx| dynamic.try_resolve(idx)).collect(),
+            Self::Shorthand(ident) => Ok((0..size).map(|idx| ident.appended_with(&idx.to_string())).collect()),
+            Self::Fixed(idents) => Ok(idents.clone()),
+        }
+    }
+}
+
 impl Default for ChannelNames {
     fn default() -> Self {
         ChannelNames::Dynamic(DynamicChannelName::default())
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String")]
@@ -38,6 +49,13 @@ impl Default for ChannelNames {
 pub struct DynamicChannelName {
     pub prefix: String,
     pub suffix: String,
+}
+
+impl DynamicChannelName {
+    pub fn try_resolve(&self, idx: usize) -> Result<Identifier<String>, IdentifierParsingError> {
+        let raw = format!("{}{idx}{}", self.prefix, self.suffix);
+        Identifier::try_from(raw)
+    }
 }
 
 impl Default for DynamicChannelName {

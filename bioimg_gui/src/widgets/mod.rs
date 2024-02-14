@@ -4,6 +4,7 @@ use self::{error_display::show_if_error, util::group_frame};
 use crate::result::{GuiError, Result};
 
 pub mod author_widget;
+pub mod axis_size_widget;
 pub mod cite_widget;
 pub mod code_editor_widget;
 pub mod cover_image_widget;

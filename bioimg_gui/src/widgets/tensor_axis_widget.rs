@@ -1,19 +1,82 @@
-use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
+use bioimg_spec::rdf::model as modelrdf;
+use bioimg_spec::rdf::{self, literal::LiteralInt};
 
-use super::{StagingString, StatefulWidget};
+use super::{StagingString, StagingVec, StatefulWidget};
+use crate::result::Result;
 
 pub struct AxisNameWidget {}
 
 pub struct BatchAxisWidget {
-    pub staging_id: StagingString<rdf::model::AxisId>,
-    pub staging_description: StagingString<BoundedString<1, { 128 - 1 }>>,
-    pub staging_auto_size: bool,
+    pub staging_id: StagingString<modelrdf::axes2::AxisId>,
+    pub staging_description: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub staging_allow_auto_size: bool,
 }
 
-// impl StatefulWidget for BatchAxisWidget {
-//     type Value<'p> = anyhow::Result<rdf::model::BatchAxis>;
+impl Default for BatchAxisWidget {
+    fn default() -> Self {
+        Self {
+            staging_id: Default::default(),
+            staging_description: Default::default(),
+            staging_allow_auto_size: true,
+        }
+    }
+}
 
+impl StatefulWidget for BatchAxisWidget {
+    type Value<'p> = Result<modelrdf::axes2::BatchAxis>;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.strong("Id: ");
+                self.staging_id.draw_and_parse(ui, id.with("id"));
+            });
+            ui.horizontal(|ui| {
+                ui.strong("Description: ");
+                self.staging_description.draw_and_parse(ui, id.with("description"));
+            });
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut self.staging_allow_auto_size, "Allow auto size");
+            });
+        });
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        Ok(modelrdf::axes2::BatchAxis {
+            id: self.staging_id.state()?,
+            description: self.staging_description.state()?,
+            size: if self.staging_allow_auto_size {
+                None
+            } else {
+                Some(LiteralInt::<1>)
+            },
+        })
+    }
+}
+
+pub struct IndexAxisWidget {}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum ChannelNamesMode {
+    Pattern,
+    Explicit,
+}
+
+pub struct ChannelAxisWidget {
+    pub staging_id: StagingString<modelrdf::axes2::AxisId>,
+    pub staging_description: StagingString<BoundedString<1, { 128 - 1 }>>,
+
+    pub channel_names_mode: ChannelNamesMode,
+
+    pub staging_pattern_prefix: StagingString<String>,
+    pub staging_pattern_suffix: StagingString<String>,
+
+    pub staging_explicit_names: StagingVec<StagingString<BoundedString<1, { 1024 - 1 }>>>,
+}
+
+// impl StatefulWidget for ChannelAxisWidget {
+//     type Value<'p> = Result<modelrdf::axes2::ChannelAxis>;
 //     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
 //         ui.vertical(|ui| {
 //             ui.horizontal(|ui| {
@@ -25,12 +88,30 @@ pub struct BatchAxisWidget {
 //                 self.staging_description.draw_and_parse(ui, id.with("description"));
 //             });
 //             ui.horizontal(|ui| {
-//                 ui.checkbox(&mut self.staging_auto_size, "Auto size");
+//                 ui.strong("Channel Names: ");
+//                 ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
+//                 ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
 //             });
+//             match self.channel_names_mode {
+//                 ChannelNamesMode::Pattern => {
+//                     ui.horizontal(|ui| {
+//                         ui.strong("Prefix: ");
+//                         self.staging_pattern_prefix.draw_and_parse(ui, id.with("prefix"));
+
+//                         ui.strong("Suffix: ");
+//                         self.staging_pattern_suffix.draw_and_parse(ui, id.with("suffix"));
+//                     });
+//                 }
+//                 ChannelNamesMode::Explicit => {
+//                     self.staging_explicit_names.draw_and_parse(ui, id.with("explicit"));
+//                 }
+//             };
 //         });
 //     }
 
 //     fn state<'p>(&'p self) -> Self::Value<'p> {
-//         let id = self.staging_id.state()?;
+//         Ok(modelrdf::axes2::ChannelAxis {
+//             id: self.staging_id.state()?,
+//         })
 //     }
 // }

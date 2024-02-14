@@ -2,19 +2,16 @@ use super::Rdf;
 
 pub mod axes;
 pub mod axes2;
+pub mod axis_size;
 pub mod channel_name;
 pub mod data_range;
 pub mod data_type;
 pub mod input_tensor;
 pub mod preprocessing;
-pub mod shape;
-pub mod size;
 pub mod space_unit;
 pub mod tensor_data_descr;
 pub mod tensor_id;
 pub mod time_unit;
-
-pub use axes2::{AxisId, BatchAxis};
 
 pub struct ModelRdf {
     pub base: Rdf,
