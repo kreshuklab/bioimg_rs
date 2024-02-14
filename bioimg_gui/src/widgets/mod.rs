@@ -55,9 +55,10 @@ where
 {
     type Value<'p> = Result<T> where T: 'p;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.add(egui::widgets::DragValue::new(&mut self.raw));
-        self.parsed = T::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()))
+        self.parsed = T::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()));
+        show_if_error(ui, &self.parsed);
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
