@@ -12,6 +12,8 @@ pub mod tensor_data_descr;
 pub mod tensor_id;
 pub mod time_unit;
 
+pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize};
+
 pub struct ModelRdf {
     pub base: Rdf,
     // inputs: u32
