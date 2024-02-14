@@ -30,7 +30,7 @@ impl StatefulWidget for AxisSizeReferenceWidget {
 
             ui.horizontal(|ui| {
                 ui.strong("Offset: ");
-                self.staging_axis_id.draw_and_parse(ui, id.with("Offset"));
+                self.staging_offset.draw_and_parse(ui, id.with("Offset"));
             });
         });
     }
@@ -103,16 +103,15 @@ impl StatefulWidget for AnyAxisSizeWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Mode: ");
-                ui.radio_value(&mut self.mode, AxisSizeMode::Fixed, "Fixed Size");
-                ui.radio_value(&mut self.mode, AxisSizeMode::Parameterized, "Parameterized");
-                ui.radio_value(&mut self.mode, AxisSizeMode::Reference, "Reference");
+                ui.selectable_value(&mut self.mode, AxisSizeMode::Fixed, "Fixed Size");
+                ui.selectable_value(&mut self.mode, AxisSizeMode::Parameterized, "Parameterized");
+                ui.selectable_value(&mut self.mode, AxisSizeMode::Reference, "Reference");
             });
 
             match self.mode {
                 AxisSizeMode::Fixed => {
                     ui.horizontal(|ui| {
-                        ui.strong("Size: ");
+                        ui.strong("Extent: ");
                         self.staging_fixed_size.draw_and_parse(ui, id.with("Fixed"));
                     });
                 }
