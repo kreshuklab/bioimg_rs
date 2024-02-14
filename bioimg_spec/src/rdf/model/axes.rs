@@ -10,6 +10,32 @@ use crate::rdf::{bounded_string::BoundedString, literal::LiteralInt, lowercase::
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
+pub struct AxisScale(f32);
+
+impl Default for AxisScale {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Clone, Debug)]
+pub enum AxisScaleParsingError {
+    #[error("Axis scale is less than 0.0: {0}")]
+    LessThanZero(f32),
+}
+
+impl TryFrom<f32> for AxisScale {
+    type Error = AxisScaleParsingError;
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        if value > 0.0 {
+            Ok(Self(value))
+        } else {
+            Err(AxisScaleParsingError::LessThanZero(value))
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchAxis {
     #[serde(default = "_default_batch_axis_id")]
@@ -46,8 +72,8 @@ pub struct TimeInputAxis {
     pub id: AxisId,
     #[serde(default)]
     pub unit: Option<TimeUnit>,
-    #[serde(default = "_default_axis_scale")]
-    pub scale: f32, //FIXME: enforce greater than 0
+    #[serde(default)]
+    pub scale: AxisScale,
     pub size: AnyAxisSize,
 }
 
@@ -65,8 +91,8 @@ pub struct SpaceInputAxis {
     pub id: AxisId,
     #[serde(default)]
     pub unit: Option<SpaceUnit>,
-    #[serde(default = "_default_axis_scale")]
-    pub scale: f32, //FIXME: enforce greater than 0
+    #[serde(default)]
+    pub scale: AxisScale,
     pub size: AnyAxisSize,
 }
 
