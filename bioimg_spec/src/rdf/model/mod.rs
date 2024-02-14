@@ -1,7 +1,6 @@
 use super::Rdf;
 
 pub mod axes;
-pub mod axes2;
 pub mod axis_size;
 pub mod channel_name;
 pub mod data_range;

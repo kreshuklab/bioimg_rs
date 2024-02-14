@@ -2,13 +2,11 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::{self, literal::LiteralInt};
 
-use super::{StagingString, StagingVec, StatefulWidget};
-use crate::result::Result;
-
-pub struct AxisNameWidget {}
+use super::{InputLines, StagingString, StagingVec, StatefulWidget};
+use crate::result::{GuiError, Result};
 
 pub struct BatchAxisWidget {
-    pub staging_id: StagingString<modelrdf::axes2::AxisId>,
+    pub staging_id: StagingString<modelrdf::axes::AxisId>,
     pub staging_description: StagingString<BoundedString<0, { 128 - 1 }>>,
     pub staging_allow_auto_size: bool,
 }
@@ -16,17 +14,19 @@ pub struct BatchAxisWidget {
 impl Default for BatchAxisWidget {
     fn default() -> Self {
         Self {
-            staging_id: Default::default(),
+            staging_id: StagingString {
+                raw: "batch".into(),
+                parsed: modelrdf::axes::AxisId::try_from("batch".to_owned()).map_err(GuiError::from),
+                input_lines: InputLines::SingleLine,
+            },
             staging_description: Default::default(),
             staging_allow_auto_size: true,
         }
     }
 }
 
-impl StatefulWidget for BatchAxisWidget {
-    type Value<'p> = Result<modelrdf::axes2::BatchAxis>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+impl BatchAxisWidget {
+    fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.strong("Id: ");
@@ -42,17 +42,17 @@ impl StatefulWidget for BatchAxisWidget {
         });
     }
 
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(modelrdf::axes2::BatchAxis {
-            id: self.staging_id.state()?,
-            description: self.staging_description.state()?,
-            size: if self.staging_allow_auto_size {
-                None
-            } else {
-                Some(LiteralInt::<1>)
-            },
-        })
-    }
+    // fn parsed(&self) -> Result<> {
+    //     Ok(modelrdf::axes::BatchAxis {
+    //         id: self.staging_id.state()?,
+    //         description: self.staging_description.state()?,
+    //         size: if self.staging_allow_auto_size {
+    //             None
+    //         } else {
+    //             Some(LiteralInt::<1>)
+    //         },
+    //     })
+    // }
 }
 
 pub struct IndexAxisWidget {}
@@ -64,7 +64,7 @@ enum ChannelNamesMode {
 }
 
 pub struct ChannelAxisWidget {
-    pub staging_id: StagingString<modelrdf::axes2::AxisId>,
+    pub staging_id: StagingString<modelrdf::axes::AxisId>,
     pub staging_description: StagingString<BoundedString<1, { 128 - 1 }>>,
 
     pub channel_names_mode: ChannelNamesMode,
@@ -76,7 +76,7 @@ pub struct ChannelAxisWidget {
 }
 
 // impl StatefulWidget for ChannelAxisWidget {
-//     type Value<'p> = Result<modelrdf::axes2::ChannelAxis>;
+//     type Value<'p> = Result<modelrdf::axes::ChannelAxis>;
 //     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
 //         ui.vertical(|ui| {
 //             ui.horizontal(|ui| {
@@ -110,7 +110,7 @@ pub struct ChannelAxisWidget {
 //     }
 
 //     fn state<'p>(&'p self) -> Self::Value<'p> {
-//         Ok(modelrdf::axes2::ChannelAxis {
+//         Ok(modelrdf::axes::ChannelAxis {
 //             id: self.staging_id.state()?,
 //         })
 //     }

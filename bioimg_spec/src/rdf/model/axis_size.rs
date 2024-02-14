@@ -2,7 +2,7 @@ use std::num::NonZeroUsize;
 
 use serde::{Deserialize, Serialize};
 
-use super::{axes2::AxisId, tensor_id::TensorId};
+use super::{axes::AxisId, tensor_id::TensorId};
 
 pub type FixedAxisSize = NonZeroUsize;
 

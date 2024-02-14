@@ -1,17 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    rdf::{file_reference::FileReference, non_empty_list::NonEmptyList, bounded_string::BoundedString},
-    util::SingleOrMultiple,
-};
+use crate::rdf::{bounded_string::BoundedString, file_reference::FileReference, non_empty_list::NonEmptyList};
 
-use super::{
-    axes::AxisSequence, axes2::InputAxis, data_range::DataRange, data_type::DataType, preprocessing::Preprocessing,
-    tensor_id::TensorId,
-};
+use super::{axes::InputAxis, data_range::DataRange, data_type::DataType, preprocessing::Preprocessing, tensor_id::TensorId};
 
 pub struct InputTensorDescr {
-    pub axes: AxisSequence,
+    // pub axes: AxisSequence,
     pub data_type: DataType,
     pub name: BoundedString<1, 1023>,
     pub shape: Vec<usize>,
