@@ -102,7 +102,7 @@ impl StatefulWidget for IndexAxisWidget {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Default)]
-enum ChannelNamesMode {
+pub enum ChannelNamesMode {
     #[default]
     Explicit,
     Pattern,
