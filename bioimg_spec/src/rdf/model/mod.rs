@@ -13,6 +13,8 @@ pub mod tensor_id;
 pub mod time_unit;
 
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize};
+pub use space_unit::SpaceUnit;
+pub use axes::{BatchAxis, ChannelAxis, IndexAxis, TimeInputAxis, SpaceInputAxis};
 
 pub struct ModelRdf {
     pub base: Rdf,

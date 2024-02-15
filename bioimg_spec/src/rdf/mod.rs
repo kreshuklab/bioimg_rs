@@ -32,6 +32,7 @@ pub use icon::{EmojiIcon, Icon, IconParsingError};
 pub use license::SpdxLicense;
 pub use version::Version;
 pub use literal::LiteralInt;
+pub use identifier::Identifier;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
