@@ -6,7 +6,7 @@ use super::{
     space_unit::SpaceUnit,
     time_unit::TimeUnit,
 };
-use crate::rdf::{bounded_string::BoundedString, literal::LiteralInt, lowercase::Lowercase};
+use crate::rdf::{bounded_string::BoundedString, literal::LiteralInt, lowercase::Lowercase, identifier::Identifier};
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 
@@ -52,9 +52,10 @@ pub struct ChannelAxis {
     pub id: AxisId,
     #[serde(default)]
     pub description: BoundedString<0, { 128 - 1 }>,
-    pub size: FixedAxisSize,
-    #[serde(default)]
-    pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
+    // pub size: FixedAxisSize,
+    pub channel_names: Vec<Identifier<String>>,
+    // #[serde(default)]
+    // pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
