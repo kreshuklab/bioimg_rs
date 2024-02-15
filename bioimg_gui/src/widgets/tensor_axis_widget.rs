@@ -1,10 +1,12 @@
+use std::num::NonZeroUsize;
+
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf;
 
 use super::axis_size_widget::AnyAxisSizeWidget;
 use super::util::group_frame;
-use super::{InputLines, StagingString, StagingVec, StatefulWidget};
+use super::{InputLines, StagingString, StagingVec, StatefulWidget, StagingNum};
 use crate::result::{GuiError, Result};
 
 pub struct BatchAxisWidget {
@@ -99,61 +101,109 @@ impl StatefulWidget for IndexAxisWidget {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Default)]
 enum ChannelNamesMode {
-    Pattern,
+    #[default]
     Explicit,
+    Pattern,
 }
 
 pub struct ChannelAxisWidget {
     pub staging_id: StagingString<modelrdf::axes::AxisId>,
-    pub staging_description: StagingString<BoundedString<1, { 128 - 1 }>>,
+    pub staging_description: StagingString<BoundedString<0, { 128 - 1 }>>,
 
     pub channel_names_mode: ChannelNamesMode,
 
+    pub staging_pattern_extent: StagingNum<usize, NonZeroUsize>,
     pub staging_pattern_prefix: StagingString<String>,
     pub staging_pattern_suffix: StagingString<String>,
 
-    pub staging_explicit_names: StagingVec<StagingString<BoundedString<1, { 1024 - 1 }>>>,
+    pub staging_explicit_names: StagingVec<StagingString<rdf::Identifier<String>>>,
 }
 
-// impl StatefulWidget for ChannelAxisWidget {
-//     type Value<'p> = Result<modelrdf::axes::ChannelAxis>;
-//     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-//         ui.vertical(|ui| {
-//             ui.horizontal(|ui| {
-//                 ui.strong("Id: ");
-//                 self.staging_id.draw_and_parse(ui, id.with("id"));
-//             });
-//             ui.horizontal(|ui| {
-//                 ui.strong("Description: ");
-//                 self.staging_description.draw_and_parse(ui, id.with("description"));
-//             });
-//             ui.horizontal(|ui| {
-//                 ui.strong("Channel Names: ");
-//                 ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
-//                 ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
-//             });
-//             match self.channel_names_mode {
-//                 ChannelNamesMode::Pattern => {
-//                     ui.horizontal(|ui| {
-//                         ui.strong("Prefix: ");
-//                         self.staging_pattern_prefix.draw_and_parse(ui, id.with("prefix"));
+impl Default for ChannelAxisWidget{
+    fn default() -> Self {
+        Self{
+            staging_id: Default::default(),
+            staging_description: Default::default(),
 
-//                         ui.strong("Suffix: ");
-//                         self.staging_pattern_suffix.draw_and_parse(ui, id.with("suffix"));
-//                     });
-//                 }
-//                 ChannelNamesMode::Explicit => {
-//                     self.staging_explicit_names.draw_and_parse(ui, id.with("explicit"));
-//                 }
-//             };
-//         });
-//     }
+            channel_names_mode: Default::default(),
 
-//     fn state<'p>(&'p self) -> Self::Value<'p> {
-//         Ok(modelrdf::axes::ChannelAxis {
-//             id: self.staging_id.state()?,
-//         })
-//     }
-// }
+            staging_pattern_extent: Default::default(),
+            staging_pattern_prefix: Default::default(),
+            staging_pattern_suffix: Default::default(),
+
+            staging_explicit_names: StagingVec{item_name: "Channel Name".into(), staging: vec![]}
+        }
+    }
+}
+
+impl StatefulWidget for ChannelAxisWidget {
+    type Value<'p> = Result<modelrdf::ChannelAxis>;
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.strong("Id: ");
+                self.staging_id.draw_and_parse(ui, id.with("id"));
+            });
+            ui.horizontal(|ui| {
+                ui.strong("Description: ");
+                self.staging_description.draw_and_parse(ui, id.with("description"));
+            });
+            ui.horizontal(|ui| {
+                ui.strong("Channel Names: ");
+                ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
+                ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
+            });
+            match self.channel_names_mode {
+                ChannelNamesMode::Pattern => {
+                    ui.horizontal(|ui| {
+                        ui.strong("Extent: ");
+                        self.staging_pattern_extent.draw_and_parse(ui, id.with("extent"));
+                        
+                        ui.strong("Prefix: ");
+                        self.staging_pattern_prefix.draw_and_parse(ui, id.with("prefix"));
+
+                        ui.strong("Suffix: ");
+                        self.staging_pattern_suffix.draw_and_parse(ui, id.with("suffix"));
+                    });
+                }
+                ChannelNamesMode::Explicit => {
+                    self.staging_explicit_names.draw_and_parse(ui, id.with("explicit"));
+                }
+            };
+        });
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        let id = self.staging_id.state()?;
+        let description = self.staging_description.state()?;
+        
+        let channel_names = match self.channel_names_mode{
+            ChannelNamesMode::Pattern => {
+                let extent: usize = self.staging_pattern_extent.state()?.into();
+                (0..extent)
+                    .map(|idx|{
+                        let prefix = self.staging_pattern_prefix.state()?;
+                        let suffix = self.staging_pattern_suffix.state()?;
+                        let identifier = rdf::Identifier::<String>::try_from(format!("{prefix}{idx}{suffix}"))?;
+                        Ok(identifier)
+                    })
+                    .collect::<Result<Vec<_>>>()?
+            }
+            ChannelNamesMode::Explicit => {
+                let channel_names_result : Result<Vec<rdf::Identifier<_>>, GuiError> = self.staging_explicit_names
+                    .state()
+                    .into_iter()
+                    .collect();
+                channel_names_result?
+            }
+        };
+
+        Ok(modelrdf::ChannelAxis{
+            id,
+            description,
+            channel_names
+        })
+    }
+}

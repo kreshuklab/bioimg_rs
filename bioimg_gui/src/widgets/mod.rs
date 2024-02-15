@@ -179,8 +179,8 @@ pub struct StagingVec<Stg>
 where
     Stg: StatefulWidget,
 {
-    item_name: String,
-    staging: Vec<Stg>,
+    pub item_name: String,
+    pub staging: Vec<Stg>,
 }
 
 impl<Stg: StatefulWidget + Default> StagingVec<Stg> {
