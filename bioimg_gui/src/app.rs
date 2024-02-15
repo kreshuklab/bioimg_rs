@@ -3,11 +3,12 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::result::Result;
 use crate::widgets::axis_size_widget::AnyAxisSizeWidget;
+use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::tensor_axis_widget::IndexAxisWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     cover_image_widget::CoverImageWidget, example_tensor_widget::GuiNpyArray, file_widget::FileWidget, icon_widget::StagingIcon,
-    license_widget::LicenseWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
+    maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
     StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
@@ -28,7 +29,7 @@ pub struct TemplateApp {
     staging_version: StagingString<rdf::Version>,
 
     staging_documentation: StagingOpt<CodeEditorWidget>,
-    staging_license: LicenseWidget,
+    staging_license: EnumWidget<rdf::SpdxLicense>,
     //badges
     staging_example_tensor: FileWidget<Result<GuiNpyArray>>,
 

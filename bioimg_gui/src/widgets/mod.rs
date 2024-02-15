@@ -14,11 +14,11 @@ pub mod file_widget;
 pub mod functional;
 pub mod icon_widget;
 pub mod input_tensor_widget;
-pub mod license_widget;
 pub mod maintainer_widget;
 pub mod tensor_axis_widget;
 pub mod url_widget;
 pub mod util;
+pub mod enum_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

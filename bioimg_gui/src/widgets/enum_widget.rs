@@ -1,40 +1,42 @@
-use bioimg_spec::rdf;
-use strum::VariantArray;
+use std::fmt::Display;
 
 use super::StatefulWidget;
 
-pub struct LicenseWidget {
-    value: rdf::SpdxLicense,
+pub struct EnumWidget<E> {
+    value: E,
     search: String,
     popup_open: bool,
-    display_names: Vec<String>,
     lower_case_display_names: Vec<String>,
 }
 
-impl Default for LicenseWidget {
+impl<E> Default for EnumWidget<E>
+where
+    E: strum::VariantArray + Default + strum::VariantNames
+{
     fn default() -> Self {
-        let display_names: Vec<String> = rdf::SpdxLicense::VARIANTS.iter().map(|v| v.to_string()).collect();
         Self {
-            value: rdf::SpdxLicense::Apache_2_0,
+            value: Default::default(),
             search: String::with_capacity(64),
             popup_open: false,
-            lower_case_display_names: display_names.iter().map(|dn| dn.to_lowercase()).collect(),
-            display_names,
+            lower_case_display_names: <E as strum::VariantNames>::VARIANTS.iter().map(|dn| dn.to_lowercase()).collect(),
         }
     }
 }
 
-impl StatefulWidget for LicenseWidget {
-    type Value<'p> = rdf::SpdxLicense;
+impl<E> StatefulWidget for EnumWidget<E>
+where
+    E: strum::VariantArray + strum::VariantNames + Display + Clone
+{
+    type Value<'p> = E where E: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        if ui.button(&self.display_names[self.value as usize]).clicked() {
+        if ui.button(&self.value.to_string()).clicked() {
             self.popup_open = !self.popup_open;
         }
         if !self.popup_open {
             return;
         }
-        egui::containers::Area::new(id.with("License Popup"))
+        egui::containers::Area::new(id.with("Enum Popup"))
             .movable(false)
             .order(egui::Order::Foreground)
             .constrain(true)
@@ -46,13 +48,13 @@ impl StatefulWidget for LicenseWidget {
                 }
                 egui::Frame::popup(&ui.ctx().style()).show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.heading("Pick a license for this model");
+                        ui.heading("Pick one");
                         if ui.button("🗙").clicked() {
                             self.popup_open = false;
                         }
                     });
                     ui.horizontal(|ui| {
-                        ui.label("Filter: ");
+                        ui.label("🔎 ");
                         ui.text_edit_singleline(&mut self.search);
                     });
                     ui.separator();
@@ -65,9 +67,9 @@ impl StatefulWidget for LicenseWidget {
                             .enumerate()
                             .filter(|(_, lower_variant_name)| lower_variant_name.contains(&lower_search))
                             .for_each(|(idx, _)| {
-                                if ui.button(&self.display_names[idx]).clicked() {
+                                if ui.button(<E as strum::VariantNames>::VARIANTS[idx]).clicked() {
                                     self.popup_open = false;
-                                    self.value = rdf::SpdxLicense::from_repr(idx).unwrap();
+                                    self.value = <E as strum::VariantArray>::VARIANTS[idx].clone();
                                     self.search.clear();
                                 }
                             });
