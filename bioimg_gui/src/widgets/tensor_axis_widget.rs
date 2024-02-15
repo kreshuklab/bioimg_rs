@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
-use bioimg_spec::rdf::{self, literal::LiteralInt};
+use bioimg_spec::rdf;
 
 use super::axis_size_widget::AnyAxisSizeWidget;
 use super::util::group_frame;
@@ -53,7 +53,7 @@ impl StatefulWidget for BatchAxisWidget {
             size: if self.staging_allow_auto_size {
                 None
             } else {
-                Some(LiteralInt::<1>)
+                Some(rdf::LiteralInt::<1>)
             },
         })
     }

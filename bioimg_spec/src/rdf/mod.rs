@@ -31,6 +31,7 @@ pub mod version;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
 pub use license::SpdxLicense;
 pub use version::Version;
+pub use literal::LiteralInt;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
