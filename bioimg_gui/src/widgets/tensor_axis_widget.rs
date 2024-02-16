@@ -4,7 +4,7 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
 
-use super::axis_size_widget::AnyAxisSizeWidget;
+use super::axis_size_widget::{AnyAxisSizeWidget, AxisSizeMode};
 use super::enum_widget::EnumWidget;
 use super::util::group_frame;
 use super::{InputLines, StagingNum, StagingOpt, StagingString, StagingVec, StatefulWidget};
@@ -66,7 +66,7 @@ impl StatefulWidget for BatchAxisWidget {
 pub struct IndexAxisWidget {
     pub staging_id: StagingString<modelrdf::axes::AxisId>,
     pub staging_description: StagingString<BoundedString<0, { 128 - 1 }>>,
-    pub staging_size: AnyAxisSizeWidget,
+    pub size_widget: AnyAxisSizeWidget,
 }
 
 impl StatefulWidget for IndexAxisWidget {
@@ -87,7 +87,7 @@ impl StatefulWidget for IndexAxisWidget {
             ui.horizontal(|ui| {
                 ui.strong("Size: ");
                 group_frame(ui, |ui| {
-                    self.staging_size.draw_and_parse(ui, id.with("Size: "));
+                    self.size_widget.draw_and_parse(ui, id.with("Size: "));
                 });
             })
         });
@@ -97,7 +97,7 @@ impl StatefulWidget for IndexAxisWidget {
         Ok(modelrdf::axes::IndexAxis {
             id: self.staging_id.state()?,
             description: self.staging_description.state()?,
-            size: self.staging_size.state()?,
+            size: self.size_widget.state()?,
         })
     }
 }
@@ -156,15 +156,15 @@ impl StatefulWidget for ChannelAxisWidget {
             });
             ui.horizontal(|ui| {
                 ui.strong("Channel Names: ");
-                ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
-                ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
+                ui.selectable_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
+                ui.selectable_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
             });
             match self.channel_names_mode {
                 ChannelNamesMode::Pattern => {
-                    ui.horizontal(|ui| {
-                        ui.strong("Extent: ");
-                        self.staging_pattern_extent.draw_and_parse(ui, id.with("extent"));
+                    ui.strong("Extent: ");
+                    self.staging_pattern_extent.draw_and_parse(ui, id.with("extent"));
 
+                    ui.horizontal(|ui| {
                         ui.strong("Prefix: ");
                         self.staging_pattern_prefix.draw_and_parse(ui, id.with("prefix"));
 
@@ -210,6 +210,7 @@ impl StatefulWidget for ChannelAxisWidget {
     }
 }
 
+#[derive(Default)]
 pub struct TimeInputAxisWidget {
     pub staging_id: StagingString<modelrdf::axes::AxisId>,
     pub staging_description: StagingString<BoundedString<0, { 128 - 1 }>>,
@@ -232,15 +233,25 @@ impl StatefulWidget for TimeInputAxisWidget {
                 self.staging_description.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Unit: ");
-                self.unit_widget.draw_and_parse(ui, id.with("unit"));
-
-                ui.strong("Scale: ");
-                self.unit_widget.draw_and_parse(ui, id.with("scale"));
+                ui.strong("Distance between array elements: ");
+                ui.vertical(|ui| {
+                    group_frame(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.strong("Unit: ");
+                            self.unit_widget.draw_and_parse(ui, id.with("unit"));
+                        });
+                        ui.horizontal(|ui| {
+                            ui.strong("Scale: ");
+                            self.scale_widget.draw_and_parse(ui, id.with("scale"));
+                        })
+                    });
+                });
             });
             ui.horizontal(|ui| {
                 ui.strong("Size: ");
-                self.size_widget.draw_and_parse(ui, id.with("size"));
+                group_frame(ui, |ui| {
+                    self.size_widget.draw_and_parse(ui, id.with("size"));
+                })
             });
         });
     }
@@ -256,6 +267,7 @@ impl StatefulWidget for TimeInputAxisWidget {
     }
 }
 
+#[derive(Default)]
 pub struct SpaceInputAxisWidget {
     pub staging_id: StagingString<modelrdf::axes::AxisId>,
     pub staging_description: StagingString<BoundedString<0, { 128 - 1 }>>,
@@ -278,15 +290,25 @@ impl StatefulWidget for SpaceInputAxisWidget {
                 self.staging_description.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Unit: ");
-                self.unit_widget.draw_and_parse(ui, id.with("unit"));
-
-                ui.strong("Scale: ");
-                self.unit_widget.draw_and_parse(ui, id.with("scale"));
+                ui.strong("Distance between array elements: ");
+                ui.vertical(|ui| {
+                    group_frame(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.strong("Unit: ");
+                            self.unit_widget.draw_and_parse(ui, id.with("unit"));
+                        });
+                        ui.horizontal(|ui| {
+                            ui.strong("Scale: ");
+                            self.scale_widget.draw_and_parse(ui, id.with("scale"));
+                        })
+                    });
+                });
             });
             ui.horizontal(|ui| {
                 ui.strong("Size: ");
-                self.size_widget.draw_and_parse(ui, id.with("size"));
+                group_frame(ui, |ui| {
+                    self.size_widget.draw_and_parse(ui, id.with("size"));
+                })
             });
         });
     }
@@ -298,6 +320,134 @@ impl StatefulWidget for SpaceInputAxisWidget {
             unit: self.unit_widget.state(),
             scale: self.scale_widget.state()?,
             size: self.size_widget.state()?,
+        })
+    }
+}
+
+#[derive(PartialEq, Eq, Default, Copy, Clone)]
+pub enum AxisType {
+    #[default]
+    Space,
+    Time,
+    Channel,
+    Batch,
+    Index,
+}
+
+#[derive(Default)]
+pub struct InputTensorAxisWidget {
+    pub axis_type: AxisType,
+
+    pub space_axis_widget: SpaceInputAxisWidget,
+    pub time_axis_widget: TimeInputAxisWidget,
+    pub channel_axis_widget: ChannelAxisWidget,
+    pub batch_axis_widget: BatchAxisWidget,
+    pub index_axis_widget: IndexAxisWidget,
+}
+
+impl InputTensorAxisWidget {
+    pub fn set_raw_id(&mut self, raw_id: String) {
+        self.space_axis_widget.staging_id.raw = raw_id.clone();
+        self.time_axis_widget.staging_id.raw = raw_id.clone();
+        self.channel_axis_widget.staging_id.raw = raw_id.clone();
+        self.batch_axis_widget.staging_id.raw = raw_id.clone();
+        self.index_axis_widget.staging_id.raw = raw_id.clone();
+    }
+
+    pub fn set_raw_description(&mut self, raw_description: String) {
+        self.space_axis_widget.staging_description.raw = raw_description.clone();
+        self.time_axis_widget.staging_description.raw = raw_description.clone();
+        self.channel_axis_widget.staging_description.raw = raw_description.clone();
+        self.batch_axis_widget.staging_description.raw = raw_description.clone();
+        self.index_axis_widget.staging_description.raw = raw_description.clone();
+    }
+
+    pub fn set_size_mode(&mut self, size_mode: AxisSizeMode) {
+        self.space_axis_widget.size_widget.mode = size_mode;
+        self.time_axis_widget.size_widget.mode = size_mode;
+        self.index_axis_widget.size_widget.mode = size_mode;
+    }
+}
+
+impl StatefulWidget for InputTensorAxisWidget {
+    type Value<'p> = Result<modelrdf::InputAxis>;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        let previous_axis_type = self.axis_type;
+        let (previous_raw_id, previous_raw_descr) = match previous_axis_type {
+            AxisType::Space => (
+                self.space_axis_widget.staging_id.raw.clone(),
+                self.space_axis_widget.staging_description.raw.clone(),
+            ),
+            AxisType::Time => (
+                self.time_axis_widget.staging_id.raw.clone(),
+                self.time_axis_widget.staging_description.raw.clone(),
+            ),
+            AxisType::Batch => (
+                self.batch_axis_widget.staging_id.raw.clone(),
+                self.batch_axis_widget.staging_description.raw.clone(),
+            ),
+            AxisType::Channel => (
+                self.channel_axis_widget.staging_id.raw.clone(),
+                self.channel_axis_widget.staging_description.raw.clone(),
+            ),
+            AxisType::Index => (
+                self.index_axis_widget.staging_id.raw.clone(),
+                self.index_axis_widget.staging_description.raw.clone(),
+            ),
+        };
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.selectable_value(&mut self.axis_type, AxisType::Space, "Space");
+                ui.selectable_value(&mut self.axis_type, AxisType::Time, "Time");
+                ui.selectable_value(&mut self.axis_type, AxisType::Batch, "Batch");
+                ui.selectable_value(&mut self.axis_type, AxisType::Channel, "Channel");
+                ui.selectable_value(&mut self.axis_type, AxisType::Index, "Index");
+            });
+            if self.axis_type != previous_axis_type {
+                self.set_raw_id(previous_raw_id);
+                self.set_raw_description(previous_raw_descr);
+            }
+            match self.axis_type {
+                AxisType::Space => {
+                    self.space_axis_widget.draw_and_parse(ui, id.with("Space"));
+                    self.space_axis_widget
+                        .size_widget
+                        .replicate_state_into(&mut self.time_axis_widget.size_widget);
+                    self.space_axis_widget
+                        .size_widget
+                        .replicate_state_into(&mut self.index_axis_widget.size_widget);
+                }
+                AxisType::Time => {
+                    self.time_axis_widget.draw_and_parse(ui, id.with("Time"));
+                    self.time_axis_widget
+                        .size_widget
+                        .replicate_state_into(&mut self.space_axis_widget.size_widget);
+                    self.time_axis_widget
+                        .size_widget
+                        .replicate_state_into(&mut self.index_axis_widget.size_widget);
+                }
+                AxisType::Index => {
+                    self.index_axis_widget.draw_and_parse(ui, id.with("Index"));
+                    self.index_axis_widget
+                        .size_widget
+                        .replicate_state_into(&mut self.space_axis_widget.size_widget);
+                    self.index_axis_widget
+                        .size_widget
+                        .replicate_state_into(&mut self.time_axis_widget.size_widget);
+                }
+                AxisType::Batch => self.batch_axis_widget.draw_and_parse(ui, id.with("Batch")),
+                AxisType::Channel => self.channel_axis_widget.draw_and_parse(ui, id.with("Channel")),
+            };
+        });
+    }
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        Ok(match self.axis_type {
+            AxisType::Space => modelrdf::InputAxis::Space(self.space_axis_widget.state()?),
+            AxisType::Time => modelrdf::InputAxis::Time(self.time_axis_widget.state()?),
+            AxisType::Batch => modelrdf::InputAxis::Batch(self.batch_axis_widget.state()?),
+            AxisType::Channel => modelrdf::InputAxis::Channel(self.channel_axis_widget.state()?),
+            AxisType::Index => modelrdf::InputAxis::Index(self.index_axis_widget.state()?),
         })
     }
 }

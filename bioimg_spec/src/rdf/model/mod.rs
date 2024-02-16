@@ -12,10 +12,10 @@ pub mod tensor_data_descr;
 pub mod tensor_id;
 pub mod time_unit;
 
+pub use axes::{AxisScale, BatchAxis, ChannelAxis, IndexAxis, InputAxis, SpaceInputAxis, TimeInputAxis};
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize};
 pub use space_unit::SpaceUnit;
 pub use time_unit::TimeUnit;
-pub use axes::{BatchAxis, ChannelAxis, IndexAxis, TimeInputAxis, SpaceInputAxis, AxisScale};
 
 pub struct ModelRdf {
     pub base: Rdf,

@@ -4,12 +4,12 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use crate::result::Result;
 use crate::widgets::axis_size_widget::AnyAxisSizeWidget;
 use crate::widgets::enum_widget::EnumWidget;
-use crate::widgets::tensor_axis_widget::IndexAxisWidget;
+use crate::widgets::tensor_axis_widget::{IndexAxisWidget, InputTensorAxisWidget};
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     cover_image_widget::CoverImageWidget, example_tensor_widget::GuiNpyArray, file_widget::FileWidget, icon_widget::StagingIcon,
-    maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines,
-    StagingOpt, StagingString, StagingVec, StatefulWidget,
+    maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines, StagingOpt, StagingString,
+    StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -34,7 +34,7 @@ pub struct TemplateApp {
     staging_example_tensor: FileWidget<Result<GuiNpyArray>>,
 
     ////
-    staging_index_axis: IndexAxisWidget,
+    input_tensor_axis_widget: InputTensorAxisWidget,
 }
 
 impl Default for TemplateApp {
@@ -55,7 +55,7 @@ impl Default for TemplateApp {
 
             staging_example_tensor: Default::default(),
 
-            staging_index_axis: Default::default(),
+            input_tensor_axis_widget: Default::default(),
         }
     }
 }
@@ -162,8 +162,9 @@ impl eframe::App for TemplateApp {
                 });
 
                 ui.horizontal(|ui| {
-                    ui.strong("Test axis size: ");
-                    self.staging_index_axis.draw_and_parse(ui, egui::Id::from("test size"));
+                    ui.strong("Test input tensor axis: ");
+                    self.input_tensor_axis_widget
+                        .draw_and_parse(ui, egui::Id::from("test input tensor axis"))
                 });
             });
         });
