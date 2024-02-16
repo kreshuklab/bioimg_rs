@@ -14,7 +14,8 @@ pub mod time_unit;
 
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize};
 pub use space_unit::SpaceUnit;
-pub use axes::{BatchAxis, ChannelAxis, IndexAxis, TimeInputAxis, SpaceInputAxis};
+pub use time_unit::TimeUnit;
+pub use axes::{BatchAxis, ChannelAxis, IndexAxis, TimeInputAxis, SpaceInputAxis, AxisScale};
 
 pub struct ModelRdf {
     pub base: Rdf,

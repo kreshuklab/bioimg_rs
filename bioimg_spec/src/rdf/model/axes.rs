@@ -6,7 +6,7 @@ use super::{
     space_unit::SpaceUnit,
     time_unit::TimeUnit,
 };
-use crate::rdf::{bounded_string::BoundedString, literal::LiteralInt, lowercase::Lowercase, identifier::Identifier};
+use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::LiteralInt, lowercase::Lowercase};
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 
@@ -72,6 +72,8 @@ pub struct TimeInputAxis {
     #[serde(default = "_default_time_axis_id")]
     pub id: AxisId,
     #[serde(default)]
+    pub description: BoundedString<0, { 128 - 1 }>,
+    #[serde(default)]
     pub unit: Option<TimeUnit>,
     #[serde(default)]
     pub scale: AxisScale,
@@ -90,6 +92,8 @@ pub struct TimeOutputAxis {
 pub struct SpaceInputAxis {
     #[serde(default = "_default_space_axis_id")]
     pub id: AxisId,
+    #[serde(default)]
+    pub description: BoundedString<0, { 128 - 1 }>,
     #[serde(default)]
     pub unit: Option<SpaceUnit>,
     #[serde(default)]
