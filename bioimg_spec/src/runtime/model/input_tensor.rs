@@ -1,14 +1,16 @@
+use std::borrow::Borrow;
+
 use crate::rdf;
 use crate::rdf::model as modelrdf;
 use crate::rdf::non_empty_list::NonEmptyList;
 use crate::rdf::BoundedString;
 use crate::runtime::npy_array::NpyArray;
 
-pub struct InputTensor {
+pub struct InputTensor<DATA: Borrow<NpyArray>> {
     pub id: modelrdf::TensorId,
     pub description: BoundedString<0, 128>,
     pub axes: NonEmptyList<modelrdf::InputAxis>,
-    pub test_tensor: NpyArray,
+    pub test_tensor: DATA,
     // pub sample_tensor: Option<FileReference>, //FIXME: add this back
 }
 
@@ -28,23 +30,23 @@ pub enum InputTensorValidationError {
     },
 }
 
-impl InputTensor {
+impl<DATA: Borrow<NpyArray>> InputTensor<DATA> {
     pub fn new(
         id: modelrdf::TensorId,
         description: BoundedString<0, 128>,
         axes: NonEmptyList<modelrdf::InputAxis>,
-        test_tensor: NpyArray,
+        test_tensor: DATA,
     ) -> Result<Self, InputTensorValidationError> {
         let num_axes = axes.len();
-        let num_test_dims = test_tensor.shape().len();
+        let num_test_dims = test_tensor.borrow().shape().len();
         if num_axes != num_test_dims {
             return Err(InputTensorValidationError::MismatchedNumDimensions {
-                test_tensor_shape: test_tensor.shape().to_owned(),
+                test_tensor_shape: test_tensor.borrow().shape().to_owned(),
                 num_axes,
             });
         }
 
-        for (idx, (expected_extent, axis)) in test_tensor.shape().iter().zip(axes.iter()).enumerate() {
+        for (idx, (expected_extent, axis)) in test_tensor.borrow().shape().iter().zip(axes.iter()).enumerate() {
             if !axis.is_compatible_with_extent(*expected_extent) {
                 let axis_id = axis.id().clone();
                 return Err(InputTensorValidationError::IncompatibleAxis {
@@ -62,7 +64,9 @@ impl InputTensor {
             axes,
         })
     }
+}
 
+impl InputTensor<NpyArray> {
     pub fn try_load(descr: &modelrdf::InputTensorDescr) -> Result<Self, InputTensorValidationError> {
         let test_tensor_data = match &descr.test_tensor {
             rdf::FileReference::Path(path) => NpyArray::try_read(&path)?,

@@ -1,9 +1,10 @@
+use std::sync::Arc;
+
 use crate::result::{GuiError, Result};
-use crate::widgets::error_display::show_error;
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
-use bioimg_spec::runtime as specrt;
+use bioimg_spec::runtime::{self as specrt, NpyArray};
 
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::gui_npy_array::GuiNpyArray;
@@ -15,12 +16,10 @@ pub struct InputTensorWidget {
     description_widget: StagingString<rdf::BoundedString<0, 128>>,
     axes_widget: StagingVec<InputTensorAxisWidget>,
     test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
-
-    parsed: Result<specrt::InputTensor>,
 }
 
 impl StatefulWidget for InputTensorWidget {
-    type Value<'p> = Result<specrt::InputTensor>;
+    type Value<'p> = Result<specrt::InputTensor<Arc<NpyArray>>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
@@ -58,7 +57,7 @@ impl StatefulWidget for InputTensorWidget {
             self.id_widget.state()?,
             self.description_widget.state()?,
             input_axes,
-            test_tensor.contents().clone(), //FIXME: this can be expensive if called every frame
+            test_tensor.contents().clone(),
         )?)
     }
 }

@@ -1,23 +1,20 @@
-use std::{
-    ops::Deref,
-    path::{Path, PathBuf},
-};
+use std::{ops::Deref, path::PathBuf, sync::Arc};
 
 use bioimg_spec::runtime::npy_array::NpyArray;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{error_display::show_error, file_widget::ParsedFile};
-use crate::result::{GuiError, Result};
+use crate::result::Result;
 
 pub struct GuiNpyArray {
     path: PathBuf,
-    contents: NpyArray,
+    contents: Arc<NpyArray>,
     context: egui::Context,
     texture_handle: Option<egui::TextureHandle>,
 }
 
 impl GuiNpyArray {
-    pub fn contents(&self) -> &NpyArray {
+    pub fn contents(&self) -> &Arc<NpyArray> {
         return &self.contents;
     }
 }
@@ -42,7 +39,7 @@ impl ParsedFile for Result<GuiNpyArray> {
         let npy_array = NpyArray::try_read(&path)?;
         Ok(GuiNpyArray {
             path: path.clone(),
-            contents: npy_array,
+            contents: Arc::new(npy_array),
             context: ctx,
             texture_handle: None, //FIXME: try to make it into an image
         })
