@@ -1,1 +1,1 @@
-pub mod axes2;
+pub mod input_tensor;

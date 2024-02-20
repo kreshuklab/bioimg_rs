@@ -1,12 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::rdf::bounded_string::BoundedString;
-
-use self::{
-    attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, file_reference::FileReference,
-    maintainer::Maintainer,
-};
+use self::{attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, maintainer::Maintainer};
 
 pub mod attachment;
 pub mod author;
@@ -28,11 +23,13 @@ pub mod si_units;
 pub mod slashless_string;
 pub mod version;
 
+pub use bounded_string::BoundedString;
+pub use file_reference::FileReference;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
-pub use license::SpdxLicense;
-pub use version::Version;
-pub use literal::LiteralInt;
 pub use identifier::Identifier;
+pub use license::SpdxLicense;
+pub use literal::LiteralInt;
+pub use version::Version;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {

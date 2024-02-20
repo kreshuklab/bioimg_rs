@@ -161,6 +161,9 @@ name = "bioimg_spec"
 version = "0.1.0"
 dependencies = [
  "image",
+ "ndarray",
+ "ndarray-npy",
+ "paste",
  "serde",
  "serde_json",
  "strum",

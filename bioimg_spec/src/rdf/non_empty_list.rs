@@ -1,10 +1,18 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, ops::Deref};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct NonEmptyList<T>(Vec<T>);
+
+impl<T> Deref for NonEmptyList<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl<T> TryFrom<Vec<T>> for NonEmptyList<T> {
     type Error = Vec<T>;

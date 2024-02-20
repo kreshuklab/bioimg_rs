@@ -1,4 +1,7 @@
-use std::{path::PathBuf, thread::JoinHandle};
+use std::{
+    path::{Path, PathBuf},
+    thread::JoinHandle,
+};
 
 use super::StatefulWidget;
 
@@ -19,6 +22,14 @@ pub struct FileWidget<PF: ParsedFile> {
 }
 
 impl<PF: ParsedFile> FileWidget<PF> {
+    pub fn path(&self) -> Option<&Path> {
+        match &self.state {
+            FileWidgetState::Empty => None,
+            FileWidgetState::Loading { path, .. } => Some(path),
+            FileWidgetState::Finished { path, .. } => Some(path),
+            FileWidgetState::Failed { path, .. } => Some(path),
+        }
+    }
     pub fn loaded_value(&self) -> Option<&PF> {
         if let FileWidgetState::Finished { value, .. } = &self.state {
             Some(value)

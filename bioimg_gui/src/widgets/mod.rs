@@ -8,17 +8,17 @@ pub mod axis_size_widget;
 pub mod cite_widget;
 pub mod code_editor_widget;
 pub mod cover_image_widget;
+pub mod enum_widget;
 pub mod error_display;
-pub mod example_tensor_widget;
 pub mod file_widget;
 pub mod functional;
+pub mod gui_npy_array;
 pub mod icon_widget;
 pub mod input_tensor_widget;
 pub mod maintainer_widget;
 pub mod tensor_axis_widget;
 pub mod url_widget;
 pub mod util;
-pub mod enum_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

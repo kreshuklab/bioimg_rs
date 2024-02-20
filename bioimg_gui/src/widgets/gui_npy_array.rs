@@ -3,56 +3,23 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bioimg_spec::runtime::npy_array::NpyArray;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{error_display::show_error, file_widget::ParsedFile};
 use crate::result::{GuiError, Result};
-
-macro_rules! impl_NpyArray_try_read {
-    ($($element_type:ident),+) => {
-        paste::paste! {
-
-            pub enum NpyArray {
-                $(
-                    [<Array $element_type:upper>](ndarray::ArrayD<$element_type>),
-                )*
-            }
-
-            impl NpyArray {
-                fn try_read(npy_path: &Path) -> Result<Self> {
-                    $(
-                        match ndarray_npy::read_npy::<_, ndarray::ArrayD<$element_type>>(npy_path) {
-                            Ok(arr) => return Ok(Self::[<Array $element_type:upper>](arr)),
-                            Err(err) => match err {
-                                ndarray_npy::ReadNpyError::WrongDescriptor(_) => (),
-                                other_err => return Err(GuiError::from(other_err)),
-                            },
-                        };
-                    )+
-                    return Err(GuiError::new(
-                        format!("Can't interpret npy file at {}", npy_path.to_string_lossy())
-                    ))
-                }
-
-                pub fn shape(&self) -> &[usize] {
-                    match self {
-                        $(
-                            Self::[<Array $element_type:upper>](arr) => arr.shape(),
-                        )*
-                    }
-                }
-            }
-        }
-    };
-}
-
-impl_NpyArray_try_read!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64);
 
 pub struct GuiNpyArray {
     path: PathBuf,
     contents: NpyArray,
     context: egui::Context,
     texture_handle: Option<egui::TextureHandle>,
+}
+
+impl GuiNpyArray {
+    pub fn contents(&self) -> &NpyArray {
+        return &self.contents;
+    }
 }
 
 impl Deref for GuiNpyArray {

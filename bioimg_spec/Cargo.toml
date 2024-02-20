@@ -16,3 +16,6 @@ serde_json = "1.0.107"
 strum = { version = "0.26.1", features = ["strum_macros", "derive"] }
 thiserror = "1.0.50"
 url = { version = "2.4.1", features = ["serde"] }
+ndarray = { workspace = true }
+ndarray-npy = { workspace = true }
+paste = "1.0.14"

@@ -58,6 +58,12 @@ pub struct ChannelAxis {
     // pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
 }
 
+impl ChannelAxis {
+    pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
+        return self.channel_names.len() == extent;
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IndexAxis {
     #[serde(default = "_default_index_axis_id")]
@@ -78,6 +84,12 @@ pub struct TimeInputAxis {
     #[serde(default)]
     pub scale: AxisScale,
     pub size: AnyAxisSize,
+}
+
+impl TimeInputAxis {
+    pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
+        return self.size.is_compatible_with_extent(extent);
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -101,6 +113,12 @@ pub struct SpaceInputAxis {
     pub size: AnyAxisSize,
 }
 
+impl SpaceInputAxis {
+    pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
+        return self.size.is_compatible_with_extent(extent);
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpaceOutputAxis {
     #[serde(flatten)]
@@ -122,6 +140,26 @@ pub enum InputAxis {
     Time(TimeInputAxis),
     #[serde(rename = "space")]
     Space(SpaceInputAxis),
+}
+
+impl InputAxis {
+    pub fn id(&self) -> &AxisId {
+        match self {
+            Self::Batch(axis) => &axis.id,
+            Self::Channel(axis) => &axis.id,
+            Self::Index(axis) => &axis.id,
+            Self::Time(axis) => &axis.id,
+            Self::Space(axis) => &axis.id,
+        }
+    }
+    pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
+        match self {
+            Self::Space(space_axis) => space_axis.is_compatible_with_extent(extent),
+            Self::Time(time_axis) => time_axis.is_compatible_with_extent(extent),
+            Self::Channel(channel_axis) => channel_axis.is_compatible_with_extent(extent),
+            _ => true, // FIXME: can we check this?
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
