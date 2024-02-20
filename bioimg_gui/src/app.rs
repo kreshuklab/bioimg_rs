@@ -1,15 +1,12 @@
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::result::Result;
 use crate::widgets::enum_widget::EnumWidget;
-use crate::widgets::gui_npy_array::GuiNpyArray;
-use crate::widgets::tensor_axis_widget::InputTensorAxisWidget;
+use crate::widgets::input_tensor_widget::InputTensorWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
-    cover_image_widget::CoverImageWidget, file_widget::FileWidget, icon_widget::StagingIcon,
-    maintainer_widget::StagingMaintainer, url_widget::StagingUrl, util::group_frame, InputLines, StagingOpt, StagingString,
-    StagingVec, StatefulWidget,
+    cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
+    util::group_frame, InputLines, StagingOpt, StagingString, StagingVec, StatefulWidget,
 };
 
 pub struct TemplateApp {
@@ -31,10 +28,9 @@ pub struct TemplateApp {
     staging_documentation: StagingOpt<CodeEditorWidget>,
     staging_license: EnumWidget<rdf::SpdxLicense>,
     //badges
-    staging_example_tensor: FileWidget<Result<GuiNpyArray>>,
 
     ////
-    input_tensor_axis_widget: InputTensorAxisWidget,
+    input_tensor_widget: InputTensorWidget,
 }
 
 impl Default for TemplateApp {
@@ -53,9 +49,7 @@ impl Default for TemplateApp {
             staging_documentation: Default::default(),
             staging_license: Default::default(),
 
-            staging_example_tensor: Default::default(),
-
-            input_tensor_axis_widget: Default::default(),
+            input_tensor_widget: Default::default(),
         }
     }
 }
@@ -156,15 +150,9 @@ impl eframe::App for TemplateApp {
                 });
 
                 ui.horizontal(|ui| {
-                    ui.strong("Example tensor: ");
-                    self.staging_example_tensor
-                        .draw_and_parse(ui, egui::Id::from("Example Tensor"));
-                });
-
-                ui.horizontal(|ui| {
-                    ui.strong("Test input tensor axis: ");
-                    self.input_tensor_axis_widget
-                        .draw_and_parse(ui, egui::Id::from("test input tensor axis"))
+                    ui.strong("Test input tensor: ");
+                    self.input_tensor_widget
+                        .draw_and_parse(ui, egui::Id::from("test input tensor"))
                 });
             });
         });

@@ -12,10 +12,21 @@ use super::tensor_axis_widget::InputTensorAxisWidget;
 use super::{StagingString, StagingVec, StatefulWidget};
 
 pub struct InputTensorWidget {
-    id_widget: StagingString<modelrdf::TensorId>,
-    description_widget: StagingString<rdf::BoundedString<0, 128>>,
-    axes_widget: StagingVec<InputTensorAxisWidget>,
-    test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
+    pub id_widget: StagingString<modelrdf::TensorId>,
+    pub description_widget: StagingString<rdf::BoundedString<0, 128>>,
+    pub axes_widget: StagingVec<InputTensorAxisWidget>,
+    pub test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
+}
+
+impl Default for InputTensorWidget {
+    fn default() -> Self {
+        Self {
+            id_widget: Default::default(),
+            description_widget: Default::default(),
+            axes_widget: StagingVec::new("Axis"),
+            test_tensor_widget: Default::default(),
+        }
+    }
 }
 
 impl StatefulWidget for InputTensorWidget {
