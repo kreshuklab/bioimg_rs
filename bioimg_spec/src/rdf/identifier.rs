@@ -8,7 +8,7 @@ const PYTHON_KEYWORDS: [&'static str; 35] = [
     "return", "try", "while", "with", "yield",
 ];
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct Identifier<T>(T);
 

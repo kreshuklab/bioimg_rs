@@ -3,6 +3,7 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::input_tensor_widget::InputTensorWidget;
+use crate::widgets::output_tensor_widget::OutputTensorWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
@@ -31,6 +32,7 @@ pub struct TemplateApp {
 
     ////
     input_tensor_widget: InputTensorWidget,
+    output_tensor_widget: OutputTensorWidget,
 }
 
 impl Default for TemplateApp {
@@ -50,6 +52,7 @@ impl Default for TemplateApp {
             staging_license: Default::default(),
 
             input_tensor_widget: Default::default(),
+            output_tensor_widget: Default::default(),
         }
     }
 }
@@ -154,6 +157,12 @@ impl eframe::App for TemplateApp {
                     self.input_tensor_widget
                         .draw_and_parse(ui, egui::Id::from("test input tensor"))
                 });
+
+                ui.horizontal(|ui| {
+                    ui.strong("Test output tensor: ");
+                    self.output_tensor_widget
+                        .draw_and_parse(ui, egui::Id::from("test output tensor"))
+                })
             });
         });
     }

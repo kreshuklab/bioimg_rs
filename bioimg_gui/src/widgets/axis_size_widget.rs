@@ -45,8 +45,10 @@ impl StatefulWidget for AxisSizeReferenceWidget {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::AxisSizeReference {
-            tensor_id: self.staging_tensor_id.state()?,
-            axis_id: self.staging_axis_id.state()?,
+            qualified_axis_id: modelrdf::QualifiedAxisId {
+                tensor_id: self.staging_tensor_id.state()?,
+                axis_id: self.staging_axis_id.state()?,
+            },
             offset: self.staging_offset.state()?,
         })
     }
@@ -153,8 +155,12 @@ impl StatefulWidget for AnyAxisSizeWidget {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(match self.mode {
-            AxisSizeMode::Fixed => modelrdf::AnyAxisSize::Fixed(self.staging_fixed_size.state()?),
-            AxisSizeMode::Parameterized => modelrdf::AnyAxisSize::Parameterized(self.staging_parameterized.state()?),
+            AxisSizeMode::Fixed => {
+                modelrdf::AnyAxisSize::Resolved(modelrdf::ResolvedAxisSize::Fixed(self.staging_fixed_size.state()?))
+            }
+            AxisSizeMode::Parameterized => {
+                modelrdf::AnyAxisSize::Resolved(modelrdf::ResolvedAxisSize::Parameterized(self.staging_parameterized.state()?))
+            }
             AxisSizeMode::Reference => modelrdf::AnyAxisSize::Reference(self.staging_size_ref.state()?),
         })
     }

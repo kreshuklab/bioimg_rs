@@ -7,17 +7,17 @@ use bioimg_spec::runtime::NpyArray;
 
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::gui_npy_array::GuiNpyArray;
-use super::tensor_axis_widget::InputTensorAxisWidget;
+use super::tensor_axis_widget::OutputTensorAxisWidget;
 use super::{StagingString, StagingVec, StatefulWidget};
 
-pub struct InputTensorWidget {
+pub struct OutputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub description_widget: StagingString<rdf::BoundedString<0, 128>>,
-    pub axes_widget: StagingVec<InputTensorAxisWidget>,
+    pub axes_widget: StagingVec<OutputTensorAxisWidget>,
     pub test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
 }
 
-impl Default for InputTensorWidget {
+impl Default for OutputTensorWidget {
     fn default() -> Self {
         Self {
             id_widget: Default::default(),
@@ -28,8 +28,8 @@ impl Default for InputTensorWidget {
     }
 }
 
-impl StatefulWidget for InputTensorWidget {
-    type Value<'p> = Result<(modelrdf::InputTensorDescr, Arc<NpyArray>)>;
+impl StatefulWidget for OutputTensorWidget {
+    type Value<'p> = Result<(modelrdf::OutputTensorDescr, Arc<NpyArray>)>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
@@ -62,12 +62,12 @@ impl StatefulWidget for InputTensorWidget {
             return Err(GuiError::new("Test tensor is missing".into()));
         };
         let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
-        let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
+        let output_axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
         Ok((
-            modelrdf::InputTensorDescr {
+            modelrdf::OutputTensorDescr {
                 id: self.id_widget.state()?,
                 description: self.description_widget.state()?,
-                axes: input_axis_group,
+                axes: output_axis_group,
                 test_tensor: rdf::FileReference::Path(path.clone()),
                 sample_tensor: None, //FIXME
             },

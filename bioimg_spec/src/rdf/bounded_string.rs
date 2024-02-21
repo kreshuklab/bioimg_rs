@@ -8,7 +8,7 @@ pub enum BoundedStringParsingError {
     BadLength { value: String, allowed: RangeInclusive<usize> },
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize, Hash, PartialOrd, Ord)]
 #[serde(try_from = "String")]
 #[serde(into = "String")]
 pub struct BoundedString<const MIN_CHARS: usize, const EXTRA_CHARS: usize>(String);

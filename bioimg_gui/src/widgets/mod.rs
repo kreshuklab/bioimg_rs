@@ -16,6 +16,7 @@ pub mod gui_npy_array;
 pub mod icon_widget;
 pub mod input_tensor_widget;
 pub mod maintainer_widget;
+pub mod output_tensor_widget;
 pub mod tensor_axis_widget;
 pub mod url_widget;
 pub mod util;

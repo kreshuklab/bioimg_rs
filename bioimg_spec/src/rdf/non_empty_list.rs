@@ -1,4 +1,7 @@
-use std::{borrow::Borrow, ops::Deref};
+use std::{
+    borrow::Borrow,
+    ops::{Deref, DerefMut},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +14,12 @@ impl<T> Deref for NonEmptyList<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T> DerefMut for NonEmptyList<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
