@@ -4,12 +4,12 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
 
-use super::axis_size_widget::AnyAxisSizeWidget;
 use super::enum_widget::EnumWidget;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
-use super::{StagingNum, StatefulWidget};
+use super::StatefulWidget;
+use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::result::{GuiError, Result};
 
 #[derive(Copy, Clone, PartialEq, Eq, Default)]
