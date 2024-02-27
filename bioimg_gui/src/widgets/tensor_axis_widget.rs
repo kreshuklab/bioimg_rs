@@ -6,8 +6,8 @@ use bioimg_spec::rdf::model as modelrdf;
 
 use super::axis_size_widget::AnyAxisSizeWidget;
 use super::enum_widget::EnumWidget;
-use super::util::group_frame;
-use super::{StagingNum, StagingOpt, StagingString, StagingVec, StatefulWidget};
+use super::staging_vec::StagingVec;
+use super::{StagingNum, StagingOpt, StagingString, StatefulWidget};
 use crate::result::{GuiError, Result};
 
 #[derive(Copy, Clone, PartialEq, Eq, Default)]
