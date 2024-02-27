@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use self::{error_display::show_if_error, util::group_frame};
+use self::error_display::show_if_error;
 use crate::result::{GuiError, Result};
 
 pub mod author_widget;
@@ -17,6 +17,7 @@ pub mod icon_widget;
 pub mod input_tensor_widget;
 pub mod maintainer_widget;
 pub mod output_tensor_widget;
+pub mod staging_opt;
 pub mod staging_string;
 pub mod staging_vec;
 pub mod tensor_axis_widget;
@@ -66,41 +67,5 @@ where
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         self.parsed.clone()
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct StagingOpt<Stg: StatefulWidget>(Option<Stg>);
-
-impl<Stg> StatefulWidget for StagingOpt<Stg>
-where
-    Stg: Default + StatefulWidget,
-{
-    type Value<'p> = Option<Stg::Value<'p>>
-    where
-        Stg::Value<'p>: 'p,
-        Stg: 'p;
-
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
-        ui.horizontal(|ui| {
-            if self.0.is_none() {
-                ui.label("None");
-                if ui.button("Add").clicked() {
-                    self.0 = Some(Stg::default())
-                }
-            } else {
-                let x_clicked = ui.button("🗙").clicked();
-                group_frame(ui, |ui| {
-                    self.0.as_mut().unwrap().draw_and_parse(ui, id);
-                });
-                if x_clicked {
-                    self.0.take();
-                }
-            }
-        });
-    }
-
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        self.0.as_ref().map(|inner_widget| inner_widget.state())
     }
 }

@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_string::StagingString, StagingOpt, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, StatefulWidget};
 use crate::result::Result;
 
 pub type ConfString = BoundedString<1, 1023>;

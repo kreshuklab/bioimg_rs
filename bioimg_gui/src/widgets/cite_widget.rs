@@ -4,7 +4,7 @@ use bioimg_spec::rdf::{
     cite_entry::CiteEntry2,
 };
 
-use super::{staging_string::StagingString, url_widget::StagingUrl, StagingOpt, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, url_widget::StagingUrl, StatefulWidget};
 
 pub type ConfString = BoundedString<1, 1023>;
 

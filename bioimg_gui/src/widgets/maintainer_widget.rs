@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{bounded_string::BoundedString, maintainer::Maintainer, orcid::Orcid, slashless_string::SlashlessString};
 
-use super::{staging_string::StagingString, StagingOpt, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, StatefulWidget};
 use crate::result::Result;
 
 pub struct StagingMaintainer {
