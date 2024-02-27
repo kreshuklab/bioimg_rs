@@ -7,9 +7,10 @@ use bioimg_spec::runtime::NpyArray;
 
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::gui_npy_array::GuiNpyArray;
+use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
 use super::tensor_axis_widget::InputTensorAxisWidget;
-use super::{StagingString, StatefulWidget};
+use super::StatefulWidget;
 
 pub struct InputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,

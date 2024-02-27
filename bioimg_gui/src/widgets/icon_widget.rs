@@ -1,6 +1,6 @@
 use bioimg_spec::rdf;
 
-use super::{util::DynamicImageExt, StagingString, StatefulWidget};
+use super::{staging_string::StagingString, util::DynamicImageExt, StatefulWidget};
 
 use crate::result::Result;
 use std::path::PathBuf;

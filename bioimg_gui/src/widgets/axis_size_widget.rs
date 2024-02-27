@@ -4,8 +4,9 @@ use crate::result::Result;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::{axes::AxisId, tensor_id::TensorId};
 
+use super::staging_string::StagingString;
 use super::util::group_frame;
-use super::{StagingNum, StagingString, StatefulWidget};
+use super::{StagingNum, StatefulWidget};
 
 #[derive(Default)]
 pub struct AxisSizeReferenceWidget {
