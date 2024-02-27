@@ -4,36 +4,36 @@ use crate::result::{GuiError, Result};
 
 use super::{error_display::show_if_error, StatefulWidget};
 
-pub struct StagingNum<N, T> {
-    pub raw: N,
-    pub parsed: Result<T>,
+pub struct StagingNum<Raw, Parsed> {
+    pub raw: Raw,
+    pub parsed: Result<Parsed>,
 }
 
-impl<N, T> Default for StagingNum<N, T>
+impl<Raw, Parsed> Default for StagingNum<Raw, Parsed>
 where
-    N: Default,
-    T: TryFrom<N>,
-    T::Error: Display,
+    Raw: Default,
+    Parsed: TryFrom<Raw>,
+    Parsed::Error: Display,
 {
     fn default() -> Self {
         Self {
-            raw: N::default(),
-            parsed: T::try_from(N::default()).map_err(|err| GuiError::new(err.to_string())),
+            raw: Raw::default(),
+            parsed: Parsed::try_from(Raw::default()).map_err(|err| GuiError::new(err.to_string())),
         }
     }
 }
 
-impl<N, T> StatefulWidget for StagingNum<N, T>
+impl<Raw, Parsed> StatefulWidget for StagingNum<Raw, Parsed>
 where
-    N: egui::emath::Numeric,
-    T: TryFrom<N> + Clone,
-    T::Error: Display + Clone,
+    Raw: egui::emath::Numeric,
+    Parsed: TryFrom<Raw> + Clone,
+    Parsed::Error: Display + Clone,
 {
-    type Value<'p> = Result<T> where T: 'p;
+    type Value<'p> = Result<Parsed> where Parsed: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.add(egui::widgets::DragValue::new(&mut self.raw));
-        self.parsed = T::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()));
+        self.parsed = Parsed::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()));
         show_if_error(ui, &self.parsed);
     }
 
