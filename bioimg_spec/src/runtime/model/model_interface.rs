@@ -35,9 +35,9 @@ pub enum TensorValidationError {
         test_tensor_shape: Vec<usize>,
         num_described_axes: usize,
     },
-    #[error("Axis #{axis_id} is incompatible with test tensor dim #{axis_index} of extent ({expected_extent})")]
+    #[error("Axis '{qualified_axis_id}' is incompatible with test tensor dim #{axis_index} with extent {expected_extent}")]
     IncompatibleAxis {
-        axis_id: modelrdf::AxisId,
+        qualified_axis_id: QualifiedAxisId,
         expected_extent: usize,
         axis_index: usize,
     },
@@ -95,7 +95,10 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
                     };
                     if !resolved_size.is_compatible_with_extent(*dim) {
                         return Err(TensorValidationError::IncompatibleAxis {
-                            axis_id: slot.axes[axis_index].id().clone(), //FIXME: alternative to indexing?
+                            qualified_axis_id: QualifiedAxisId{
+                                tensor_id: slot.id.clone(),
+                                axis_id: slot.axes[axis_index].id().clone(), //FIXME: alternative to indexing?
+                            },
                             expected_extent: *dim,
                             axis_index,
                         });

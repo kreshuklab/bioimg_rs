@@ -2,8 +2,7 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
 use crate::widgets::enum_widget::EnumWidget;
-use crate::widgets::input_tensor_widget::InputTensorWidget;
-use crate::widgets::output_tensor_widget::OutputTensorWidget;
+use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
@@ -32,10 +31,8 @@ pub struct TemplateApp {
     staging_documentation: StagingOpt<CodeEditorWidget>,
     staging_license: EnumWidget<rdf::SpdxLicense>,
     //badges
-
+    model_interface_widget: ModelInterfaceWidget,
     ////
-    input_tensor_widget: InputTensorWidget,
-    output_tensor_widget: OutputTensorWidget,
 }
 
 impl Default for TemplateApp {
@@ -54,8 +51,7 @@ impl Default for TemplateApp {
             staging_documentation: Default::default(),
             staging_license: Default::default(),
 
-            input_tensor_widget: Default::default(),
-            output_tensor_widget: Default::default(),
+            model_interface_widget: Default::default(),
         }
     }
 }
@@ -156,16 +152,9 @@ impl eframe::App for TemplateApp {
                 });
 
                 ui.horizontal(|ui| {
-                    ui.strong("Test input tensor: ");
-                    self.input_tensor_widget
-                        .draw_and_parse(ui, egui::Id::from("test input tensor"))
+                    ui.strong("Model Interface: ");
+                    self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
                 });
-
-                ui.horizontal(|ui| {
-                    ui.strong("Test output tensor: ");
-                    self.output_tensor_widget
-                        .draw_and_parse(ui, egui::Id::from("test output tensor"))
-                })
             });
         });
     }

@@ -5,6 +5,7 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::runtime::NpyArray;
 
+use super::error_display::show_error;
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::gui_npy_array::GuiNpyArray;
 use super::staging_string::StagingString;
@@ -36,7 +37,7 @@ impl StatefulWidget for OutputTensorWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Id: ");
+                ui.strong("Tensor Id: ");
                 self.id_widget.draw_and_parse(ui, id.with("Id"));
             });
             ui.horizontal(|ui| {
@@ -46,6 +47,9 @@ impl StatefulWidget for OutputTensorWidget {
             ui.horizontal(|ui| {
                 ui.strong("Test Tensor: ");
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
+                if matches!(self.test_tensor_widget.state(), FileWidgetState::Empty) {
+                    show_error(ui, "Missing a npy test tensor");
+                }
             });
             ui.horizontal(|ui| {
                 ui.strong("Axes: ");

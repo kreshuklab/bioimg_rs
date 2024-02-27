@@ -2,6 +2,7 @@ use ndarray_npy::ReadNpyError;
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -55,3 +56,5 @@ macro_rules! impl_NpyArray_try_read {
 }
 
 impl_NpyArray_try_read!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64);
+
+pub type ArcNpyArray = Arc<NpyArray>;
