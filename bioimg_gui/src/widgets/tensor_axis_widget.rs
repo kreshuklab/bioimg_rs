@@ -90,11 +90,11 @@ impl StatefulWidget for InputTensorAxisWidget {
             });
             ui.horizontal(|ui| {
                 ui.strong("Axis Type: ");
-                ui.selectable_value(&mut self.axis_type, AxisType::Space, "Space");
-                ui.selectable_value(&mut self.axis_type, AxisType::Time, "Time");
-                ui.selectable_value(&mut self.axis_type, AxisType::Batch, "Batch");
-                ui.selectable_value(&mut self.axis_type, AxisType::Channel, "Channel");
-                ui.selectable_value(&mut self.axis_type, AxisType::Index, "Index");
+                ui.radio_value(&mut self.axis_type, AxisType::Space, "Space");
+                ui.radio_value(&mut self.axis_type, AxisType::Time, "Time");
+                ui.radio_value(&mut self.axis_type, AxisType::Batch, "Batch");
+                ui.radio_value(&mut self.axis_type, AxisType::Channel, "Channel");
+                ui.radio_value(&mut self.axis_type, AxisType::Index, "Index");
             });
             match self.axis_type {
                 AxisType::Space => {
@@ -140,8 +140,8 @@ impl StatefulWidget for InputTensorAxisWidget {
                 AxisType::Channel => {
                     ui.horizontal(|ui| {
                         ui.strong("Channel Names: ");
-                        ui.selectable_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
-                        ui.selectable_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
+                        ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
+                        ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
                     });
                     match self.channel_names_mode {
                         ChannelNamesMode::Pattern => {
@@ -247,7 +247,10 @@ impl StatefulWidget for OutputTensorAxisWidget {
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         self.input_tensor_widget.draw_and_parse(ui, id.with("base"));
-        self.halo_widget.draw_and_parse(ui, id.with("halo"));
+        ui.horizontal(|ui| {
+            ui.strong("Halo: ");
+            self.halo_widget.draw_and_parse(ui, id.with("halo"));
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {

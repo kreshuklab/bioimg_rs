@@ -4,6 +4,7 @@ use crate::result::Result;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::{axes::AxisId, tensor_id::TensorId};
 
+use super::util::group_frame;
 use super::{StagingNum, StagingString, StatefulWidget};
 
 #[derive(Default)]
@@ -114,29 +115,18 @@ pub struct AnyAxisSizeWidget {
     pub staging_parameterized: ParameterizedAxisSizeWidget,
 }
 
-impl AnyAxisSizeWidget {
-    pub fn replicate_state_into(&self, other: &mut Self) {
-        other.mode = self.mode;
-
-        other.staging_fixed_size.raw = self.staging_fixed_size.raw;
-        self.staging_size_ref.replicate_state_on(&mut other.staging_size_ref);
-        self.staging_parameterized
-            .replicate_state_on(&mut other.staging_parameterized);
-    }
-}
-
 impl StatefulWidget for AnyAxisSizeWidget {
     type Value<'p> = Result<modelrdf::AnyAxisSize>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.mode, AxisSizeMode::Fixed, "Fixed Size");
-                ui.selectable_value(&mut self.mode, AxisSizeMode::Parameterized, "Parameterized");
-                ui.selectable_value(&mut self.mode, AxisSizeMode::Reference, "Reference");
+                ui.radio_value(&mut self.mode, AxisSizeMode::Fixed, "Fixed");
+                ui.radio_value(&mut self.mode, AxisSizeMode::Parameterized, "Parameterized");
+                ui.radio_value(&mut self.mode, AxisSizeMode::Reference, "Reference");
             });
 
-            match self.mode {
+            group_frame(ui, |ui| match self.mode {
                 AxisSizeMode::Fixed => {
                     ui.horizontal(|ui| {
                         ui.strong("Extent: ");
@@ -149,7 +139,7 @@ impl StatefulWidget for AnyAxisSizeWidget {
                 AxisSizeMode::Reference => {
                     self.staging_size_ref.draw_and_parse(ui, id.with("Reference"));
                 }
-            };
+            });
         });
     }
 
