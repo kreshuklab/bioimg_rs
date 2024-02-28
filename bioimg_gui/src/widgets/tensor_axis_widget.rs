@@ -4,6 +4,7 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
 
+use super::axis_size_widget::AxisSizeMode;
 use super::enum_widget::EnumWidget;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
@@ -52,10 +53,16 @@ pub struct InputTensorAxisWidget {
 }
 
 impl InputTensorAxisWidget {
+    #[allow(dead_code)]
     pub fn new(id: impl Into<String>) -> Self {
         let mut id_widget = StagingString::<modelrdf::axes::AxisId>::default();
         id_widget.raw = id.into();
         Self { id_widget, ..Default::default() }
+    }
+    pub fn set_fixed(&mut self, extent: usize) {
+        self.size_widget.mode = AxisSizeMode::Fixed;
+        self.size_widget.staging_fixed_size.raw = extent;
+        self.scale_widget.raw = 1.0;
     }
 }
 
@@ -246,6 +253,12 @@ impl StatefulWidget for InputTensorAxisWidget {
 pub struct OutputTensorAxisWidget {
     pub input_tensor_widget: InputTensorAxisWidget,
     pub halo_widget: StagingNum<usize, usize>,
+}
+
+impl OutputTensorAxisWidget {
+    pub fn set_fixed(&mut self, extent: usize) {
+        self.input_tensor_widget.set_fixed(extent)
+    }
 }
 
 impl StatefulWidget for OutputTensorAxisWidget {

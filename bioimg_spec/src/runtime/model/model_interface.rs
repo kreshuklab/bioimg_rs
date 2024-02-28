@@ -46,6 +46,10 @@ pub enum TensorValidationError {
     AxisSizeResolutionError(#[from] AxisSizeResolutionError),
     #[error("Duplicate tensor id: {0}")]
     DuplicateTensorId(TensorId),
+    #[error("Empty model interface inputs")]
+    EmptyInputs,
+    #[error("Empty model interface outputs")]
+    EmptyOutputs,
 }
 
 #[allow(dead_code)]
@@ -59,6 +63,12 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         mut inputs: Vec<(modelrdf::InputTensorDescr, DATA)>,
         mut outputs: Vec<(modelrdf::OutputTensorDescr, DATA)>,
     ) -> Result<Self, TensorValidationError> {
+        if inputs.len() == 0 {
+            return Err(TensorValidationError::EmptyInputs);
+        }
+        if outputs.len() == 0 {
+            return Err(TensorValidationError::EmptyOutputs);
+        }
         let mut axes_sizes: Vec<(QualifiedAxisId, AnyAxisSize)> = Vec::with_capacity(inputs.len() + outputs.len());
         let mut seen_tensor_ids = HashSet::<TensorId>::with_capacity(inputs.len() + outputs.len());
 

@@ -1,7 +1,9 @@
 use super::error_display::show_error;
 use super::{
-    error_display::show_if_error, input_tensor_widget::InputTensorWidget, output_tensor_widget::OutputTensorWidget,
-    staging_vec::StagingVec, StatefulWidget,
+    error_display::show_if_error,
+    inout_tensor_widget::{InputTensorWidget, OutputTensorWidget},
+    staging_vec::StagingVec,
+    StatefulWidget,
 };
 use bioimg_spec::runtime::npy_array::ArcNpyArray;
 use bioimg_spec::runtime::{self as specrt};
@@ -53,9 +55,7 @@ impl StatefulWidget for ModelInterfaceWidget {
                 }
             };
             self.parsed = specrt::ModelInterface::try_build(inputs, outputs).map_err(|err| GuiError::from(err));
-            ui.weak("error message should be between this....");
             show_if_error(ui, &self.parsed);
-            ui.weak("..... and this");
         });
     }
 
