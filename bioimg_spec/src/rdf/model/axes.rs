@@ -289,9 +289,9 @@ macro_rules!  impl_axis_group{($inout:ident) => { paste!{
             if value.len() == 0 {
                 return Err(AxisGroupValidationError::Empty);
             }
-            let mut axis_types = HashSet::<AxisType>::with_capacity(5);
+            let mut axis_types = HashSet::<AxisType>::with_capacity(5); //FIXME: 5?
             for val in value.iter() {
-                if !axis_types.insert(val.axis_type()) {
+                if ! matches!(val.axis_type(), AxisType::Space) && !axis_types.insert(val.axis_type()) {
                     return Err(AxisGroupValidationError::RepeatedAxisType(val.axis_type()));
                 }
             }
