@@ -65,6 +65,9 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         #[rustfmt::skip]
         macro_rules! collect_sizes {($slots:ident) => { paste! {
             for slot in $slots.iter().map(|i| &i.0) {
+                if !seen_tensor_ids.insert(slot.id.clone()){
+                    return Err(TensorValidationError::DuplicateTensorId(slot.id.clone()))
+                }
                 for axis in slot.axes.iter() {
                     let Some(size) = axis.size() else{
                         continue;
@@ -73,9 +76,6 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
                         tensor_id: slot.id.clone(),
                         axis_id: axis.id().clone(),
                     };
-                    if seen_tensor_ids.insert(slot.id.clone()){
-                        return Err(TensorValidationError::DuplicateTensorId(slot.id.clone()))
-                    }
                     axes_sizes.push((qual_id, size.clone()));
                 }
             }
@@ -119,17 +119,11 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         Ok(Self {
             inputs: inputs
                 .into_iter()
-                .map(|inp| InputSlot {
-                    descr: inp.0,
-                    test_tensor: inp.1,
-                })
+                .map(|inp| InputSlot { descr: inp.0, test_tensor: inp.1 })
                 .collect(),
             outputs: outputs
                 .into_iter()
-                .map(|out| OutputSlot {
-                    descr: out.0,
-                    test_tensor: out.1,
-                })
+                .map(|out| OutputSlot { descr: out.0, test_tensor: out.1 })
                 .collect(),
         })
     }

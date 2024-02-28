@@ -38,13 +38,19 @@ impl StatefulWidget for ModelInterfaceWidget {
                 self.outputs_widget.draw_and_parse(ui, id.with("out"));
             });
 
-            let Ok(inputs) = self.inputs_widget.state().into_iter().collect::<Result<Vec<_>>>() else {
-                show_error(ui, "Error on some of the inputs");
-                return;
+            let inputs = match self.inputs_widget.state().into_iter().collect::<Result<Vec<_>>>() {
+                Ok(inps) => inps,
+                Err(err) => {
+                    show_error(ui, format!("Error on some of the inputs: {err}"));
+                    return;
+                }
             };
-            let Ok(outputs) = self.outputs_widget.state().into_iter().collect::<Result<Vec<_>>>() else {
-                show_error(ui, "Error on some of the outputs");
-                return;
+            let outputs = match self.outputs_widget.state().into_iter().collect::<Result<Vec<_>>>() {
+                Ok(outs) => outs,
+                Err(err) => {
+                    show_error(ui, format!("Error on some of the outputs: {err}"));
+                    return;
+                }
             };
             self.parsed = specrt::ModelInterface::try_build(inputs, outputs).map_err(|err| GuiError::from(err));
             ui.weak("error message should be between this....");

@@ -51,6 +51,14 @@ pub struct InputTensorAxisWidget {
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
 }
 
+impl InputTensorAxisWidget {
+    pub fn new(id: impl Into<String>) -> Self {
+        let mut id_widget = StagingString::<modelrdf::axes::AxisId>::default();
+        id_widget.raw = id.into();
+        Self { id_widget, ..Default::default() }
+    }
+}
+
 impl Default for InputTensorAxisWidget {
     fn default() -> Self {
         Self {
@@ -223,11 +231,7 @@ impl StatefulWidget for InputTensorAxisWidget {
                     }
                 };
 
-                modelrdf::InputAxis::Channel(modelrdf::ChannelAxis {
-                    id,
-                    description,
-                    channel_names,
-                })
+                modelrdf::InputAxis::Channel(modelrdf::ChannelAxis { id, description, channel_names })
             }
             AxisType::Index => modelrdf::InputAxis::Index(modelrdf::axes::IndexAxis {
                 id: self.id_widget.state()?,
