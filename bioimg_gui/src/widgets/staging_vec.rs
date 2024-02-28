@@ -11,7 +11,7 @@ where
 impl<Stg: StatefulWidget + Default> StagingVec<Stg> {
     pub fn new(item_name: impl Into<String>) -> Self {
         Self {
-            staging: vec![Stg::default()],
+            staging: vec![],
             item_name: item_name.into(),
         }
     }
@@ -39,7 +39,7 @@ where
                 if ui.button(format!("+ Add {item_name}")).clicked() {
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
-                if ui.button(format!("- Remove {item_name}")).clicked() && self.staging.len() > 1 {
+                if ui.button(format!("- Remove {item_name}")).clicked() && self.staging.len() > 0 {
                     self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });
