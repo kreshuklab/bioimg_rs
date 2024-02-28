@@ -21,26 +21,31 @@ pub enum AxisSizeResolutionError {
     Loop(QualifiedAxisId),
     #[error("Resolve reference to {0} is unresolvable")]
     Unresolvable(QualifiedAxisId),
+    #[error("Multiple axes with same ID: {0}")]
+    DuplicateId(QualifiedAxisId),
 }
 
 impl SlotResolver {
-    pub fn new(sizes: Vec<(QualifiedAxisId, AnyAxisSize)>) -> Self {
+    pub fn new(sizes: Vec<(QualifiedAxisId, AnyAxisSize)>) -> Result<Self, AxisSizeResolutionError> {
         let mut resolved_axes: HashMap<QualifiedAxisId, ResolvedAxisSize> = HashMap::with_capacity(sizes.len());
         let mut unresolved_axes: BTreeMap<QualifiedAxisId, AxisSizeReference> = BTreeMap::new();
         for (qual_id, inp_size) in sizes.into_iter() {
-            match inp_size {
+            let duplicate_detected = match inp_size {
                 AnyAxisSize::Reference(size_ref) => {
-                    unresolved_axes.insert(qual_id, size_ref.clone());
+                    matches!(unresolved_axes.insert(qual_id.clone(), size_ref.clone()), Some(_))
                 }
                 AnyAxisSize::Resolved(resolved_size) => {
-                    resolved_axes.insert(qual_id, resolved_size.clone());
+                    matches!(resolved_axes.insert(qual_id.clone(), resolved_size.clone()), Some(_))
                 }
             };
+            if duplicate_detected {
+                return Err(AxisSizeResolutionError::DuplicateId(qual_id));
+            }
         }
-        Self {
+        Ok(Self {
             resolved_axes,
             unresolved_axes,
-        }
+        })
     }
 
     fn try_resolve(

@@ -1,10 +1,11 @@
 use std::borrow::Borrow;
+use std::collections::HashSet;
 
 use paste::paste;
 
-use crate::rdf::model as modelrdf;
 use crate::rdf::model::axis_size::QualifiedAxisId;
 use crate::rdf::model::AnyAxisSize;
+use crate::rdf::model::{self as modelrdf, TensorId};
 use crate::runtime::model::axis_size_resolver::SlotResolver;
 use crate::runtime::npy_array::NpyArray;
 
@@ -43,6 +44,8 @@ pub enum TensorValidationError {
     },
     #[error("{0}")]
     AxisSizeResolutionError(#[from] AxisSizeResolutionError),
+    #[error("Duplicate tensor id: {0}")]
+    DuplicateTensorId(TensorId),
 }
 
 #[allow(dead_code)]
@@ -57,6 +60,7 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         mut outputs: Vec<(modelrdf::OutputTensorDescr, DATA)>,
     ) -> Result<Self, TensorValidationError> {
         let mut axes_sizes: Vec<(QualifiedAxisId, AnyAxisSize)> = Vec::with_capacity(inputs.len() + outputs.len());
+        let mut seen_tensor_ids = HashSet::<TensorId>::with_capacity(inputs.len() + outputs.len());
 
         #[rustfmt::skip]
         macro_rules! collect_sizes {($slots:ident) => { paste! {
@@ -69,6 +73,9 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
                         tensor_id: slot.id.clone(),
                         axis_id: axis.id().clone(),
                     };
+                    if seen_tensor_ids.insert(slot.id.clone()){
+                        return Err(TensorValidationError::DuplicateTensorId(slot.id.clone()))
+                    }
                     axes_sizes.push((qual_id, size.clone()));
                 }
             }
@@ -76,7 +83,7 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         collect_sizes!(inputs);
         collect_sizes!(outputs);
 
-        let size_map = SlotResolver::new(axes_sizes).solve()?;
+        let size_map = SlotResolver::new(axes_sizes)?.solve()?;
 
         #[rustfmt::skip] macro_rules! resolve_and_validate {($slots:ident) => {
             for (slot, test_tensor) in $slots.iter_mut() {
