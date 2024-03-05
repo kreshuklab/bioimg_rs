@@ -5,7 +5,7 @@ use super::{staging_string::StagingString, util::DynamicImageExt, StatefulWidget
 use crate::result::Result;
 use std::path::PathBuf;
 
-use bioimg_spec::runtime as rt;
+use bioimg_runtime as rt;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{
@@ -31,12 +31,7 @@ impl ParsedFile for Result<GuiIconImage> {
         let img = image::io::Reader::open(&path)?.decode()?;
         let icon = rt::Icon::try_from(img.clone())?;
         let texture_handle = img.to_egui_texture_handle(path.to_string_lossy(), &ctx);
-        Ok(GuiIconImage {
-            path: path.clone(),
-            contents: icon,
-            context: ctx,
-            texture_handle: texture_handle.clone(),
-        })
+        Ok(GuiIconImage { path: path.clone(), contents: icon, context: ctx, texture_handle: texture_handle.clone() })
     }
 
     fn render(&self, ui: &mut egui::Ui, id: egui::Id) {

@@ -3,11 +3,11 @@ use std::collections::HashSet;
 
 use paste::paste;
 
-use crate::rdf::model::axis_size::QualifiedAxisId;
-use crate::rdf::model::AnyAxisSize;
-use crate::rdf::model::{self as modelrdf, TensorId};
-use crate::runtime::model::axis_size_resolver::SlotResolver;
-use crate::runtime::npy_array::NpyArray;
+use crate::model::axis_size_resolver::SlotResolver;
+use crate::npy_array::NpyArray;
+use bioimg_spec::rdf::model::axis_size::QualifiedAxisId;
+use bioimg_spec::rdf::model::AnyAxisSize;
+use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 
 use super::axis_size_resolver::AxisSizeResolutionError;
 

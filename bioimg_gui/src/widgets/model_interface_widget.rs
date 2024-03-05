@@ -5,8 +5,8 @@ use super::{
     staging_vec::StagingVec,
     StatefulWidget,
 };
-use bioimg_spec::runtime::npy_array::ArcNpyArray;
-use bioimg_spec::runtime::{self as specrt};
+use bioimg_runtime as specrt;
+use bioimg_runtime::npy_array::ArcNpyArray;
 
 use crate::result::{GuiError, Result};
 

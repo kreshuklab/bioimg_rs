@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::result::Result;
-use bioimg_spec::runtime as rt;
+use bioimg_runtime as rt;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{
@@ -29,12 +29,7 @@ impl ParsedFile for Result<GuiCoverImage> {
         let contents = std::fs::read(&path)?;
         let cover_image = rt::CoverImage::try_from(contents.as_slice())?;
         let texture_handle = cover_image.to_egui_texture_handle(path.to_string_lossy(), &ctx);
-        Ok(GuiCoverImage {
-            path: path.clone(),
-            contents: cover_image,
-            context: ctx,
-            texture_handle: texture_handle.clone(),
-        })
+        Ok(GuiCoverImage { path: path.clone(), contents: cover_image, context: ctx, texture_handle: texture_handle.clone() })
     }
 
     fn render(&self, ui: &mut egui::Ui, id: egui::Id) {

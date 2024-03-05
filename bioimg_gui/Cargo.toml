@@ -16,6 +16,7 @@ eframe = { version = "0.24.1", default-features = false, features = [
 ] }
 log = "0.4"
 bioimg_spec = {path = "../bioimg_spec"}
+bioimg_runtime = {path = "../bioimg_runtime"}
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }

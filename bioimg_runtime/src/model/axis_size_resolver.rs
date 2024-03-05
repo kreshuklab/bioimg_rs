@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::rdf::model::{
+use bioimg_spec::rdf::model::{
     axis_size::{QualifiedAxisId, ResolvedAxisSize},
     AnyAxisSize, AxisSizeReference,
 };
@@ -42,10 +42,7 @@ impl SlotResolver {
                 return Err(AxisSizeResolutionError::DuplicateId(qual_id));
             }
         }
-        Ok(Self {
-            resolved_axes,
-            unresolved_axes,
-        })
+        Ok(Self { resolved_axes, unresolved_axes })
     }
 
     fn try_resolve(

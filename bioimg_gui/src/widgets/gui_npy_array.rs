@@ -1,6 +1,6 @@
 use std::{ops::Deref, path::PathBuf, sync::Arc};
 
-use bioimg_spec::runtime::npy_array::NpyArray;
+use bioimg_runtime::npy_array::NpyArray;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{error_display::show_error, file_widget::ParsedFile};
@@ -55,10 +55,8 @@ impl ParsedFile for Result<GuiNpyArray> {
         };
 
         if let Some(texture_handle) = &loaded_cover_image.texture_handle {
-            let image_source = ImageSource::Texture(SizedTexture {
-                id: texture_handle.id(),
-                size: egui::Vec2 { x: 20.0, y: 20.0 },
-            });
+            let image_source =
+                ImageSource::Texture(SizedTexture { id: texture_handle.id(), size: egui::Vec2 { x: 20.0, y: 20.0 } });
             let ui_img = egui::Image::new(image_source);
             ui.add(ui_img);
         };

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use paste::paste;
 
 use crate::result::{GuiError, Result};
+use bioimg_runtime::NpyArray;
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
-use bioimg_spec::runtime::NpyArray;
 
 use super::error_display::show_error;
 use super::file_widget::{FileWidget, FileWidgetState};

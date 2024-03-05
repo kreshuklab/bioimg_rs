@@ -1,4 +1,4 @@
-use crate::rdf;
+use bioimg_spec::rdf;
 use image::DynamicImage;
 
 #[derive(thiserror::Error, Debug, Clone)]
