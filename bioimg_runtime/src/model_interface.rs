@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use paste::paste;
 
-use crate::model::axis_size_resolver::SlotResolver;
+use crate::axis_size_resolver::SlotResolver;
 use crate::npy_array::NpyArray;
 use bioimg_spec::rdf::model::axis_size::QualifiedAxisId;
 use bioimg_spec::rdf::model::AnyAxisSize;
