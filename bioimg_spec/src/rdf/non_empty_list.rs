@@ -39,3 +39,12 @@ impl<T> Borrow<[T]> for NonEmptyList<T> {
         return &self.0;
     }
 }
+
+impl<T> NonEmptyList<T> {
+    pub fn map<F, Out>(&self, f: F) -> NonEmptyList<Out>
+    where
+        F: Fn(&T) -> Out,
+    {
+        NonEmptyList(self.iter().map(f).collect())
+    }
+}
