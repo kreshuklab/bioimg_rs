@@ -259,11 +259,11 @@ pub enum AxisGroupValidationError {
     RepeatedAxisType(AxisType),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 #[serde(try_from = "Vec::<OutputAxis>")]
 pub struct OutputAxisGroup(Vec<OutputAxis>);
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 #[serde(try_from = "Vec::<InputAxis>")]
 pub struct InputAxisGroup(Vec<InputAxis>);
 

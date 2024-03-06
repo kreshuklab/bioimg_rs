@@ -4,7 +4,7 @@ use crate::rdf::file_reference::FileReference;
 
 use super::{axes::OutputAxisGroup, TensorDescription, TensorId};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OutputTensorDescr {
     pub id: TensorId,
     #[serde(default)]

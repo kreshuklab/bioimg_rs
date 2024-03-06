@@ -1,4 +1,4 @@
-use super::{BoundedString, Rdf};
+use super::{non_empty_list::NonEmptyList, BoundedString, Rdf};
 
 pub mod axes;
 pub mod axis_size;
@@ -24,11 +24,11 @@ pub use space_unit::SpaceUnit;
 pub use tensor_id::TensorId;
 pub use time_unit::TimeUnit;
 
+#[derive(Debug, Clone)]
 pub struct ModelRdf {
-    pub base: Rdf,
-    // inputs: u32
+    // pub base: Rdf,
+    pub inputs: NonEmptyList<InputTensorDescr>,
+    pub outputs: NonEmptyList<OutputTensorDescr>,
 }
-
-pub struct ModelRdfV05 {}
 
 pub type TensorDescription = BoundedString<0, 128>;
