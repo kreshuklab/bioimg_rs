@@ -1,4 +1,4 @@
-use super::{non_empty_list::NonEmptyList, BoundedString, Rdf};
+use super::{non_empty_list::NonEmptyList, BoundedString};
 
 pub mod axes;
 pub mod axis_size;
@@ -24,7 +24,7 @@ pub use space_unit::SpaceUnit;
 pub use tensor_id::TensorId;
 pub use time_unit::TimeUnit;
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct ModelRdf {
     // pub base: Rdf,
     pub inputs: NonEmptyList<InputTensorDescr>,

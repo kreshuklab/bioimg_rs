@@ -1,29 +1,45 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
+use std::io::{Seek, Write};
+use std::path::PathBuf;
 
+use bioimg_spec::rdf::non_empty_list::NonEmptyList;
+use bioimg_spec::rdf::FileReference;
 use paste::paste;
+use uuid::Uuid;
 
 use crate::axis_size_resolver::SlotResolver;
 use crate::npy_array::NpyArray;
+use crate::zip_writer_ext::ModelZipWriter;
+use crate::zoo_model::ModelPackingError;
 use bioimg_spec::rdf::model::axis_size::QualifiedAxisId;
 use bioimg_spec::rdf::model::AnyAxisSize;
 use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 
 use super::axis_size_resolver::AxisSizeResolutionError;
 
-//FIXME: these should always have resolved sizes, but spec structs don't
-#[allow(dead_code)]
-pub struct InputSlot<DATA: Borrow<NpyArray>> {
-    descr: modelrdf::InputTensorDescr,
-    test_tensor: DATA,
-}
+#[rustfmt::skip]
+macro_rules! declare_slot {( $struct_name:ident, $inout:ident) => { paste!{
+    #[allow(dead_code)]
+    pub struct $struct_name <DATA: Borrow<NpyArray>> {
+        descr: modelrdf::[<$inout TensorDescr>],  //FIXME: size should always be resolved, no the case with spec structs
+        test_tensor: DATA,
+    }
 
-//FIXME: these should always have resolved sizes, but spec structs don't
-#[allow(dead_code)]
-pub struct OutputSlot<DATA: Borrow<NpyArray>> {
-    descr: modelrdf::OutputTensorDescr,
-    test_tensor: DATA,
-}
+    impl<DATA: Borrow<NpyArray>> $struct_name <DATA> {
+        pub fn dump(&self, zip_file: &mut ModelZipWriter<impl Write + Seek>) -> Result<modelrdf::[<$inout TensorDescr>], ModelPackingError> {
+            let test_tensor_zip_path = format!("/{}", Uuid::new_v4());
+            zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
+            Ok(modelrdf::[<$inout TensorDescr>] {
+                test_tensor: FileReference::Path(PathBuf::from(test_tensor_zip_path)),
+                ..self.descr.clone()
+            })
+        }
+    }
+}};}
+
+declare_slot!(InputSlot, Input);
+declare_slot!(OutputSlot, Output);
 
 #[derive(thiserror::Error, Debug)]
 pub enum TensorValidationError {
@@ -59,6 +75,32 @@ pub struct ModelInterface<DATA: Borrow<NpyArray>> {
 }
 
 impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
+    pub fn dump(
+        &self,
+        zip_writer: &mut ModelZipWriter<impl Write + Seek>,
+    ) -> Result<
+        (
+            NonEmptyList<modelrdf::InputTensorDescr>,
+            NonEmptyList<modelrdf::OutputTensorDescr>,
+        ),
+        ModelPackingError,
+    > {
+        let inputs: NonEmptyList<_> = self
+            .inputs
+            .iter()
+            .map(|inp| inp.dump(zip_writer))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap();
+        let outputs: NonEmptyList<_> = self
+            .outputs
+            .iter()
+            .map(|inp| inp.dump(zip_writer))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap();
+        Ok((inputs, outputs))
+    }
     pub fn try_build(
         mut inputs: Vec<(modelrdf::InputTensorDescr, DATA)>,
         mut outputs: Vec<(modelrdf::OutputTensorDescr, DATA)>,

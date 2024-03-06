@@ -1,5 +1,5 @@
 [workspace]
-members = ["bioimg_gui", "bioimg_spec", "bioimg_runtime"] 
+members = ["bioimg_codegen", "bioimg_gui", "bioimg_spec", "bioimg_runtime"] 
 resolver = "2"
 
 

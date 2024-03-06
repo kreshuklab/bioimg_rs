@@ -1,4 +1,5 @@
 use ndarray_npy::ReadNpyError;
+use ndarray_npy::WriteNpyExt;
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
@@ -15,45 +16,43 @@ impl Display for UnsupportedNumpyElementType {
     }
 }
 
-macro_rules! impl_NpyArray_try_read {
-    ($($element_type:ident),+) => {
-        paste::paste! {
+#[rustfmt::skip]
+macro_rules! impl_NpyArray_try_read {( $($element_type:ident),+ ) => { paste::paste! {
+    #[derive(Clone)]
+    pub enum NpyArray {$(
+        [<Array $element_type:upper>](ndarray::ArrayD<$element_type>),
+    )*}
 
-            #[derive(Clone)]
-            pub enum NpyArray {
-                $(
-                    [<Array $element_type:upper>](ndarray::ArrayD<$element_type>),
-                )*
-            }
+    impl NpyArray {
+        pub fn try_read(npy_path: &Path) -> Result<Self, ReadNpyError> {
+            $(
+                match ndarray_npy::read_npy::<_, ndarray::ArrayD<$element_type>>(npy_path) {
+                    Ok(arr) => return Ok(Self::[<Array $element_type:upper>](arr)),
+                    Err(err) => match err {
+                        ndarray_npy::ReadNpyError::WrongDescriptor(_) => (),
+                        other_err => return Err(other_err),
+                    },
+                };
+            )+
+            return Err(ReadNpyError::ParseData(Box::new(UnsupportedNumpyElementType{
+                path: PathBuf::from(npy_path)
+            })))
 
-            impl NpyArray {
-                pub fn try_read(npy_path: &Path) -> Result<Self, ReadNpyError> {
-                    $(
-                        match ndarray_npy::read_npy::<_, ndarray::ArrayD<$element_type>>(npy_path) {
-                            Ok(arr) => return Ok(Self::[<Array $element_type:upper>](arr)),
-                            Err(err) => match err {
-                                ndarray_npy::ReadNpyError::WrongDescriptor(_) => (),
-                                other_err => return Err(other_err),
-                            },
-                        };
-                    )+
-                    return Err(ReadNpyError::ParseData(Box::new(UnsupportedNumpyElementType{
-                        path: PathBuf::from(npy_path)
-                    })))
-
-                }
-
-                pub fn shape(&self) -> &[usize] {
-                    match self {
-                        $(
-                            Self::[<Array $element_type:upper>](arr) => arr.shape(),
-                        )*
-                    }
-                }
-            }
         }
-    };
-}
+
+        pub fn write_npy<W: std::io::Write>(&self, writer: W) -> Result<(), ndarray_npy::WriteNpyError>{
+            match self {$(
+                Self::[<Array $element_type:upper>](arr) => arr.write_npy(writer),
+            )*}
+        }
+
+        pub fn shape(&self) -> &[usize] {
+            match self {$(
+                Self::[<Array $element_type:upper>](arr) => arr.shape(),
+            )*}
+        }
+    }
+}};}
 
 impl_NpyArray_try_read!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64);
 

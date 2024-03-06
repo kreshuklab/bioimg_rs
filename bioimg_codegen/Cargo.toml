@@ -1,0 +1,14 @@
+[package]
+name = "vise_codegen"
+version = "0.0.0"
+authors = ["Tomaz Vieira <tom.fogaca@gmail.com>"]
+edition = "2021"
+publish = false
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.78"
+quote = "1.0.35"
+syn = { version = "2.0.52", features = ["full"] }

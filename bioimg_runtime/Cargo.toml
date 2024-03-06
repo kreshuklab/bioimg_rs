@@ -12,3 +12,7 @@ paste = "1.0.14"
 thiserror = "1.0.57"
 bioimg_spec = { path = "../bioimg_spec" }
 image.workspace = true
+zip = "0.6.6"
+serde_json = "1.0.114"
+serde = "1.0.197"
+uuid = { version = "1.7.0", features = ["v4"] }
