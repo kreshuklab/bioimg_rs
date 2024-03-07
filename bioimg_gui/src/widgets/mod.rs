@@ -17,6 +17,7 @@ pub mod staging_num;
 pub mod staging_opt;
 pub mod staging_string;
 pub mod staging_vec;
+pub mod task_widget;
 pub mod tensor_axis_widget;
 pub mod url_widget;
 pub mod util;

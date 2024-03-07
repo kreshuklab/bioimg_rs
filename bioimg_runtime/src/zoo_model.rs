@@ -22,8 +22,9 @@ pub enum ModelPackingError {
     RdfSerializationError(#[from] serde_json::Error),
 }
 
+#[derive(Clone)]
 pub struct ZooModel<DATA: Borrow<NpyArray>> {
-    interface: ModelInterface<DATA>,
+    pub interface: ModelInterface<DATA>,
 }
 
 impl<DATA: Borrow<NpyArray>> ZooModel<DATA> {

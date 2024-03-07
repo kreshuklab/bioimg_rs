@@ -1,3 +1,8 @@
+use std::path::PathBuf;
+use std::thread::JoinHandle;
+
+use bioimg_runtime::npy_array::ArcNpyArray;
+use bioimg_runtime::zoo_model::{self, ModelPackingError, ZooModel};
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
@@ -12,7 +17,28 @@ use crate::widgets::{
     util::group_frame, StatefulWidget,
 };
 
-pub struct TemplateApp {
+struct ZooModelPackResult {
+    model: ZooModel<ArcNpyArray>,
+    path: PathBuf,
+    save_result: Result<(), ModelPackingError>,
+}
+
+enum PackingStatus {
+    Done(Option<ZooModelPackResult>),
+    Packing {
+        path: PathBuf,
+        model: ZooModel<ArcNpyArray>,
+        task: JoinHandle<Result<(), ModelPackingError>>,
+    },
+}
+
+impl Default for PackingStatus {
+    fn default() -> Self {
+        Self::Done(None)
+    }
+}
+
+pub struct BioimgGui {
     staging_name: StagingString<BoundedString<1, 127>>,
     staging_description: StagingString<BoundedString<1, 1023>>,
     cover_images: StagingVec<CoverImageWidget>,
@@ -33,9 +59,10 @@ pub struct TemplateApp {
     //badges
     model_interface_widget: ModelInterfaceWidget,
     ////
+    model_packing_status: PackingStatus,
 }
 
-impl Default for TemplateApp {
+impl Default for BioimgGui {
     fn default() -> Self {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
@@ -52,17 +79,19 @@ impl Default for TemplateApp {
             staging_license: Default::default(),
 
             model_interface_widget: Default::default(),
+
+            model_packing_status: PackingStatus::default(),
         }
     }
 }
 
-impl TemplateApp {
+impl BioimgGui {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Default::default()
     }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for BioimgGui {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
         // eframe::set_value(storage, eframe::APP_KEY, self);
     }
@@ -155,6 +184,55 @@ impl eframe::App for TemplateApp {
                     ui.strong("Model Interface: ");
                     self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
                 });
+
+                ui.horizontal(|ui| {
+                    self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
+                        PackingStatus::Done(payload) => 'done: {
+                            let message = match &payload {
+                                Some(ZooModelPackResult { path, save_result: Ok(_), .. }) => {
+                                    format!("Saved model to {}", path.to_string_lossy())
+                                }
+                                Some(ZooModelPackResult { save_result: Err(err), .. }) => err.to_string(),
+                                None => "".into(),
+                            };
+                            let save_button_clicked = ui
+                                .add_enabled_ui(self.model_interface_widget.parsed.is_ok(), |ui| {
+                                    ui.button("Save Model").clicked()
+                                })
+                                .inner;
+                            ui.label(message);
+                            if !save_button_clicked {
+                                break 'done PackingStatus::Done(payload);
+                            }
+                            let Ok(model_interface) = &self.model_interface_widget.parsed else {
+                                break 'done PackingStatus::Done(payload);
+                            };
+                            let Some(path) = rfd::FileDialog::new().pick_file() else {
+                                break 'done PackingStatus::Done(payload);
+                            };
+                            let model = ZooModel { interface: model_interface.clone() };
+
+                            let model_to_pack = model.clone();
+                            PackingStatus::Packing {
+                                path: path.clone(),
+                                model: model.clone(),
+                                task: std::thread::spawn(move || {
+                                    let file = std::fs::File::create(&path)?;
+                                    model_to_pack.pack_into(file)
+                                }),
+                            }
+                        }
+                        PackingStatus::Packing { path, model, task } => {
+                            if task.is_finished() {
+                                PackingStatus::Done(Some(ZooModelPackResult { path, model, save_result: task.join().unwrap() }))
+                            } else {
+                                ui.add_enabled_ui(false, |ui| ui.button("Save Model"));
+                                ui.label(format!("Packing into {}...", path.to_string_lossy()));
+                                PackingStatus::Packing { path, model, task }
+                            }
+                        }
+                    }
+                })
             });
         });
     }

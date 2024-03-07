@@ -21,6 +21,7 @@ use super::axis_size_resolver::AxisSizeResolutionError;
 #[rustfmt::skip]
 macro_rules! declare_slot {( $struct_name:ident, $inout:ident) => { paste!{
     #[allow(dead_code)]
+    #[derive(Clone)]
     pub struct $struct_name <DATA: Borrow<NpyArray>> {
         descr: modelrdf::[<$inout TensorDescr>],  //FIXME: size should always be resolved, no the case with spec structs
         test_tensor: DATA,
@@ -69,6 +70,7 @@ pub enum TensorValidationError {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct ModelInterface<DATA: Borrow<NpyArray>> {
     inputs: Vec<InputSlot<DATA>>,
     outputs: Vec<OutputSlot<DATA>>,

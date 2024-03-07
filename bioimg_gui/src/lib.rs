@@ -4,4 +4,4 @@ mod app;
 mod result;
 mod task;
 mod widgets;
-pub use app::TemplateApp;
+pub use app::BioimgGui;
