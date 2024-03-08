@@ -1,20 +1,21 @@
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use crate::rdf::BoundedString;
+
+use super::HttpUrl;
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct CiteEntry {
     pub text: BoundedString<1, 1023>, //(String) free text description
     pub doi: BoundedString<1, 1023>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
-    pub url: Url,
+    pub url: HttpUrl,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct CiteEntry2 {
     pub text: BoundedString<1, 1023>,        //(String) free text description
     pub doi: Option<BoundedString<1, 1023>>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
-    pub url: Option<Url>,
+    pub url: Option<HttpUrl>,
 }
 
 impl From<CiteEntry> for CiteEntry2 {

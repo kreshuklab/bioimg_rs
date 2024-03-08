@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use url::Url;
+
 
 use self::{attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, maintainer::Maintainer};
 
@@ -24,12 +24,12 @@ pub mod slashless_string;
 pub mod version;
 
 pub use bounded_string::BoundedString;
-pub use file_reference::FileReference;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
 pub use identifier::Identifier;
 pub use license::SpdxLicense;
 pub use literal::LiteralInt;
 pub use version::Version;
+pub use file_reference::{HttpUrl, FsPath, FileReference};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
@@ -43,7 +43,7 @@ pub struct Rdf {
     pub covers: Option<Vec<FileReference>>,
     pub documentation: Option<FileReference>,
     pub download_url: Option<FileReference>,
-    pub git_repo: Option<Url>,
+    pub git_repo: Option<HttpUrl>,
     pub icon: Option<BoundedString<1, 1023>>,
     pub id: Option<BoundedString<1, 1023>>,
     pub license: Option<SpdxLicense>,
@@ -57,8 +57,6 @@ pub struct Rdf {
 
 #[test]
 fn test_model_rdf_serde() {
-    use url::Url;
-
     let raw = serde_json::json!({
         "format_version": "1.2.3",
         "description": "Some fantastic model",
@@ -123,18 +121,18 @@ fn test_model_rdf_serde() {
         }]),
         badges: Some(vec![Badge {
             label: "x".try_into().unwrap(),
-            icon: Url::parse("http://some.icon/bla").unwrap().into(),
-            url: Url::parse("http://some.url/to/icon").unwrap().into(),
+            icon: HttpUrl::try_from("http://some.icon/bla".to_owned()).unwrap().into(),
+            url: HttpUrl::try_from("http://some.url/to/icon".to_owned()).unwrap().into(),
         }]),
         cite: Some(vec![CiteEntry {
             text: "Plz cite eme".try_into().unwrap(),
             doi: "blabla".try_into().unwrap(),
-            url: Url::parse("https://blas/bla").unwrap(),
+            url: HttpUrl::try_from("https://blas/bla".to_owned()).unwrap(),
         }]),
         covers: None,
-        documentation: Some(Url::parse("http://example.com/docs").unwrap().into()),
-        download_url: Some(Url::parse("http://blas.blus/blis").unwrap().into()),
-        git_repo: Some(Url::parse("https://github.com/blas/blus").unwrap()),
+        documentation: Some(HttpUrl::try_from("http://example.com/docs".to_owned()).unwrap().into()),
+        download_url: Some(HttpUrl::try_from("http://blas.blus/blis".to_owned()).unwrap().into()),
+        git_repo: Some(HttpUrl::try_from("https://github.com/blas/blus".to_owned()).unwrap()),
         icon: Some("x".try_into().unwrap()),
         id: Some("some_id_goes_here".try_into().unwrap()),
         license: Some(SpdxLicense::Adobe_Utopia),

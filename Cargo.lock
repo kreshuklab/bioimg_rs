@@ -203,6 +203,7 @@ dependencies = [
  "strum",
  "thiserror",
  "url",
+ "uuid",
 ]
 
 [[package]]

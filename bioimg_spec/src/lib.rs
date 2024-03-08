@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 pub mod rdf;
 pub mod util;
 
@@ -17,3 +19,30 @@ pub mod util;
 //     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
 //     Ok(())
 // }
+
+pub trait ValidityMarker{}
+
+pub struct Valid;
+impl ValidityMarker for Valid{}
+
+pub struct Invalid;
+impl ValidityMarker for Invalid{}
+
+pub struct Something<M: ValidityMarker>{
+    a: u32,
+    b: String,
+    marker: PhantomData<M>,
+}
+
+impl Something<Invalid>{
+    pub fn new(a: u32, b: String) -> Self{
+        Self{a, b, marker: PhantomData}
+    }
+    pub fn try_validate(&self) -> Result<Something<Valid>, String>{
+        if self.a == 123{
+            Ok(Something{a: self.a, b: self.b.clone(), marker: PhantomData})
+        }else{
+            Err("asasd".into())
+        }
+    }
+}

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
+use bioimg_runtime::npy_array::ArcNpyArray;
 use paste::paste;
 
 use crate::result::{GuiError, Result};
-use bioimg_runtime::NpyArray;
-use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
 
 use super::error_display::show_error;
@@ -20,7 +20,7 @@ use super::StatefulWidget;
 macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
     pub struct [<$inout TensorWidget>] {
         pub id_widget: StagingString<modelrdf::TensorId>,
-        pub description_widget: StagingString<rdf::BoundedString<0, 128>>,
+        pub description_widget: StagingString<modelrdf::TensorDescription>,
         pub axes_widget: StagingVec< [<$inout TensorAxisWidget>] >,
         pub test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
     }
@@ -37,7 +37,7 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
     }
 
     impl StatefulWidget for [<$inout TensorWidget>] {
-        type Value<'p> = Result<(modelrdf::[<$inout TensorDescr>], Arc<NpyArray>)>;
+        type Value<'p> = Result< [<$inout Slot>]<ArcNpyArray> >;
 
         fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
             if let FileWidgetState::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
@@ -76,28 +76,23 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
                 });
                 ui.horizontal(|ui| {
                     ui.strong("Axes: ");
-
                     self.axes_widget.draw_and_parse(ui, id.with("Axes"));
                 });
             });
         }
 
         fn state<'p>(&'p self) -> Self::Value<'p> {
-            let FileWidgetState::Finished { path, value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+            let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
                 return Err(GuiError::new("Test tensor is missing".into()));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
             let input_axis_group = modelrdf::[<$inout AxisGroup>]::try_from(axes)?; //FIXME: parse in draw_and_parse?
-            Ok((
-                modelrdf::[<$inout TensorDescr>] {
-                    id: self.id_widget.state()?,
-                    description: self.description_widget.state()?,
-                    axes: input_axis_group,
-                    test_tensor: rdf::FileReference::Path(path.clone()),
-                    sample_tensor: None, //FIXME
-                },
-                Arc::clone(gui_npy_array.contents()),
-            ))
+            Ok( [<$inout Slot>] {
+                id: self.id_widget.state()?,
+                description: self.description_widget.state()?,
+                axes: input_axis_group,
+                test_tensor: Arc::clone(gui_npy_array.contents()),
+            })
         }
     }
 }};}
