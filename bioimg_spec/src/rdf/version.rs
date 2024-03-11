@@ -39,14 +39,10 @@ impl TryFrom<&str> for Version {
             .split(".")
             .map(|comp| comp.parse::<usize>())
             .collect::<Result<Vec<_>, _>>()?;
-        if parts.len() != 3 {
-            return Err(VersionParsingError::WrongNumberOfComponents { found: parts.len() });
-        }
-        return Ok(Version {
-            major: parts[0],
-            minor: parts[1],
-            patch: parts[2],
-        });
+        let three_parts: [usize; 3] = parts
+            .try_into()
+            .map_err(|parts: Vec<usize>| VersionParsingError::WrongNumberOfComponents { found: parts.len() })?;
+        return Ok(Version { major: three_parts[0], minor: three_parts[1], patch: three_parts[2] });
     }
 }
 impl TryFrom<String> for Version {
@@ -70,11 +66,7 @@ fn test_version_parsing() {
 
     assert_eq!(
         serde_json::from_value::<Version>(raw_version).unwrap(),
-        Version {
-            major: 1,
-            minor: 2,
-            patch: 3
-        }
+        Version { major: 1, minor: 2, patch: 3 }
     );
     assert_eq!(
         Version::try_from("1.2"),
@@ -95,11 +87,7 @@ pub struct LiteralVersion<const MAJOR: usize, const MINOR: usize, const PATCH: u
 
 impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> Into<Version> for LiteralVersion<MAJOR, MINOR, PATCH> {
     fn into(self) -> Version {
-        return Version {
-            major: MAJOR,
-            minor: MINOR,
-            patch: PATCH,
-        };
+        return Version { major: MAJOR, minor: MINOR, patch: PATCH };
     }
 }
 
@@ -110,10 +98,7 @@ impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> TryFrom<Version
         if value.major == MAJOR && value.minor == MINOR && value.patch == PATCH {
             Ok(Self)
         } else {
-            Err(VersionParsingError::UnexpectedVersion {
-                expected: Self.into(),
-                found: value,
-            })
+            Err(VersionParsingError::UnexpectedVersion { expected: Self.into(), found: value })
         }
     }
 }
