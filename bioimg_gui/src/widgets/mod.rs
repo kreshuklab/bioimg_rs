@@ -12,6 +12,7 @@ pub mod icon_widget;
 pub mod inout_tensor_widget;
 pub mod maintainer_widget;
 pub mod model_interface_widget;
+pub mod rdf_attachment;
 pub mod staging_from_vec;
 pub mod staging_num;
 pub mod staging_opt;

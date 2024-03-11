@@ -1,12 +1,15 @@
 use std::path::PathBuf;
 use std::thread::JoinHandle;
 
+use bioimg_runtime as rt;
 use bioimg_runtime::npy_array::ArcNpyArray;
 use bioimg_runtime::zoo_model::{self, ModelPackingError, ZooModel};
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
+use crate::result::Result;
 use crate::widgets::enum_widget::EnumWidget;
+use crate::widgets::file_widget::FileWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
@@ -44,7 +47,7 @@ pub struct BioimgGui {
     cover_images: StagingVec<CoverImageWidget>,
     // id?
     staging_authors: StagingVec<StagingAuthor2>,
-    //attachments
+    attachments_widget: StagingVec<FileWidget<Result<rt::LocalRdfAttachment>>>,
     staging_citations: StagingVec<StagingCiteEntry2>,
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
@@ -69,6 +72,7 @@ impl Default for BioimgGui {
             staging_description: StagingString::new(InputLines::Multiline),
             cover_images: StagingVec::new("Cover Image"),
             staging_authors: StagingVec::new("Author"),
+            attachments_widget: StagingVec::new("Attachment"),
             staging_citations: StagingVec::new("Cite"),
             staging_git_repo: Default::default(),
             staging_icon: Default::default(),
@@ -105,14 +109,14 @@ impl eframe::App for BioimgGui {
                 ui.horizontal_top(|ui| {
                     ui.strong("Name: ");
                     self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
-                    let name_result = self.staging_name.state();
+                    let _name_result = self.staging_name.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Description: ");
                     self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
-                    let description_result = self.staging_description.state();
+                    let _description_result = self.staging_description.state();
                 });
                 ui.add_space(10.0);
 
@@ -126,6 +130,13 @@ impl eframe::App for BioimgGui {
                 ui.horizontal_top(|ui| {
                     ui.strong("Authors: ");
                     self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
+                    // let author_results = self.staging_authors.state();
+                });
+                ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
+                    ui.strong("Attachments: ");
+                    self.attachments_widget.draw_and_parse(ui, egui::Id::from("Attachments"));
                     // let author_results = self.staging_authors.state();
                 });
                 ui.add_space(10.0);
