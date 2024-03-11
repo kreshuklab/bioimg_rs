@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use self::{attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, maintainer::Maintainer};
+use self::{
+    attachment::Attachments, author::Author, badge::Badge, cite_entry::CiteEntry, maintainer::Maintainer, version::Version_0_5_0,
+};
 
 pub mod attachment;
 pub mod author;
@@ -33,7 +35,7 @@ pub use version::Version;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Rdf {
-    pub format_version: Version,
+    pub format_version: Version_0_5_0,
     pub description: BoundedString<1, 1023>, //FIXME: double chekc lengrhs
     pub name: BoundedString<1, 1023>,
     pub attachments: Option<Attachments>,
@@ -105,11 +107,7 @@ fn test_model_rdf_serde() {
 
     let parsed_rdf: Rdf = serde_json::from_value(raw).unwrap();
     let expected_rdf = Rdf {
-        format_version: Version {
-            major: 1,
-            minor: 2,
-            patch: 3,
-        },
+        format_version: Version { major: 1, minor: 2, patch: 3 },
         description: "Some fantastic model".try_into().unwrap(),
         name: "my cool model".try_into().unwrap(),
 
@@ -143,11 +141,7 @@ fn test_model_rdf_serde() {
         rdf_source: None,
         source: None,
         tags: None,
-        version: Some(Version {
-            major: 4,
-            minor: 5,
-            patch: 6,
-        }),
+        version: Some(Version { major: 4, minor: 5, patch: 6 }),
     };
 
     assert_eq!(parsed_rdf, expected_rdf);
