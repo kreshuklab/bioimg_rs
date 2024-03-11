@@ -28,7 +28,7 @@ enum PackingStatus {
     Packing {
         path: PathBuf,
         model: ZooModel<ArcNpyArray>,
-        task: JoinHandle<Result<(), ModelPackingError>>,
+        task: poll_promise::Promise<Result<(), ModelPackingError>>,
     },
 }
 
@@ -216,21 +216,20 @@ impl eframe::App for BioimgGui {
                             PackingStatus::Packing {
                                 path: path.clone(),
                                 model: model.clone(),
-                                task: std::thread::spawn(move || {
+                                task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
                                     let file = std::fs::File::create(&path)?;
                                     model_to_pack.pack_into(file)
                                 }),
                             }
                         }
-                        PackingStatus::Packing { path, model, task } => {
-                            if task.is_finished() {
-                                PackingStatus::Done(Some(ZooModelPackResult { path, model, save_result: task.join().unwrap() }))
-                            } else {
+                        PackingStatus::Packing { path, model, task } => match task.try_take() {
+                            Ok(value) => PackingStatus::Done(Some(ZooModelPackResult { path, model, save_result: value })),
+                            Err(task) => {
                                 ui.add_enabled_ui(false, |ui| ui.button("Save Model"));
                                 ui.label(format!("Packing into {}...", path.to_string_lossy()));
                                 PackingStatus::Packing { path, model, task }
                             }
-                        }
+                        },
                     }
                 })
             });
