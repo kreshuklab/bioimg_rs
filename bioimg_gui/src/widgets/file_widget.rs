@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    thread::JoinHandle,
-};
+use std::path::{Path, PathBuf};
 
 use super::StatefulWidget;
 
@@ -10,11 +7,20 @@ pub trait ParsedFile: Send + 'static {
     fn render(&self, ui: &mut egui::Ui, id: egui::Id);
 }
 
-pub enum FileWidgetState<V> {
+pub enum FileWidgetState<V: Send + 'static> {
     Empty,
-    Loading { path: PathBuf, promise: JoinHandle<V> },
-    Finished { path: PathBuf, value: V },
-    Failed { path: PathBuf, reason: String },
+    Loading {
+        path: PathBuf,
+        promise: poll_promise::Promise<V>,
+    },
+    Finished {
+        path: PathBuf,
+        value: V,
+    },
+    Failed {
+        path: PathBuf,
+        reason: String,
+    },
 }
 
 pub struct FileWidget<PF: ParsedFile> {
@@ -41,9 +47,7 @@ impl<PF: ParsedFile> FileWidget<PF> {
 
 impl<PF: ParsedFile> Default for FileWidget<PF> {
     fn default() -> Self {
-        Self {
-            state: FileWidgetState::Empty,
-        }
+        Self { state: FileWidgetState::Empty }
     }
 }
 
@@ -68,17 +72,12 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
                 }
                 FileWidgetState::Loading { path, promise } => {
                     ui.ctx().request_repaint();
-                    if promise.is_finished() {
-                        match promise.join() {
-                            Err(_) => FileWidgetState::Failed {
-                                path,
-                                reason: "Could not join thread".into(),
-                            },
-                            Ok(value) => FileWidgetState::Finished { path, value },
+                    match promise.try_take() {
+                        Ok(value) => FileWidgetState::Finished { path, value },
+                        Err(promise) => {
+                            ui.label("Loading...");
+                            FileWidgetState::Loading { path, promise }
                         }
-                    } else {
-                        ui.label("Loading...");
-                        FileWidgetState::Loading { path, promise }
                     }
                 }
             };
@@ -91,7 +90,7 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
             self.state = if let Some(pth) = path_buf {
                 FileWidgetState::Loading {
                     path: pth.clone(),
-                    promise: std::thread::spawn(move || PF::parse(pth, context)),
+                    promise: poll_promise::Promise::spawn_thread("loading file", move || PF::parse(pth, context)),
                 }
             } else {
                 FileWidgetState::Empty
