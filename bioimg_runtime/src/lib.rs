@@ -8,6 +8,7 @@ pub mod npy_array;
 pub mod package_component;
 pub mod zip_writer_ext;
 pub mod zoo_model;
+pub mod fs;
 
 pub use cover_image::{CoverImage, CoverImageParsingError};
 pub use icon::Icon;

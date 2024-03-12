@@ -7,8 +7,7 @@ use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    axis_size::{AnyAxisSize, FixedAxisSize, QualifiedAxisId, ResolvedAxisSize},
-    channel_name::ChannelNames,
+    axis_size::{AnyAxisSize, QualifiedAxisId, ResolvedAxisSize},
     space_unit::SpaceUnit,
     time_unit::TimeUnit,
 };
@@ -187,8 +186,8 @@ declare_axis_enum!(Input);
 declare_axis_enum!(Output);
 
 #[rustfmt::skip]
-macro_rules! impl_axis_enum {($inout:ident) => { paste! {
-    impl [<$inout Axis>]{
+macro_rules! impl_axis_enum {($enum_name:ident) => { paste! {
+    impl $enum_name{
         pub fn axis_type(&self) -> AxisType {
             match self {
                 Self::Batch(_) => AxisType::Batch,
@@ -229,8 +228,8 @@ macro_rules! impl_axis_enum {($inout:ident) => { paste! {
     }
 }};}
 
-impl_axis_enum!(Input);
-impl_axis_enum!(Output);
+impl_axis_enum!(InputAxis);
+impl_axis_enum!(OutputAxis);
 
 fn _default_batch_axis_id() -> AxisId {
     String::from("batch").try_into().unwrap()

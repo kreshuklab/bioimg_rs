@@ -1,12 +1,10 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::io::{Seek, Write};
-use std::path::PathBuf;
 
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
-use bioimg_spec::rdf::FileReference;
+use bioimg_spec::rdf;
 use paste::paste;
-use uuid::Uuid;
 
 use crate::axis_size_resolver::SlotResolver;
 use crate::npy_array::NpyArray;
@@ -19,28 +17,37 @@ use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 use super::axis_size_resolver::AxisSizeResolutionError;
 
 #[rustfmt::skip]
-macro_rules! declare_slot {( $struct_name:ident, $inout:ident) => { paste!{
+macro_rules! declare_slot { ($struct_name:ident, inout = $inout:ident) => { paste!{
     #[allow(dead_code)]
     #[derive(Clone)]
     pub struct $struct_name <DATA: Borrow<NpyArray>> {
-        descr: modelrdf::[<$inout TensorDescr>],  //FIXME: size should always be resolved, no the case with spec structs
-        test_tensor: DATA,
+        pub id: TensorId,
+        pub description: modelrdf::TensorDescription,
+        pub axes: modelrdf::[<$inout AxisGroup>],
+        pub test_tensor: DATA,
     }
 
     impl<DATA: Borrow<NpyArray>> $struct_name <DATA> {
-        pub fn dump(&self, zip_file: &mut ModelZipWriter<impl Write + Seek>) -> Result<modelrdf::[<$inout TensorDescr>], ModelPackingError> {
-            let test_tensor_zip_path = format!("/{}", Uuid::new_v4());
-            zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
-            Ok(modelrdf::[<$inout TensorDescr>] {
-                test_tensor: FileReference::Path(PathBuf::from(test_tensor_zip_path)),
-                ..self.descr.clone()
+        pub fn dump(
+            &self,
+            zip_file: &mut ModelZipWriter<impl Write + Seek>,
+        ) -> Result< modelrdf::[<$inout TensorDescr>], ModelPackingError> {
+            let test_tensor_zip_path = rdf::FsPath::unique();
+            let test_tensor_zip_path_str: String = test_tensor_zip_path.clone().into();
+            zip_file.write_file(&test_tensor_zip_path_str, |writer| self.test_tensor.borrow().write_npy(writer))?;
+            Ok(modelrdf::[<$inout TensorDescr>]{
+                id: self.id.clone(),
+                description: self.description.clone(),
+                axes: self.axes.clone(),
+                test_tensor: test_tensor_zip_path.into(),
+                sample_tensor: None, //FIXME
             })
         }
     }
 }};}
 
-declare_slot!(InputSlot, Input);
-declare_slot!(OutputSlot, Output);
+declare_slot!(InputSlot, inout=Input);
+declare_slot!(OutputSlot, inout=Output);
 
 #[derive(thiserror::Error, Debug)]
 pub enum TensorValidationError {
@@ -103,10 +110,7 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
             .unwrap();
         Ok((inputs, outputs))
     }
-    pub fn try_build(
-        mut inputs: Vec<(modelrdf::InputTensorDescr, DATA)>,
-        mut outputs: Vec<(modelrdf::OutputTensorDescr, DATA)>,
-    ) -> Result<Self, TensorValidationError> {
+    pub fn try_build(mut inputs: Vec<InputSlot<DATA>>, mut outputs: Vec<OutputSlot<DATA>>) -> Result<Self, TensorValidationError> {
         if inputs.len() == 0 {
             return Err(TensorValidationError::EmptyInputs);
         }
@@ -118,7 +122,7 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
 
         #[rustfmt::skip]
         macro_rules! collect_sizes {($slots:ident) => { paste! {
-            for slot in $slots.iter().map(|i| &i.0) {
+            for slot in $slots.iter() {
                 if !seen_tensor_ids.insert(slot.id.clone()){
                     return Err(TensorValidationError::DuplicateTensorId(slot.id.clone()))
                 }
@@ -140,8 +144,8 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         let size_map = SlotResolver::new(axes_sizes)?.solve()?;
 
         #[rustfmt::skip] macro_rules! resolve_and_validate {($slots:ident) => {
-            for (slot, test_tensor) in $slots.iter_mut() {
-                let test_tensor_shape = (*test_tensor).borrow().shape();
+            for slot in $slots.iter_mut() {
+                let test_tensor_shape = slot.test_tensor.borrow().shape();
                 let mut test_tensor_dims = test_tensor_shape.iter();
                 let num_described_axes = slot.axes.len();
                 for (axis_index, resolved_size) in slot.axes.resolve_sizes_with(&size_map).iter().enumerate() {
@@ -170,15 +174,6 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         resolve_and_validate!(inputs);
         resolve_and_validate!(outputs);
 
-        Ok(Self {
-            inputs: inputs
-                .into_iter()
-                .map(|inp| InputSlot { descr: inp.0, test_tensor: inp.1 })
-                .collect(),
-            outputs: outputs
-                .into_iter()
-                .map(|out| OutputSlot { descr: out.0, test_tensor: out.1 })
-                .collect(),
-        })
+        Ok(Self{inputs, outputs})
     }
 }
