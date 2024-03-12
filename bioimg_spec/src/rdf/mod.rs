@@ -60,7 +60,7 @@ pub struct Rdf {
 #[test]
 fn test_model_rdf_serde() {
     let raw = serde_json::json!({
-        "format_version": "1.2.3",
+        "format_version": "0.5.0",
         "description": "Some fantastic model",
         "name": "my cool model",
         // "attachments": [],
@@ -70,7 +70,7 @@ fn test_model_rdf_serde() {
                 "affiliation": "Some University",
                 "email": "john.doe@some_university.com" ,
                 "github_user": "john_doe",
-                "orcid": "111-111-111", //FIXME
+                "orcid": "0000-0001-7051-1197"
             },
         ],
         "badges": [
@@ -105,7 +105,7 @@ fn test_model_rdf_serde() {
 
     let parsed_rdf: Rdf = serde_json::from_value(raw).unwrap();
     let expected_rdf = Rdf {
-        format_version: Version { major: 1, minor: 2, patch: 3 },
+        format_version: Version_0_5_0::try_from(Version { major: 0, minor: 5, patch: 0 }).unwrap(),
         description: "Some fantastic model".try_into().unwrap(),
         name: "my cool model".try_into().unwrap(),
 
@@ -115,7 +115,7 @@ fn test_model_rdf_serde() {
             affiliation: "Some University".try_into().unwrap(),
             email: "john.doe@some_university.com".try_into().unwrap(),
             github_user: "john_doe".try_into().unwrap(),
-            orcid: "0000-0002-8205-121X".to_owned().try_into().unwrap(), //FIXME
+            orcid: "0000-0001-7051-1197".to_owned().try_into().unwrap(), //FIXME
         }]),
         badges: Some(vec![Badge {
             label: "x".try_into().unwrap(),

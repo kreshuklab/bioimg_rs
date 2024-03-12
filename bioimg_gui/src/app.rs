@@ -1,9 +1,8 @@
 use std::path::PathBuf;
-use std::thread::JoinHandle;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::npy_array::ArcNpyArray;
-use bioimg_runtime::zoo_model::{self, ModelPackingError, ZooModel};
+use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 

@@ -63,6 +63,7 @@ impl TryFrom<String> for FsPath{
             return Err(FsPathParsingError::PathNotAbsolute(value))
         }
         let components = value.split("/")
+            .skip(1)
             .map(|comp| FsPathComponent::try_from(comp.to_owned()))
             .collect::<Result<Vec<_>, _>>()?;
         if components.len() == 0{
@@ -145,7 +146,8 @@ fn test_file_reference() {
     let deserialized_url: FileReference = serde_json::from_value(json!(raw_url)).unwrap();
     assert_eq!(FileReference::Url(HttpUrl::try_from(raw_url.to_owned()).unwrap()), deserialized_url,);
 
-    let raw_path = "lalala/lelele";
+    let raw_path = "/lalala/lelele";
+    dbg!(FsPath::try_from(raw_path.to_owned()).unwrap());
     let deserialized_path: FileReference = serde_json::from_value(json!(raw_path)).unwrap();
     assert_eq!(FileReference::Path(FsPath::try_from(raw_path.to_owned()).unwrap()), deserialized_path,);
 }

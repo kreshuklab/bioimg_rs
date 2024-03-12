@@ -1,8 +1,7 @@
 use std::io::{Read, Seek, Write};
 use std::path::{Path, PathBuf};
 
-use bioimg_spec::rdf;
-use uuid::Uuid;
+use bioimg_spec::rdf::{self, FsPath};
 
 use crate::zip_writer_ext::ModelZipWriter;
 use crate::zoo_model::ModelPackingError;
@@ -24,10 +23,10 @@ impl LocalRdfAttachment {
         &self.path
     }
     pub fn dump(&mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>) -> Result<rdf::FileReference, ModelPackingError> {
-        let zip_path = format!("/{}", Uuid::new_v4());
+        let zip_path = FsPath::unique();
         self.file.seek(std::io::SeekFrom::Start(0))?;
-        zip_file.write_file(&zip_path, |writer| -> Result<usize, std::io::Error> {
-            const READ_BUFFER_SIZE: usize = 102 * 1024;
+        zip_file.write_file(&Into::<String>::into(zip_path.clone()), |writer| -> Result<usize, std::io::Error> {
+            const READ_BUFFER_SIZE: usize = 1024 * 1024;
             let mut read_buffer: Vec<u8> = vec![0; READ_BUFFER_SIZE];
             let mut total_bytes_read: usize = 0;
             loop {
@@ -40,6 +39,6 @@ impl LocalRdfAttachment {
             }
             Ok(total_bytes_read)
         })?;
-        Ok(rdf::FileReference::Path(PathBuf::from(zip_path)))
+        Ok(rdf::FileReference::Path(zip_path))
     }
 }
