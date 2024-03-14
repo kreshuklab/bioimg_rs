@@ -22,7 +22,7 @@ macro_rules! declare_slot { ($struct_name:ident, inout = $inout:ident) => { past
     #[derive(Clone)]
     pub struct $struct_name <DATA: Borrow<NpyArray>> {
         pub id: TensorId,
-        pub description: modelrdf::TensorDescription,
+        pub description: modelrdf::TensorTextDescription,
         pub axes: modelrdf::[<$inout AxisGroup>],
         pub test_tensor: DATA,
     }

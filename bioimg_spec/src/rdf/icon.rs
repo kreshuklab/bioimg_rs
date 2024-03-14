@@ -6,7 +6,7 @@ pub enum IconParsingError {
     NotEmoji(String),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub enum Icon {
     Emoji(EmojiIcon),
     FileRef(FileReference),
@@ -18,7 +18,7 @@ pub enum EmojiParsingError {
     BadString(String),
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 #[serde(try_from = "String")]
 #[serde(into = "String")]
 pub struct EmojiIcon(String);

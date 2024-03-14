@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -17,6 +19,13 @@ pub enum FsPathParsingError{
 #[serde(try_from = "String")]
 #[serde(into = "String")]
 pub struct FsPathComponent(String);
+
+impl Deref for FsPathComponent{
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl FsPathComponent{
     pub fn unique() -> Self{
@@ -53,6 +62,12 @@ pub struct FsPath{
 impl FsPath{
     pub fn unique() -> Self{
         Self{ components: vec![ FsPathComponent::unique() ] }
+    }
+    pub fn components(&self) -> &[FsPathComponent]{
+        &self.components
+    }
+    pub fn file_name(&self) -> &FsPathComponent{
+        self.components.last().as_ref().unwrap()
     }
 }
 
@@ -96,6 +111,13 @@ pub enum UrlParsingError{
 #[serde(try_from = "String")]
 pub struct HttpUrl(url::Url);
 
+impl Deref for HttpUrl{
+    type Target = url::Url;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl TryFrom<String> for HttpUrl{
     type Error = UrlParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -120,11 +142,30 @@ impl From<HttpUrl> for String{
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum FileReferenceParsingError{
+    #[error("Could not parse {0} as either a URL or an absolute path")]
+    NorUrlNorPath(String),
+    #[error("{0}")]
+    UrlParsingError(#[from] UrlParsingError),
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(untagged)]
 pub enum FileReference {
     Url(HttpUrl),
     Path(FsPath),
+}
+
+impl std::fmt::Display for FileReference{
+    //FIXME: maybe the default impl of Into<String> should be here to avoid clones
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let raw = match self{
+            Self::Path(path) => Into::<String>::into(path.clone()),
+            Self::Url(url) => Into::<String>::into(url.clone()),
+        };
+        write!(f, "{}", raw)
+    }
 }
 
 impl From<HttpUrl> for FileReference{
@@ -135,6 +176,20 @@ impl From<HttpUrl> for FileReference{
 impl From<FsPath> for FileReference{
     fn from(value: FsPath) -> Self {
         Self::Path(value)
+    }
+}
+
+impl TryFrom<String> for FileReference{
+    type Error = FileReferenceParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if let Ok(parsed) = Url::parse(&value){
+            let http_url = HttpUrl::try_from(parsed)?;
+            return Ok(Self::Url(http_url))
+        }
+        if let Ok(parsed) = FsPath::try_from(value.clone()){
+            return Ok(Self::Path(parsed))
+        }
+        return Err(FileReferenceParsingError::NorUrlNorPath(value))
     }
 }
 

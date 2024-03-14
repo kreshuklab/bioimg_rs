@@ -13,7 +13,7 @@ pub struct Author {
     pub orcid: Orcid,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Author2 {
     pub name: BoundedString<1, 1023>,                // (Name→String) Full name.
     pub affiliation: Option<BoundedString<1, 1023>>, // (String) Affiliation.

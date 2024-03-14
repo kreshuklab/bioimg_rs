@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::rdf::file_reference::FileReference;
 
-use super::{axes::InputAxisGroup, TensorDescription, TensorId};
+use super::{axes::InputAxisGroup, TensorTextDescription, TensorId};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InputTensorDescr {
     pub id: TensorId,
     #[serde(default)]
-    pub description: TensorDescription,
+    pub description: TensorTextDescription,
     pub axes: InputAxisGroup,
     pub test_tensor: FileReference,
     #[serde(default)]
