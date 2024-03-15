@@ -20,7 +20,7 @@ use crate::widgets::{
 };
 
 struct ZooModelPackResult {
-    model: ZooModel<ArcNpyArray>,
+    model: ZooModel,
     path: PathBuf,
     save_result: Result<(), ModelPackingError>,
 }
@@ -29,7 +29,7 @@ enum PackingStatus {
     Done(Option<ZooModelPackResult>),
     Packing {
         path: PathBuf,
-        model: ZooModel<ArcNpyArray>,
+        model: ZooModel,
         task: poll_promise::Promise<Result<(), ModelPackingError>>,
     },
 }
@@ -46,7 +46,7 @@ pub struct BioimgGui {
     cover_images: StagingVec<CoverImageWidget>,
     // id?
     staging_authors: StagingVec<StagingAuthor2>,
-    attachments_widget: StagingVec<FileWidget<Result<rt::LocalRdfAttachment>>>,
+    attachments_widget: StagingVec<FileWidget<Result<rt::LocalRdfFileRef>>>,
     staging_citations: StagingVec<StagingCiteEntry2>,
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
@@ -57,7 +57,7 @@ pub struct BioimgGui {
     staging_version: StagingString<rdf::Version>,
 
     staging_documentation: StagingOpt<CodeEditorWidget>,
-    staging_license: EnumWidget<rdf::SpdxLicense>,
+    staging_license: EnumWidget<rdf::LicenseId>,
     //badges
     model_interface_widget: ModelInterfaceWidget,
     ////
@@ -220,17 +220,17 @@ impl eframe::App for BioimgGui {
                             let Some(path) = rfd::FileDialog::new().pick_file() else {
                                 break 'done PackingStatus::Done(payload);
                             };
-                            let model = ZooModel { interface: model_interface.clone() };
+                            // let model = ZooModel { interface: model_interface.clone() };
 
-                            let model_to_pack = model.clone();
-                            PackingStatus::Packing {
-                                path: path.clone(),
-                                model: model.clone(),
-                                task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
-                                    let file = std::fs::File::create(&path)?;
-                                    model_to_pack.pack_into(file)
-                                }),
-                            }
+                            // let model_to_pack = model.clone();
+                            // PackingStatus::Packing {
+                            //     path: path.clone(),
+                            //     model: model.clone(),
+                            //     task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
+                            //         let file = std::fs::File::create(&path)?;
+                            //         model_to_pack.pack_into(file)
+                            //     }),
+                            // }
                         }
                         PackingStatus::Packing { path, model, task } => match task.try_take() {
                             Ok(value) => PackingStatus::Done(Some(ZooModelPackResult { path, model, save_result: value })),

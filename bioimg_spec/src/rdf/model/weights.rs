@@ -1,4 +1,4 @@
-use crate::rdf::{author::Author2, file_description::{FileDescription, Sha256}, FileReference, Identifier, Version};
+use crate::rdf::{author::Author2, file_description::{FileDescription, Sha256}, file_reference::EnvironmentFile, FileReference, Identifier, Version};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ModelWeightsParsingError{
@@ -13,17 +13,17 @@ pub enum ModelWeightsParsingError{
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct MaybeSomeWeightsDescr{
     #[serde(default)]
-    keras_hdf5: Option<KerasHdf5WeightsDescr>,
+    pub keras_hdf5: Option<KerasHdf5WeightsDescr>,
     #[serde(default)]
-    onnx: Option<OnnxWeightsDescr>,
+    pub onnx: Option<OnnxWeightsDescr>,
     #[serde(default)]
-    pytorch_state_dict: Option<PytorchStateDictWeightsDescr>,
+    pub pytorch_state_dict: Option<PytorchStateDictWeightsDescr>,
     #[serde(default)]
-    tensorflow_js: Option<TensorflowJsWeightsDescr>,
+    pub tensorflow_js: Option<TensorflowJsWeightsDescr>,
     #[serde(default)]
-    tensorflow_saved_model_bundle: Option<TensorflowSavedModelBundleWeightsDescr>,
+    pub tensorflow_saved_model_bundle: Option<TensorflowSavedModelBundleWeightsDescr>,
     #[serde(default)]
-    torchscript: Option<TorchscriptWeightsDescr>,
+    pub torchscript: Option<TorchscriptWeightsDescr>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -79,21 +79,21 @@ pub enum ModelWeightsEnum{
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
-struct WeightsDescrBase{
-    source: FileReference,
+pub struct WeightsDescrBase{
+    pub source: FileReference,
     #[serde(default)]
-    sha256: Option<Sha256>,
+    pub sha256: Option<Sha256>,
     #[serde(default)]
-    authors: Option<Vec<Author2>>,
-    parent: Option<WeightsFormat>,
+    pub authors: Option<Vec<Author2>>,
+    pub parent: Option<WeightsFormat>,
 }
 
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct KerasHdf5WeightsDescr{
     #[serde(flatten)]
-    base: WeightsDescrBase,
-    tensorflow_version: Version,
+    pub base: WeightsDescrBase,
+    pub tensorflow_version: Version,
 }
 
 
@@ -114,32 +114,32 @@ impl TryFrom<usize> for OnnxOpsetVersion{
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct OnnxWeightsDescr{
     #[serde(flatten)]
-    base: WeightsDescrBase,
-    opset_version: OnnxOpsetVersion,
+    pub base: WeightsDescrBase,
+    pub opset_version: OnnxOpsetVersion,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PyTorchArchitectureFromFileDescr{
     /// Identifier of the callable that returns a torch.nn.Module instance."""
     /// examples: "MyNetworkClass", "get_my_model"
-    callable: Identifier<String>,
+    pub callable: Identifier<String>,
     /// key word arguments for the `callable`
-    kwargs: serde_json::Map<String, serde_json::Value>,
+    pub kwargs: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PyTorchArchitectureFromLibraryDescr{
     /// Identifier of the callable that returns a torch.nn.Module instance.
     /// examples: "MyNetworkClass", "get_my_model"
-    callable: Identifier<String>,
+    pub callable: Identifier<String>,
     /// key word arguments for the `callable`
-    kwargs: serde_json::Map<String, serde_json::Value>,
+    pub kwargs: serde_yaml::Mapping,
     /// Where to import the callable from, i.e. `from <import_from> import <callable>`
-    import_from: String
+    pub import_from: String
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Debug)]
-pub enum ArchitectureDescr{
+pub enum PytorchArchitectureDescr{
     FromLibraryDescr(PyTorchArchitectureFromLibraryDescr),
     FromFileDescr(PyTorchArchitectureFromFileDescr),
 }
@@ -148,70 +148,45 @@ pub enum ArchitectureDescr{
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct PytorchStateDictWeightsDescr{
     #[serde(flatten)]
-    base: WeightsDescrBase,
-    architecture: ArchitectureDescr,
+    pub base: WeightsDescrBase,
+    pub architecture: PytorchArchitectureDescr,
     /// Version of the PyTorch library used.
     /// If `architecture.depencencies` is specified it has to include pytorch and any version pinning has to be compatible.
-    pytorch_version: Version,
+    pub pytorch_version: Version,
     ///Custom depencies beyond pytorch.
     ///
     ///The conda environment file should include pytorch and any version pinning has to be compatible with
     ///
     ///`pytorch_version`.
     #[serde(default)]
-    dependencies: Option<EnvironmentFileDescr>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct EnvironmentFileDescr(FileDescription);
-
-impl TryFrom<FileDescription> for EnvironmentFileDescr{
-    type Error = ModelWeightsParsingError;
-    fn try_from(value: FileDescription) -> Result<Self, Self::Error> {
-        let raw: String = match &value.source{
-            FileReference::Path(path) => path.clone().into(),
-            FileReference::Url(url) => url.clone().into(),
-        };
-        if raw.to_lowercase().ends_with(".yml") || raw.ends_with(".yaml"){
-            Ok(Self(value))
-        }else{
-            Err(ModelWeightsParsingError::DependenciesNotYaml { path: raw })
-        }
-    }
+    pub dependencies: Option<FileDescription<EnvironmentFile>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct TensorflowJsWeightsDescr{
     #[serde(flatten)]
-    base: WeightsDescrBase,
+    pub base: WeightsDescrBase,
     /// Version of the TensorFlow library used
-    tensorflow_version: Version,
-    // The multi-file weights.
-    // All required files/folders should be a zip archive."""
-    source: FileReference,
+    pub tensorflow_version: Version,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct TensorflowSavedModelBundleWeightsDescr{
     #[serde(flatten)]
-    base: WeightsDescrBase,
+    pub base: WeightsDescrBase,
 
     /// Version of the TensorFlow library used
-    tensorflow_version: Version,
+    pub tensorflow_version: Version,
     /// Custom dependencies beyond tensorflow.
     /// Should include tensorflow and any version pinning has to be compatible with `tensorflow_version
     #[serde(default)]
-    dependencies: Option<EnvironmentFileDescr>,
-
-    /// The multi-file weights.
-    /// All required files/folders should be a zip archive
-    source: FileReference,
+    pub dependencies: Option<FileDescription<EnvironmentFile>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct TorchscriptWeightsDescr{
     #[serde(flatten)]
-    base: WeightsDescrBase,
+    pub base: WeightsDescrBase,
     /// Version of the PyTorch library used
-    pytorch_version: Version
+    pub pytorch_version: Version
 }

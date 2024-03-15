@@ -25,7 +25,6 @@ pub mod orcid;
 pub mod si_units;
 pub mod slashless_string;
 pub mod version;
-pub mod cover_image_source;
 
 pub use bounded_string::BoundedString;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
@@ -33,11 +32,15 @@ pub use identifier::Identifier;
 pub use license::LicenseId;
 pub use literal::LiteralInt;
 pub use version::Version;
-pub use file_reference::{HttpUrl, FsPath, FileReference};
+pub use file_reference::{HttpUrl, FsPath, FileReference, CoverImageSource, EnvironmentFile};
+pub use author::Author2;
+pub use file_description::{FileDescription, EnvironmentFileDescr};
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
 pub type ResourceId = SlashlessString<Lowercase<BoundedString<1, 1023>>>;
+pub type ResourceTextDescription = BoundedString<1, {1024 - 1}>;
+pub type ResourceName = BoundedString<5, {1024 - 5}>;
 
 // #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 // pub struct Rdf {

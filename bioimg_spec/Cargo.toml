@@ -20,4 +20,5 @@ ndarray = { workspace = true }
 ndarray-npy = { workspace = true }
 paste = "1.0.14"
 uuid = { version = "1.7.0", features = ["v4"] }
-iso8601-timestamp = "0.2.17"
+iso8601-timestamp = { workspace = true }
+serde_yaml = "0.9.32"

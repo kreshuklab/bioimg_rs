@@ -1,4 +1,9 @@
-use std::ops::Deref;
+use std::{io::{Seek, Write}, ops::Deref};
+
+use bioimg_spec::rdf;
+use image::codecs::png::PngEncoder;
+
+use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
 pub struct CoverImage(image::DynamicImage);
 
@@ -11,6 +16,18 @@ impl CoverImage {
             .into_iter()
             .find(|v| *v == ratio)
             .is_some();
+    }
+    pub fn dump(
+        &self,
+        zip_file: &mut ModelZipWriter<impl Write + Seek>,
+    ) -> Result< rdf::CoverImageSource, ModelPackingError> {
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(".png");
+        let test_tensor_zip_path_str: String = test_tensor_zip_path.clone().into();
+        zip_file.write_file(&test_tensor_zip_path_str, |writer| -> Result<(), ModelPackingError> {
+            let encoder = PngEncoder::new(writer);
+            Ok(self.0.write_with_encoder(encoder)?)
+        })?;
+        Ok(rdf::CoverImageSource::try_from(rdf::FileReference::Path(test_tensor_zip_path)).unwrap())
     }
 }
 

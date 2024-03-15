@@ -64,6 +64,12 @@ impl Into<String> for Version {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Version_0_5_0(Version);
 
+impl Version_0_5_0{
+    pub fn new() -> Self{
+        Self(Version{major: 0, minor: 5, patch: 0})
+    }
+}
+
 impl TryFrom<Version> for Version_0_5_0 {
     type Error = VersionParsingError;
     fn try_from(version: Version) -> Result<Self, Self::Error> {

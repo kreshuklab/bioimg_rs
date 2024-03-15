@@ -31,6 +31,9 @@ impl FsPathComponent{
     pub fn unique() -> Self{
         Self( uuid::Uuid::new_v4().to_string() )
     }
+    pub fn unique_suffixed(suffix: &str) -> Self{
+        Self( format!("{}{suffix}", uuid::Uuid::new_v4().to_string()) )
+    }
 }
 
 impl TryFrom<String> for FsPathComponent{
@@ -62,6 +65,9 @@ pub struct FsPath{
 impl FsPath{
     pub fn unique() -> Self{
         Self{ components: vec![ FsPathComponent::unique() ] }
+    }
+    pub fn unique_suffixed(suffix: &str) -> Self{
+        Self{ components: vec![ FsPathComponent::unique_suffixed(suffix) ] }
     }
     pub fn components(&self) -> &[FsPathComponent]{
         &self.components
@@ -148,6 +154,8 @@ pub enum FileReferenceParsingError{
     NorUrlNorPath(String),
     #[error("{0}")]
     UrlParsingError(#[from] UrlParsingError),
+    #[error("'{raw}' should have one of the following suffixes: {suffixes:?}")]
+    BadSuffix{raw: FileReference, suffixes: Vec<&'static str>}
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -192,6 +200,43 @@ impl TryFrom<String> for FileReference{
         return Err(FileReferenceParsingError::NorUrlNorPath(value))
     }
 }
+
+
+macro_rules! suffixed_file_ref {(
+    struct $name:ident suffixes=[ $($suffix:literal),+ ]
+) => {
+    #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
+    pub struct $name(FileReference);
+
+    impl TryFrom<FileReference> for $name{
+        type Error = FileReferenceParsingError;
+        fn try_from(value: FileReference) -> Result<Self, Self::Error> {
+            let raw: String = match &value{
+                FileReference::Path(path) => path.clone().into(),
+                FileReference::Url(url) => url.path().into(),
+            };
+            let raw = raw.to_lowercase();
+            for suf in [ $($suffix),+ ]{
+                if raw.ends_with(suf){
+                    return Ok(Self(value))
+                }
+            }
+            Err(FileReferenceParsingError::BadSuffix{
+                raw: value,
+                suffixes: Vec::from( [ $($suffix),+ ] )
+            })
+        }
+    }
+
+    impl core::borrow::Borrow<FileReference> for $name{
+        fn borrow(&self) -> &FileReference{
+            &self.0
+        }
+    }
+};}
+
+suffixed_file_ref!(struct CoverImageSource suffixes=[".gif", ".jpeg", ".jpg", ".png"]);
+suffixed_file_ref!(struct EnvironmentFile suffixes=[".yaml", ".yml"]);
 
 #[test]
 fn test_file_reference() {
