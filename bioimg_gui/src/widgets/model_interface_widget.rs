@@ -19,8 +19,8 @@ pub struct ModelInterfaceWidget {
 impl Default for ModelInterfaceWidget {
     fn default() -> Self {
         Self {
-            inputs_widget: StagingVec::new("Input Tensor"),
-            outputs_widget: StagingVec::new("Output Tensor"),
+            inputs_widget: StagingVec::default(),
+            outputs_widget: StagingVec::default(),
             parsed: Err(GuiError::new("emtpy".into())), //FIXME?
         }
     }

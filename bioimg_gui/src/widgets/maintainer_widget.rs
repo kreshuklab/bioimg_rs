@@ -1,6 +1,6 @@
-use bioimg_spec::rdf::{bounded_string::BoundedString, maintainer::Maintainer, orcid::Orcid, slashless_string::SlashlessString};
+use bioimg_spec::rdf::{self, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget};
 use crate::result::Result;
 
 pub struct StagingMaintainer {
@@ -8,7 +8,11 @@ pub struct StagingMaintainer {
     affiliation: StagingOpt<StagingString<BoundedString<1, 1023>>>,
     email: StagingOpt<StagingString<BoundedString<1, 1023>>>, //FIXME
     orcid: StagingOpt<StagingString<Orcid>>,
-    name: StagingOpt<StagingString<SlashlessString<1, 1023>>>,
+    name: StagingOpt<StagingString<rdf::MaintainerName>>,
+}
+
+impl ItemWidgetConf for StagingMaintainer{
+    const ITEM_NAME: &'static str = "Maintainer";
 }
 
 impl Default for StagingMaintainer {
@@ -24,7 +28,7 @@ impl Default for StagingMaintainer {
 }
 
 impl StatefulWidget for StagingMaintainer {
-    type Value<'p> = Result<Maintainer>;
+    type Value<'p> = Result<rdf::Maintainer>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         egui::Grid::new(id).num_columns(2).show(ui, |ui| {
@@ -51,7 +55,7 @@ impl StatefulWidget for StagingMaintainer {
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(Maintainer {
+        Ok(rdf::Maintainer {
             github_user: self.github_user.state()?,
             name: self.name.state().transpose()?,
             affiliation: self.affiliation.state().transpose()?,

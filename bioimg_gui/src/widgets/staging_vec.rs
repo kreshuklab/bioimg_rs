@@ -1,45 +1,49 @@
+use std::marker::PhantomData;
+
 use super::{util::group_frame, StatefulWidget};
 
-pub struct StagingVec<Stg>
-where
-    Stg: StatefulWidget,
-{
-    pub item_name: String,
-    pub staging: Vec<Stg>,
+pub trait ItemWidgetConf{
+    const ITEM_NAME: &'static str;
 }
 
-impl<Stg: StatefulWidget + Default> StagingVec<Stg> {
-    pub fn new(item_name: impl Into<String>) -> Self {
-        Self {
+pub struct StagingVec<Stg, Conf=Stg>{
+    pub staging: Vec<Stg>,
+    marker: PhantomData<Conf>,
+}
+
+impl<Stg, Conf> Default for StagingVec<Stg, Conf>{
+    fn default() -> Self {
+        Self{
             staging: vec![],
-            item_name: item_name.into(),
+            marker: PhantomData,
         }
     }
 }
 
-impl<Stg: StatefulWidget> StatefulWidget for StagingVec<Stg>
+impl<Stg: StatefulWidget, Conf> StatefulWidget for StagingVec<Stg, Conf>
 where
     Stg: Default,
+    Conf: ItemWidgetConf,
 {
     type Value<'p> = Vec<Stg::Value<'p>>
     where
         Stg: 'p,
+        Conf: 'p,
         Stg::Value<'p>: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
-        let item_name = &self.item_name;
         ui.vertical(|ui| {
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
-                ui.label(format!("{item_name} #{}", idx + 1));
+                ui.label(format!("{} #{}", Conf::ITEM_NAME, idx + 1));
                 group_frame(ui, |ui| {
                     staging_item.draw_and_parse(ui, id.with(idx));
                 });
             });
             ui.horizontal(|ui| {
-                if ui.button(format!("+ Add {item_name}")).clicked() {
+                if ui.button(format!("+ Add {}", Conf::ITEM_NAME)).clicked() {
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
-                if ui.button(format!("- Remove {item_name}")).clicked() && self.staging.len() > 0 {
+                if ui.button(format!("- Remove {}", Conf::ITEM_NAME)).clicked() && self.staging.len() > 0 {
                     self.staging.resize_with(self.staging.len() - 1, Stg::default);
                 }
             });

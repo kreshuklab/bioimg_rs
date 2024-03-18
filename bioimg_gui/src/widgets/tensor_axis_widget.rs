@@ -5,10 +5,11 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model as modelrdf;
 
 use super::axis_size_widget::AxisSizeMode;
+use super::channel_name_widget::ChannelNamesWidget;
 use super::enum_widget::EnumWidget;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
-use super::staging_vec::StagingVec;
+use super::staging_vec::{ItemWidgetConf, StagingVec};
 use super::StatefulWidget;
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::result::{GuiError, Result};
@@ -41,7 +42,7 @@ pub struct InputTensorAxisWidget {
     pub channel_name_prefix_widget: StagingString<String>,
     pub channel_name_suffix_widget: StagingString<String>,
 
-    pub staging_explicit_names: StagingVec<StagingString<rdf::Identifier<String>>>,
+    pub staging_explicit_names: ChannelNamesWidget,
     // used by space, time, index
     pub size_widget: AnyAxisSizeWidget,
     // batch size stuff
@@ -50,6 +51,10 @@ pub struct InputTensorAxisWidget {
     pub space_unit_widget: StagingOpt<EnumWidget<modelrdf::SpaceUnit>>,
     pub time_unit_widget: StagingOpt<EnumWidget<modelrdf::TimeUnit>>,
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
+}
+
+impl ItemWidgetConf for InputTensorAxisWidget{
+    const ITEM_NAME: &'static str = "Input Axis";
 }
 
 impl InputTensorAxisWidget {
@@ -79,7 +84,7 @@ impl Default for InputTensorAxisWidget {
             channel_name_prefix_widget: Default::default(),
             channel_name_suffix_widget: Default::default(),
 
-            staging_explicit_names: StagingVec::new("Channel Name"),
+            staging_explicit_names: StagingVec::default(),
             // used by space, time, index
             size_widget: Default::default(),
             // batch size stuff
@@ -253,6 +258,10 @@ impl StatefulWidget for InputTensorAxisWidget {
 pub struct OutputTensorAxisWidget {
     pub input_tensor_widget: InputTensorAxisWidget,
     pub halo_widget: StagingNum<usize, usize>,
+}
+
+impl ItemWidgetConf for OutputTensorAxisWidget{
+    const ITEM_NAME: &'static str = "Output Axis";
 }
 
 impl OutputTensorAxisWidget {

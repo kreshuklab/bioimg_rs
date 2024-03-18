@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::result::Result;
 use super::StatefulWidget;
 
 pub trait ParsedFile: Send + 'static {
@@ -100,5 +101,15 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         &self.state
+    }
+}
+
+
+impl ParsedFile for Result<std::fs::File>{
+    fn parse(path: PathBuf, ctx: egui::Context) -> Self{
+        Ok(std::fs::File::open(path)?)
+    }
+    fn render(&self, ui: &mut egui::Ui, id: egui::Id){
+
     }
 }

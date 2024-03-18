@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget};
 use crate::result::Result;
 
 pub type ConfString = BoundedString<1, 1023>;
@@ -11,6 +11,10 @@ pub struct StagingAuthor2 {
     staging_email: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
     staging_github_user: StagingOpt<StagingString<ConfString>>, // (String) GitHub user name.
     staging_orcid: StagingOpt<StagingString<Orcid>>,
+}
+
+impl ItemWidgetConf for StagingAuthor2{
+    const ITEM_NAME: &'static str = "Author";
 }
 
 impl Default for StagingAuthor2 {

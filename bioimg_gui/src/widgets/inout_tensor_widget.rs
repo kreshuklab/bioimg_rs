@@ -15,14 +15,19 @@ use super::staging_vec::StagingVec;
 use super::tensor_axis_widget::InputTensorAxisWidget;
 use super::tensor_axis_widget::OutputTensorAxisWidget;
 use super::StatefulWidget;
+use crate::widgets::staging_vec::ItemWidgetConf;
 
 #[rustfmt::skip]
 macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
     pub struct [<$inout TensorWidget>] {
         pub id_widget: StagingString<modelrdf::TensorId>,
-        pub description_widget: StagingString<modelrdf::TensorDescription>,
+        pub description_widget: StagingString<modelrdf::TensorTextDescription>,
         pub axes_widget: StagingVec< [<$inout TensorAxisWidget>] >,
         pub test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
+    }
+
+    impl ItemWidgetConf for [<$inout TensorWidget>]{
+        const ITEM_NAME: &'static str = concat!(stringify!($inout), " Tensor");
     }
 
     impl Default for [<$inout TensorWidget>] {
@@ -30,7 +35,7 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
             Self {
                 id_widget: Default::default(),
                 description_widget: Default::default(),
-                axes_widget: StagingVec::new("Axis"),
+                axes_widget: StagingVec::default(),
                 test_tensor_widget: Default::default(),
             }
         }

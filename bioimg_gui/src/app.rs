@@ -1,14 +1,14 @@
 use std::path::PathBuf;
 
-use bioimg_runtime as rt;
-use bioimg_runtime::npy_array::ArcNpyArray;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 
-use crate::result::Result;
+use crate::result::{GuiError, Result};
+use crate::widgets::attachments_widget::AttachmentsWidget;
 use crate::widgets::enum_widget::EnumWidget;
-use crate::widgets::file_widget::FileWidget;
+use crate::widgets::error_display::show_error;
+use crate::widgets::file_widget::FileWidgetState;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
@@ -20,7 +20,6 @@ use crate::widgets::{
 };
 
 struct ZooModelPackResult {
-    model: ZooModel,
     path: PathBuf,
     save_result: Result<(), ModelPackingError>,
 }
@@ -29,7 +28,6 @@ enum PackingStatus {
     Done(Option<ZooModelPackResult>),
     Packing {
         path: PathBuf,
-        model: ZooModel,
         task: poll_promise::Promise<Result<(), ModelPackingError>>,
     },
 }
@@ -46,7 +44,7 @@ pub struct BioimgGui {
     cover_images: StagingVec<CoverImageWidget>,
     // id?
     staging_authors: StagingVec<StagingAuthor2>,
-    attachments_widget: StagingVec<FileWidget<Result<rt::LocalRdfFileRef>>>,
+    attachments_widget: StagingVec<AttachmentsWidget>,
     staging_citations: StagingVec<StagingCiteEntry2>,
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
@@ -69,14 +67,14 @@ impl Default for BioimgGui {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
             staging_description: StagingString::new(InputLines::Multiline),
-            cover_images: StagingVec::new("Cover Image"),
-            staging_authors: StagingVec::new("Author"),
-            attachments_widget: StagingVec::new("Attachment"),
-            staging_citations: StagingVec::new("Cite"),
+            cover_images: StagingVec::default(),
+            staging_authors: StagingVec::default(),
+            attachments_widget: StagingVec::default(),
+            staging_citations: StagingVec::default(),
             staging_git_repo: Default::default(),
             staging_icon: Default::default(),
-            staging_maintainers: StagingVec::new("Maintainer"),
-            staging_tags: StagingVec::new("Tag"),
+            staging_maintainers: StagingVec::default(),
+            staging_tags: StagingVec::default(),
             staging_version: Default::default(),
             staging_documentation: Default::default(),
             staging_license: Default::default(),
@@ -220,24 +218,58 @@ impl eframe::App for BioimgGui {
                             let Some(path) = rfd::FileDialog::new().pick_file() else {
                                 break 'done PackingStatus::Done(payload);
                             };
-                            // let model = ZooModel { interface: model_interface.clone() };
 
-                            // let model_to_pack = model.clone();
-                            // PackingStatus::Packing {
-                            //     path: path.clone(),
-                            //     model: model.clone(),
-                            //     task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
-                            //         let file = std::fs::File::create(&path)?;
-                            //         model_to_pack.pack_into(file)
-                            //     }),
-                            // }
+                            let zoo_model_res = (|| -> Result<ZooModel>{
+                                let s = self.cover_images.state();
+                                let x = s.into_iter().map(|file_widget_state|{
+                                    match file_widget_state{
+                                        FileWidgetState::Finished { value: Ok(val), .. } => Ok(val),
+                                        _ => Err(GuiError::new("Issue with cover images".into()))
+                                    }
+                                }).collect::<Result<Vec<_>, _>>()?;
+                                panic!();
+                                // Ok(ZooModel {
+                                //     description: self.staging_description.state()?,
+                                //     // covers: Vec<CoverImage>,
+                                //     // attachments: Vec<std::fs::File>,
+                                //     // cite: NonEmptyList<CiteEntry2>,
+                                //     // git_repo: Option<HttpUrl>,
+                                //     // icon: Option<Icon>,
+                                //     // links: Vec<String>,
+                                //     // maintainers: Vec<Maintainer>,
+                                //     // tags: Vec<String>,
+                                //     // version: Option<Version>,
+                                //     // authors: NonEmptyList<Author2>,
+                                //     // documentation: String,
+                                //     // license: LicenseId,
+                                //     // name: ResourceName,
+                                //     // weights: ModelWeights,
+                                //     interface: model_interface,
+                                // })
+                            })();
+
+                            let zoo_model = match zoo_model_res{
+                                Ok(zoo_model) => zoo_model,
+                                Err(err) => {
+                                    show_error(ui, err);
+                                    break 'done PackingStatus::Done(None);
+                                }
+                            };
+
+                            PackingStatus::Packing {
+                                path: path.clone(),
+                                task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
+                                    let file = std::fs::File::create(&path)?;
+                                    zoo_model.pack_into(file)
+                                }),
+                            }
                         }
-                        PackingStatus::Packing { path, model, task } => match task.try_take() {
-                            Ok(value) => PackingStatus::Done(Some(ZooModelPackResult { path, model, save_result: value })),
+                        PackingStatus::Packing { path, task } => match task.try_take() {
+                            Ok(value) => PackingStatus::Done(Some(ZooModelPackResult { path, save_result: value })),
                             Err(task) => {
                                 ui.add_enabled_ui(false, |ui| ui.button("Save Model"));
                                 ui.label(format!("Packing into {}...", path.to_string_lossy()));
-                                PackingStatus::Packing { path, model, task }
+                                PackingStatus::Packing { path, task }
                             }
                         },
                     }

@@ -4,7 +4,7 @@ use bioimg_spec::rdf::{
     cite_entry::CiteEntry2,
 };
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, url_widget::StagingUrl, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, StatefulWidget};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -27,6 +27,10 @@ pub struct StagingCiteEntry2 {
     staging_doi: StagingOpt<StagingString<ConfString>>,
     staging_url: StagingOpt<StagingUrl>,
     parsed: Result<CiteEntry2, CiteEntry2ParsingError>,
+}
+
+impl ItemWidgetConf for StagingCiteEntry2{
+    const ITEM_NAME: &'static str = "Cite";
 }
 
 impl Default for StagingCiteEntry2 {

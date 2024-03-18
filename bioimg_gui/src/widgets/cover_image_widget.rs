@@ -5,9 +5,7 @@ use bioimg_runtime as rt;
 use egui::{load::SizedTexture, ImageSource};
 
 use super::{
-    error_display::show_error,
-    file_widget::{FileWidget, ParsedFile},
-    util::DynamicImageExt,
+    error_display::show_error, file_widget::{FileWidget, ParsedFile}, staging_vec::ItemWidgetConf, util::DynamicImageExt
 };
 
 pub struct GuiCoverImage {
@@ -48,3 +46,7 @@ impl ParsedFile for Result<GuiCoverImage> {
 }
 
 pub type CoverImageWidget = FileWidget<Result<GuiCoverImage>>;
+
+impl ItemWidgetConf for CoverImageWidget{
+    const ITEM_NAME: &'static str = "Cover Image";
+}

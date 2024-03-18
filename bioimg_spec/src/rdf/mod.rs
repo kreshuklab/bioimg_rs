@@ -35,6 +35,7 @@ pub use version::Version;
 pub use file_reference::{HttpUrl, FsPath, FileReference, CoverImageSource, EnvironmentFile};
 pub use author::Author2;
 pub use file_description::{FileDescription, EnvironmentFileDescr};
+pub use maintainer::{Maintainer, MaintainerName};
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 

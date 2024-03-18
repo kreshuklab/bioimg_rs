@@ -1,6 +1,9 @@
 use bioimg_spec::rdf::Version;
 
-use super::{author_widget::StagingAuthor2, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, LocalFileRefWidget, StatefulWidget};
+use crate::result::Result;
+use super::{
+    author_widget::StagingAuthor2, file_widget::FileWidget, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
+};
 
 pub struct WeightsWidget{
 
@@ -13,7 +16,7 @@ pub struct WeightsWidget{
 // }
 
 struct WeightsDescrBaseWidget{
-    pub source_widget: LocalFileRefWidget,
+    pub source_widget: StagingVec<FileWidget<Result<std::fs::File>>>,
     pub authors_widget: StagingOpt<StagingVec<StagingAuthor2>>,
     // pub parent_widget: Option<WeightsFormat>,
 }

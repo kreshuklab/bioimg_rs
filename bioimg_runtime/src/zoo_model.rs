@@ -38,28 +38,28 @@ pub enum ModelPackingError {
     SerdeYamlError(#[from] serde_yaml::Error),
 }
 
-pub struct ZooModel<'a> {
-    description: ResourceTextDescription,
-    covers: Vec<CoverImage>,
-    attachments: Vec<std::fs::File>,
-    cite: NonEmptyList<CiteEntry2>,
+pub struct ZooModel {
+    pub description: ResourceTextDescription,
+    pub covers: Vec<CoverImage>,
+    pub attachments: Vec<std::fs::File>,
+    pub cite: NonEmptyList<CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,
-    git_repo: Option<HttpUrl>,
-    icon: Option<Icon>,
-    links: Vec<String>,
-    maintainers: Vec<Maintainer>,
-    tags: Vec<String>,
-    version: Option<Version>,
-    authors: NonEmptyList<Author2>,
-    documentation: &'a str,
-    license: LicenseId,
-    name: ResourceName,
+    pub git_repo: Option<HttpUrl>,
+    pub icon: Option<Icon>,
+    pub links: Vec<String>,
+    pub maintainers: Vec<Maintainer>,
+    pub tags: Vec<String>,
+    pub version: Option<Version>,
+    pub authors: NonEmptyList<Author2>,
+    pub documentation: String,
+    pub license: LicenseId,
+    pub name: ResourceName,
     // training_data: DatasetDescrEnum, //FIXME
-    weights: ModelWeights,
-    interface: ModelInterface<ArcNpyArray>,
+    pub weights: ModelWeights,
+    pub interface: ModelInterface<ArcNpyArray>,
 }
 
-impl<'a> ZooModel<'a> {
+impl<'a> ZooModel {
     pub fn pack_into<Sink: Write + Seek>(mut self, sink: Sink) -> Result<(), ModelPackingError> {
         let mut writer = ModelZipWriter::new(sink);
 
@@ -74,9 +74,6 @@ impl<'a> ZooModel<'a> {
             Some(icon) => Some(icon.dump(&mut writer)?),
             None => None,
         };
-        let attachments = self.attachments.iter_mut().map(|rt_att|{ // Should this be internal mutability
-            rt_att.rdf_dump(&mut writer)
-        }).collect::<Result<Vec<_>, _>>()?;
         let documentation: FileReference = {
             let documentation_path = FsPath::unique_suffixed(".md");
             let documentation_path_string: String = documentation_path.clone().into(); //FIXME
