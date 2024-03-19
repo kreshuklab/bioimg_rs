@@ -48,24 +48,24 @@ impl ModelWeights{
     }
 
     pub fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::WeightsDescr, ModelPackingError> {
-        let keras_hdf5 = self.keras_hdf5.as_mut().map(|weights|{
+        let keras_hdf5 = self.keras_hdf5.as_ref().map(|weights|{
             weights.rdf_dump(zip_file)
         }).transpose()?;
-        let onnx = self.onnx.as_mut().map(|weights|{
+        let onnx = self.onnx.as_ref().map(|weights|{
             weights.rdf_dump(zip_file)
         }).transpose()?;
-        let pytorch_state_dict = self.pytorch_state_dict.as_mut().map(|weights|{
+        let pytorch_state_dict = self.pytorch_state_dict.as_ref().map(|weights|{
             weights.rdf_dump(zip_file)
         }).transpose()?;
-        let tensorflow_js = self.tensorflow_js.as_mut().map(|weights|{
+        let tensorflow_js = self.tensorflow_js.as_ref().map(|weights|{
             weights.rdf_dump(zip_file)
         }).transpose()?;
-        let tensorflow_saved_model_bundle = self.tensorflow_saved_model_bundle.as_mut().map(|weights|{
+        let tensorflow_saved_model_bundle = self.tensorflow_saved_model_bundle.as_ref().map(|weights|{
             weights.rdf_dump(zip_file)
         }).transpose()?;
-        let torchscript = self.torchscript.as_mut().map(|weights|{
+        let torchscript = self.torchscript.as_ref().map(|weights|{
             weights.rdf_dump(zip_file)
         }).transpose()?;
         Ok(modelrdf::WeightsDescr::try_from(modelrdf::MaybeSomeWeightsDescr{
@@ -81,13 +81,13 @@ impl ModelWeights{
 
 
 pub struct WeightsBase{
-    source: PathBuf,
-    authors: Option<Vec<rdf::Author2>>,
+    pub source: PathBuf,
+    pub authors: Option<Vec<rdf::Author2>>,
 }
 
 impl WeightsBase{
     fn rdf_dump_suffixed(
-        &mut self,
+        &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
         suffix: &str,
     ) -> Result<modelrdf::WeightsDescrBase, ModelPackingError> {
@@ -99,7 +99,7 @@ impl WeightsBase{
         })
     }
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>,
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<modelrdf::WeightsDescrBase, ModelPackingError> {
         Ok(modelrdf::WeightsDescrBase{
             source: self.source.rdf_dump(zip_file)?,
@@ -116,7 +116,7 @@ pub struct KerasHdf5Weights{
 }
 impl KerasHdf5Weights{
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::KerasHdf5WeightsDescr, ModelPackingError> {
         let weights = self.weights.rdf_dump(zip_file)?;
         Ok(modelrdf::KerasHdf5WeightsDescr{
@@ -134,7 +134,7 @@ pub struct OnnxWeights{
 
 impl OnnxWeights{
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::OnnxWeightsDescr, ModelPackingError> {
         let weights = self.weights.rdf_dump(zip_file)?;
         Ok(modelrdf::OnnxWeightsDescr{
@@ -154,13 +154,13 @@ pub struct PytorchStateDictWeights{
 
 impl PytorchStateDictWeights{
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::PytorchStateDictWeightsDescr, ModelPackingError> {
         Ok(modelrdf::PytorchStateDictWeightsDescr{
             base: self.weights.rdf_dump(zip_file)?,
             architecture: self.architecture.clone(),
             pytorch_version: self.pytorch_version.clone(),
-            dependencies: self.dependencies.as_mut().map(|env|{
+            dependencies: self.dependencies.as_ref().map(|env|{
                 env.rdf_dump(zip_file)
             }).transpose()?,
         })
@@ -177,7 +177,7 @@ pub struct TensorflowJsWeights{
 }
 impl TensorflowJsWeights{
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::TensorflowJsWeightsDescr, ModelPackingError> {
         Ok(modelrdf::TensorflowJsWeightsDescr{
             base: self.weights.rdf_dump_suffixed(zip_file, ".zip")?,
@@ -196,12 +196,12 @@ pub struct TensorflowSavedModelBundleWeights{
 
 impl TensorflowSavedModelBundleWeights{
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::TensorflowSavedModelBundleWeightsDescr, ModelPackingError> {
         Ok(modelrdf::TensorflowSavedModelBundleWeightsDescr{
             base: self.weights.rdf_dump_suffixed(zip_file, ".zip")?,
             tensorflow_version: self.tensorflow_version.clone(),
-            dependencies: self.dependencies.as_mut().map(|env|{
+            dependencies: self.dependencies.as_ref().map(|env|{
                 env.rdf_dump(zip_file)
             }).transpose()?,
         })
@@ -216,7 +216,7 @@ pub struct TorchscriptWeights {
 
 impl TorchscriptWeights {
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::TorchscriptWeightsDescr, ModelPackingError> {
         Ok(modelrdf::TorchscriptWeightsDescr{
             base: self.weights.rdf_dump_suffixed(zip_file, ".zip")?,

@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf::{self, ResourceName};
@@ -14,6 +15,7 @@ use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
+use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
@@ -61,6 +63,7 @@ pub struct BioimgGui {
     model_interface_widget: ModelInterfaceWidget,
     ////
     model_packing_status: PackingStatus,
+    weights_widget: WeightsWidget,
 }
 
 impl Default for BioimgGui {
@@ -83,6 +86,7 @@ impl Default for BioimgGui {
             model_interface_widget: Default::default(),
 
             model_packing_status: PackingStatus::default(),
+            weights_widget: Default::default(),
         }
     }
 }
@@ -195,6 +199,11 @@ impl eframe::App for BioimgGui {
                 });
 
                 ui.horizontal(|ui| {
+                    ui.strong("Model Weights: ");
+                    self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
+                });
+
+                ui.horizontal(|ui| {
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
                         PackingStatus::Done(payload) => 'done: {
                             let message = match &payload {
@@ -213,22 +222,17 @@ impl eframe::App for BioimgGui {
                             if !save_button_clicked {
                                 break 'done PackingStatus::Done(payload);
                             }
-                            let Ok(model_interface) = &self.model_interface_widget.parsed else {
+                            let Ok(model_interface) = self.model_interface_widget.state().as_ref().map(|interf| interf.clone()) else {
                                 break 'done PackingStatus::Done(payload);
                             };
                             let Some(path) = rfd::FileDialog::new().pick_file() else {
                                 break 'done PackingStatus::Done(payload);
                             };
 
-                            let zoo_model_res = (|| -> Result<ZooModel<'_>>{
-                                let description = &self.staging_description.state()?;
-
-                                let cover_images_state = self.cover_images.state();
-                                let covers = cover_images_state.into_iter().map(|file_widget_state|{
+                            let zoo_model_res = (|| -> Result<ZooModel>{
+                                let covers: Vec<_> = self.cover_images.state().into_iter().map(|file_widget_state|{
                                     match file_widget_state{
-                                        FileWidgetState::Finished { value: Ok(val), .. } => {
-                                            Ok(val.contents())
-                                        },
+                                        FileWidgetState::Finished { value: Ok(val), .. } => Ok(Arc::clone(val.contents())),
                                         _ => Err(GuiError::new("Review cover images".into()))
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
@@ -236,56 +240,38 @@ impl eframe::App for BioimgGui {
                                 let attachments_state = self.attachments_widget.state();
                                 let attachments = attachments_state.into_iter().map(|file_widget_state|{
                                     match file_widget_state{
-                                        FileWidgetState::Finished { value: Ok(ref val), .. } => Ok(val.as_path()),
+                                        FileWidgetState::Finished { value: Ok(ref val), .. } => Ok(val.clone()),
                                         _ => Err(GuiError::new("Review attachments".into()))
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
 
                                 let cite = self.staging_citations.state().collect_result()?;
-                                let non_empty_cites = match NonEmptyList::try_from(cite){
-                                    Ok(non_empty_cites) => non_empty_cites,
-                                    Err(_) => return Err(GuiError::new("Cites are empty".into()))
-                                };
-
-                                let git_repo = self.staging_git_repo.state().transpose()?;
-
-                                let icon = self.staging_icon.state()?; //FIXME: make Option?
-
-                                let links = Vec::<String>::new();// FIXME: grab from widget
-
-                                let maintainers = self.staging_maintainers.state().collect_result()?;
+                                let non_empty_cites = NonEmptyList::try_from(cite)
+                                    .map_err(|_| GuiError::new("Cites are empty".into()))?;
 
                                 let tags: Vec<String> = self.staging_tags.state().into_iter().map(|res|{
                                     res.map(|tag| String::from(tag))
                                 }).collect::<Result<_>>()?;
 
-                                let version = self.staging_version.state()?;
-
-                                let authors = match NonEmptyList::try_from(self.staging_authors.state().collect_result()?){
-                                    Ok(authors) => authors,
-                                    Err(_) => return Err(GuiError::new("Empty authors".into()))
-                                };
-
-                                let documentation = self.staging_documentation.state();
-
-                                let name = self.staging_name.state()?;
+                                let authors = NonEmptyList::try_from(self.staging_authors.state().collect_result()?)
+                                    .map_err(|_| GuiError::new("Empty authors".into()))?;
 
                                 Ok(ZooModel {
-                                    description,
-                                    covers: covers.as_slice(),
-                                    attachments: attachments.as_slice(),
-                                    cite: &non_empty_cites,
-                                    git_repo: git_repo.as_ref(),
-                                    icon: Some(icon.as_ref()),
-                                    links: &links,
-                                    maintainers: &maintainers,
-                                    tags: tags.as_slice(),
-                                    version: Some(&version),
-                                    authors: &authors,
-                                    documentation: documentation,
+                                    description: self.staging_description.state()?,
+                                    covers,
+                                    attachments,
+                                    cite: non_empty_cites,
+                                    git_repo: self.staging_git_repo.state().transpose()?,
+                                    icon: Some(self.staging_icon.state()?), //FIXME: make Option?,
+                                    links: Vec::<String>::new(),// FIXME: grab from widget,
+                                    maintainers: self.staging_maintainers.state().collect_result()?,
+                                    tags,
+                                    version: Some(self.staging_version.state()?),
+                                    authors,
+                                    documentation: self.staging_documentation.state().to_owned(),
                                     license: self.staging_license.state(),
-                                    name: &name,
-                                    weights: panic!(),
+                                    name: self.staging_name.state()?,
+                                    weights: self.weights_widget.state()?,
                                     interface: model_interface,
                                 })
                             })();

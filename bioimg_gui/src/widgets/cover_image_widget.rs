@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::result::Result;
 use bioimg_runtime as rt;
@@ -10,13 +10,13 @@ use super::{
 
 pub struct GuiCoverImage {
     path: PathBuf,
-    contents: rt::CoverImage,
+    contents: Arc<rt::CoverImage>,
     context: egui::Context,
     texture_handle: egui::TextureHandle,
 }
 
 impl GuiCoverImage{
-    pub fn contents(&self) -> &rt::CoverImage{
+    pub fn contents(&self) -> &Arc<rt::CoverImage>{
         &self.contents
     }
 }
@@ -33,7 +33,7 @@ impl ParsedFile for Result<GuiCoverImage> {
         let contents = std::fs::read(&path)?;
         let cover_image = rt::CoverImage::try_from(contents.as_slice())?;
         let texture_handle = cover_image.to_egui_texture_handle(path.to_string_lossy(), &ctx);
-        Ok(GuiCoverImage { path: path.clone(), contents: cover_image, context: ctx, texture_handle: texture_handle.clone() })
+        Ok(GuiCoverImage { path: path.clone(), contents: Arc::new(cover_image), context: ctx, texture_handle: texture_handle.clone() })
     }
 
     fn render(&self, ui: &mut egui::Ui, id: egui::Id) {

@@ -11,7 +11,7 @@ pub struct CondaEnv{
 
 impl CondaEnv{
     pub fn rdf_dump(
-        &mut self,
+        &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::EnvironmentFileDescr, ModelPackingError> {
         let zip_path = rdf::FsPath::unique_suffixed(".yml");

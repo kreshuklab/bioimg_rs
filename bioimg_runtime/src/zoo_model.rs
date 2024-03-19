@@ -1,6 +1,6 @@
 use std::{
     io::{Seek, Write},
-    path::{Path, PathBuf},
+    path::PathBuf, sync::Arc,
 };
 
 use bioimg_spec::rdf::{
@@ -32,28 +32,28 @@ pub enum ModelPackingError {
     SerdeYamlError(#[from] serde_yaml::Error),
 }
 
-pub struct ZooModel<'a> {
-    pub description: &'a ResourceTextDescription,
-    pub covers: &'a [&'a CoverImage],
-    pub attachments: &'a [ &'a Path],
-    pub cite: &'a NonEmptyList<CiteEntry2>,
+pub struct ZooModel {
+    pub description: ResourceTextDescription,
+    pub covers: Vec<Arc<CoverImage>>,
+    pub attachments: Vec<PathBuf>,
+    pub cite: NonEmptyList<CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,
-    pub git_repo: Option<&'a HttpUrl>,
-    pub icon: Option<&'a Icon>,
-    pub links: &'a [String],
-    pub maintainers: &'a [Maintainer],
-    pub tags: &'a [String],
-    pub version: Option<&'a Version>,
-    pub authors: &'a NonEmptyList<Author2>,
-    pub documentation: &'a str,
+    pub git_repo: Option<HttpUrl>,
+    pub icon: Option<Arc<Icon>>,
+    pub links: Vec<String>,
+    pub maintainers: Vec<Maintainer>,
+    pub tags: Vec<String>,
+    pub version: Option<Version>,
+    pub authors: NonEmptyList<Author2>,
+    pub documentation: String,
     pub license: LicenseId,
-    pub name: &'a ResourceName,
+    pub name: ResourceName,
     // training_data: DatasetDescrEnum, //FIXME
-    pub weights: &'a mut ModelWeights, //FIXME: mut really?
-    pub interface: &'a ModelInterface<ArcNpyArray>,
+    pub weights: ModelWeights,
+    pub interface: ModelInterface<ArcNpyArray>,
 }
 
-impl<'a> ZooModel<'a> {
+impl ZooModel {
     pub fn pack_into<Sink: Write + Seek>(self, sink: Sink) -> Result<(), ModelPackingError> {
         let mut writer = ModelZipWriter::new(sink);
 
@@ -81,25 +81,25 @@ impl<'a> ZooModel<'a> {
         let weights = self.weights.rdf_dump(&mut writer)?;
 
         let model_rdf = ModelRdfRefs {
-            description: self.description,
+            description: &self.description,
             covers: &covers,
             id: None,
             attachments: &attachments,
-            cite: self.cite,
+            cite: &self.cite,
             config: &config,
-            git_repo: self.git_repo,
+            git_repo: self.git_repo.as_ref(),
             icon: icon.as_ref(),
-            links: self.links,
-            maintainers: self.maintainers,
-            tags: self.tags,
-            version: self.version,
+            links: &self.links,
+            maintainers: &self.maintainers,
+            tags: &self.tags,
+            version: self.version.as_ref(),
             format_version: Version_0_5_0::new(),
             rdf_type: RdfTypeModel,
-            authors: self.authors,
+            authors: &self.authors,
             documentation: &documentation,
             inputs: &inputs,
             license: self.license,
-            name: self.name,
+            name: &self.name,
             outputs: &outputs,
             run_mode: None,
             timestamp: &timestamp,
