@@ -5,7 +5,7 @@ use std::{
 
 use bioimg_spec::rdf::{
     self, author::Author2, cite_entry::CiteEntry2, maintainer::Maintainer, model::{
-        ModelRdfRefs, RdfTypeModel
+        ModelRdf, RdfTypeModel
     }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, ResourceTextDescription, Version
 };
 use image::ImageError;
@@ -80,31 +80,31 @@ impl ZooModel {
         let timestamp = iso8601_timestamp::Timestamp::now_utc();
         let weights = self.weights.rdf_dump(&mut writer)?;
 
-        let model_rdf = ModelRdfRefs {
-            description: &self.description,
-            covers: &covers,
+        let model_rdf = ModelRdf {
+            description: self.description,
+            covers: covers,
             id: None,
-            attachments: &attachments,
-            cite: &self.cite,
-            config: &config,
-            git_repo: self.git_repo.as_ref(),
-            icon: icon.as_ref(),
-            links: &self.links,
-            maintainers: &self.maintainers,
-            tags: &self.tags,
-            version: self.version.as_ref(),
+            attachments: attachments,
+            cite: self.cite,
+            config: config,
+            git_repo: self.git_repo,
+            icon: icon,
+            links: self.links,
+            maintainers: self.maintainers,
+            tags: self.tags,
+            version: self.version,
             format_version: Version_0_5_0::new(),
             rdf_type: RdfTypeModel,
-            authors: &self.authors,
-            documentation: &documentation,
-            inputs: &inputs,
+            authors: self.authors,
+            documentation: documentation,
+            inputs: inputs,
             license: self.license,
-            name: &self.name,
-            outputs: &outputs,
+            name: self.name,
+            outputs: outputs,
             run_mode: None,
-            timestamp: &timestamp,
+            timestamp: timestamp,
             training_data: None, //FIXME
-            weights: &weights,
+            weights: weights,
         };
 
         writer.write_file("/rdf.yaml", |writer| serde_yaml::to_writer(writer, &model_rdf))?;
