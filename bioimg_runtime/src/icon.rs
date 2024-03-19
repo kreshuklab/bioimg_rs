@@ -41,6 +41,12 @@ pub enum Icon {
     Text(rdf::icon::EmojiIcon),
 }
 
+impl From<rdf::icon::EmojiIcon> for Icon{
+    fn from(value: rdf::icon::EmojiIcon) -> Self {
+        Self::Text(value)
+    }
+}
+
 impl Icon{
     pub fn dump(
         &self,

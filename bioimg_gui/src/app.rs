@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
-use bioimg_spec::rdf;
+use bioimg_spec::rdf::{self, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
+use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
-use crate::result::{GuiError, Result};
+use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::error_display::show_error;
@@ -39,7 +40,7 @@ impl Default for PackingStatus {
 }
 
 pub struct BioimgGui {
-    staging_name: StagingString<BoundedString<1, 127>>,
+    staging_name: StagingString<ResourceName>,
     staging_description: StagingString<BoundedString<1, 1023>>,
     cover_images: StagingVec<CoverImageWidget>,
     // id?
@@ -54,7 +55,7 @@ pub struct BioimgGui {
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
     staging_version: StagingString<rdf::Version>,
 
-    staging_documentation: StagingOpt<CodeEditorWidget>,
+    staging_documentation: CodeEditorWidget,
     staging_license: EnumWidget<rdf::LicenseId>,
     //badges
     model_interface_widget: ModelInterfaceWidget,
@@ -219,33 +220,74 @@ impl eframe::App for BioimgGui {
                                 break 'done PackingStatus::Done(payload);
                             };
 
-                            let zoo_model_res = (|| -> Result<ZooModel>{
-                                let s = self.cover_images.state();
-                                let x = s.into_iter().map(|file_widget_state|{
+                            let zoo_model_res = (|| -> Result<ZooModel<'_>>{
+                                let description = &self.staging_description.state()?;
+
+                                let cover_images_state = self.cover_images.state();
+                                let covers = cover_images_state.into_iter().map(|file_widget_state|{
                                     match file_widget_state{
-                                        FileWidgetState::Finished { value: Ok(val), .. } => Ok(val),
-                                        _ => Err(GuiError::new("Issue with cover images".into()))
+                                        FileWidgetState::Finished { value: Ok(val), .. } => {
+                                            Ok(val.contents())
+                                        },
+                                        _ => Err(GuiError::new("Review cover images".into()))
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
-                                panic!();
-                                // Ok(ZooModel {
-                                //     description: self.staging_description.state()?,
-                                //     // covers: Vec<CoverImage>,
-                                //     // attachments: Vec<std::fs::File>,
-                                //     // cite: NonEmptyList<CiteEntry2>,
-                                //     // git_repo: Option<HttpUrl>,
-                                //     // icon: Option<Icon>,
-                                //     // links: Vec<String>,
-                                //     // maintainers: Vec<Maintainer>,
-                                //     // tags: Vec<String>,
-                                //     // version: Option<Version>,
-                                //     // authors: NonEmptyList<Author2>,
-                                //     // documentation: String,
-                                //     // license: LicenseId,
-                                //     // name: ResourceName,
-                                //     // weights: ModelWeights,
-                                //     interface: model_interface,
-                                // })
+
+                                let attachments_state = self.attachments_widget.state();
+                                let attachments = attachments_state.into_iter().map(|file_widget_state|{
+                                    match file_widget_state{
+                                        FileWidgetState::Finished { value: Ok(ref val), .. } => Ok(val.as_path()),
+                                        _ => Err(GuiError::new("Review attachments".into()))
+                                    }
+                                }).collect::<Result<Vec<_>, _>>()?;
+
+                                let cite = self.staging_citations.state().collect_result()?;
+                                let non_empty_cites = match NonEmptyList::try_from(cite){
+                                    Ok(non_empty_cites) => non_empty_cites,
+                                    Err(_) => return Err(GuiError::new("Cites are empty".into()))
+                                };
+
+                                let git_repo = self.staging_git_repo.state().transpose()?;
+
+                                let icon = self.staging_icon.state()?; //FIXME: make Option?
+
+                                let links = Vec::<String>::new();// FIXME: grab from widget
+
+                                let maintainers = self.staging_maintainers.state().collect_result()?;
+
+                                let tags: Vec<String> = self.staging_tags.state().into_iter().map(|res|{
+                                    res.map(|tag| String::from(tag))
+                                }).collect::<Result<_>>()?;
+
+                                let version = self.staging_version.state()?;
+
+                                let authors = match NonEmptyList::try_from(self.staging_authors.state().collect_result()?){
+                                    Ok(authors) => authors,
+                                    Err(_) => return Err(GuiError::new("Empty authors".into()))
+                                };
+
+                                let documentation = self.staging_documentation.state();
+
+                                let name = self.staging_name.state()?;
+
+                                Ok(ZooModel {
+                                    description,
+                                    covers: covers.as_slice(),
+                                    attachments: attachments.as_slice(),
+                                    cite: &non_empty_cites,
+                                    git_repo: git_repo.as_ref(),
+                                    icon: Some(icon.as_ref()),
+                                    links: &links,
+                                    maintainers: &maintainers,
+                                    tags: tags.as_slice(),
+                                    version: Some(&version),
+                                    authors: &authors,
+                                    documentation: documentation,
+                                    license: self.staging_license.state(),
+                                    name: &name,
+                                    weights: panic!(),
+                                    interface: model_interface,
+                                })
                             })();
 
                             let zoo_model = match zoo_model_res{

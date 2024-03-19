@@ -49,9 +49,9 @@ impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> BoundedString<MIN_CHARS, 
     }
 }
 
-impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> Into<String> for BoundedString<MIN_CHARS, EXTRA_CHARS> {
-    fn into(self) -> String {
-        return self.0;
+impl<const MIN_CHARS: usize, const EXTRA_CHARS: usize> From<BoundedString<MIN_CHARS, EXTRA_CHARS>> for String {
+    fn from(value: BoundedString<MIN_CHARS, EXTRA_CHARS>) -> Self {
+        return value.0;
     }
 }
 

@@ -1,9 +1,9 @@
 use bioimg_spec::rdf;
 
-use super::{staging_string::StagingString, util::DynamicImageExt, StatefulWidget};
+use super::{file_widget::FileWidgetState, staging_string::StagingString, util::DynamicImageExt, StatefulWidget};
 
-use crate::result::Result;
-use std::path::PathBuf;
+use crate::result::{GuiError, Result};
+use std::{path::PathBuf, sync::Arc};
 
 use bioimg_runtime as rt;
 use egui::{load::SizedTexture, ImageSource};
@@ -15,9 +15,15 @@ use super::{
 
 pub struct GuiIconImage {
     path: PathBuf,
-    contents: rt::Icon,
+    contents: Arc<rt::Icon>,
     context: egui::Context,
     texture_handle: egui::TextureHandle,
+}
+
+impl GuiIconImage{
+    pub fn contents(&self) -> &Arc<rt::Icon>{
+        &self.contents
+    }
 }
 
 impl Drop for GuiIconImage {
@@ -31,7 +37,7 @@ impl ParsedFile for Result<GuiIconImage> {
         let img = image::io::Reader::open(&path)?.decode()?;
         let icon = rt::Icon::try_from(img.clone())?;
         let texture_handle = img.to_egui_texture_handle(path.to_string_lossy(), &ctx);
-        Ok(GuiIconImage { path: path.clone(), contents: icon, context: ctx, texture_handle: texture_handle.clone() })
+        Ok(GuiIconImage { path: path.clone(), contents: Arc::new(icon), context: ctx, texture_handle: texture_handle.clone() })
     }
 
     fn render(&self, ui: &mut egui::Ui, id: egui::Id) {
@@ -63,13 +69,13 @@ impl Default for InputMode {
 
 #[derive(Default)]
 pub struct StagingIcon {
-    emoji_icon_widget: StagingString<rdf::Icon>,
+    emoji_icon_widget: StagingString<rdf::EmojiIcon>,
     image_icon_widget: FileWidget<Result<GuiIconImage>>,
     input_mode: InputMode,
 }
 
 impl StatefulWidget for StagingIcon {
-    type Value<'p> = Result<rt::Icon>;
+    type Value<'p> = Result<Arc<rt::Icon>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
@@ -87,6 +93,19 @@ impl StatefulWidget for StagingIcon {
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        unimplemented!("Create a rt::Icon")
+        match &self.input_mode{
+            InputMode::Emoji => self.emoji_icon_widget.state().map(|rdf_icon| Arc::new(rdf_icon.into())),
+            InputMode::File => {
+                match self.image_icon_widget.state(){
+                    FileWidgetState::Finished { value: Ok(val), .. } => {
+                        return Ok(Arc::clone(val.contents()))
+                    },
+                    FileWidgetState::Finished { value: Err(err), .. } => {
+                        return Err(err.clone())
+                    },
+                    _ => Err(GuiError::new("No file".into()))
+                }
+            }
+        }
     }
 }

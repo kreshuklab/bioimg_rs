@@ -15,6 +15,12 @@ pub struct GuiCoverImage {
     texture_handle: egui::TextureHandle,
 }
 
+impl GuiCoverImage{
+    pub fn contents(&self) -> &rt::CoverImage{
+        &self.contents
+    }
+}
+
 impl Drop for GuiCoverImage {
     fn drop(&mut self) {
         self.context.forget_image(&self.path.to_string_lossy());

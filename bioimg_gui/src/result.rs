@@ -25,3 +25,14 @@ impl GuiError {
         return Self(Arc::from(message));
     }
 }
+
+pub trait VecResultExt{
+    type Item;
+    fn collect_result(self) -> Result<Vec<Self::Item>>;
+}
+impl<T> VecResultExt for Vec<Result<T>>{
+    type Item = T;
+    fn collect_result(self) -> Result<Vec<T>>{
+        self.into_iter().collect()
+    }
+}

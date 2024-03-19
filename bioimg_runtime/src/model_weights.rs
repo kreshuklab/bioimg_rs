@@ -1,4 +1,4 @@
-use std::io::{Seek, Write};
+use std::{io::{Seek, Write}, path::PathBuf};
 
 use bioimg_spec::rdf;//::{self, author::Author2, model::weights::{ArchitectureDescr, OnnxOpsetVersion}, Version};
 use bioimg_spec::rdf::model as modelrdf;
@@ -81,7 +81,7 @@ impl ModelWeights{
 
 
 pub struct WeightsBase{
-    source: std::fs::File,
+    source: PathBuf,
     authors: Option<Vec<rdf::Author2>>,
 }
 

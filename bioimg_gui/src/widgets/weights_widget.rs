@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use bioimg_spec::rdf::Version;
 
 use crate::result::Result;
@@ -16,7 +18,7 @@ pub struct WeightsWidget{
 // }
 
 struct WeightsDescrBaseWidget{
-    pub source_widget: StagingVec<FileWidget<Result<std::fs::File>>>,
+    pub source_widget: StagingVec<FileWidget<Result<PathBuf>>>,
     pub authors_widget: StagingOpt<StagingVec<StagingAuthor2>>,
     // pub parent_widget: Option<WeightsFormat>,
 }

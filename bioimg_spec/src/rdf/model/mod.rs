@@ -67,9 +67,10 @@ impl TryFrom<String> for RdfTypeModel{
     }
 }
 
+
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct ModelRdf {
-    // A string containing a brief description.
+    /// A string containing a brief description.
     pub description: ResourceTextDescription,
 
     /// Cover images.
@@ -106,7 +107,7 @@ pub struct ModelRdf {
     /// You may want to list linked files additionally under `attachments` to include them when packaging a resource.
     /// (Packaging a resource means downloading/copying important linked files and creating a ZIP archive that contains
     /// an altered rdf.yaml file with local references to the downloaded files.)
-    pub config: serde_json::Map<String, serde_json::Value>,
+    pub config: serde_yaml::Mapping,
 
     /// A URL to the Git repository where the resource is being developed
     pub git_repo: Option<HttpUrl>,
@@ -170,7 +171,7 @@ pub struct ModelRdf {
     /// A human-readable name of this model.
     /// It should be no longer than 64 characters
     /// and may only contain letter, number, underscore, minus or space characters.
-    pub name: BoundedString<5, {1024 - 5}>,
+    pub name: ModelRdfName,
 
     // Describes the output tensors
     pub outputs: NonEmptyList<OutputTensorDescr>,
@@ -194,7 +195,7 @@ pub struct ModelRdf {
     /// The weights for this model.
     /// Weights can be given for different formats, but should otherwise be equivalent.
     /// The available weight formats determine which consumers can use this model
-    pub weights: WeightsDescr
+    pub weights: WeightsDescr,
 }
 
 fn _now() -> iso8601_timestamp::Timestamp{
@@ -202,3 +203,65 @@ fn _now() -> iso8601_timestamp::Timestamp{
 }
 
 pub type TensorTextDescription = BoundedString<0, 128>;
+pub type ModelRdfName = BoundedString<5, {1024 - 5}>;
+
+#[derive(serde::Serialize)]
+pub struct ModelRdfRefs<'a> {
+    pub description: &'a ResourceTextDescription,
+    pub covers: &'a [CoverImageSource],
+    pub id: Option<&'a ResourceId>,
+    pub attachments: &'a [FileReference],
+    pub cite: &'a NonEmptyList<CiteEntry2>,
+    pub config: &'a serde_yaml::Mapping,
+    pub git_repo: Option<&'a HttpUrl>,
+    pub icon: Option<&'a Icon>,
+    pub links: &'a [String],
+    pub maintainers: &'a [Maintainer],
+    pub tags: &'a [String],
+    pub version: Option<&'a Version>,
+    pub format_version: Version_0_5_0,
+    pub rdf_type: RdfTypeModel,
+    pub authors: &'a NonEmptyList<Author2>,
+    pub documentation: &'a FileReference,
+    pub inputs: &'a NonEmptyList<InputTensorDescr>,
+    pub license: LicenseId,
+    pub name: &'a ModelRdfName,
+    pub outputs: &'a NonEmptyList<OutputTensorDescr>,
+    pub run_mode: Option<&'a RunMode>,
+    pub timestamp: &'a iso8601_timestamp::Timestamp,
+    pub training_data: Option<&'a DatasetDescrEnum>,
+    pub weights: &'a WeightsDescr,
+}
+
+// this is here just to ensure that a ModelRdfRef is enough to build a ModelRdf
+// all fields should use .clone() or  cloned() or to_owned()
+impl<'a> From<ModelRdfRefs<'a>> for ModelRdf{
+    fn from(value: ModelRdfRefs<'a>) -> Self {
+        ModelRdf{
+            description: value.description.to_owned(),
+            covers: value.covers.to_owned(),
+            id: value.id.cloned(),
+            attachments: value.attachments.to_owned(),
+            cite: value.cite.clone(),
+            config: value.config.clone(),
+            git_repo: value.git_repo.cloned(),
+            icon: value.icon.cloned(),
+            links: value.links.to_owned(),
+            maintainers: value.maintainers.to_owned(),
+            tags: value.tags.to_owned(),
+            version: value.version.cloned(),
+            format_version: value.format_version.clone(),
+            rdf_type: value.rdf_type.clone(),
+            authors: value.authors.clone(),
+            documentation: value.documentation.clone(),
+            inputs: value.inputs.clone(),
+            license: value.license,
+            name: value.name.clone(),
+            outputs: value.outputs.clone(),
+            run_mode: value.run_mode.cloned(),
+            timestamp: value.timestamp.clone(),
+            training_data: value.training_data.cloned(),
+            weights: value.weights.clone(),
+        }
+    }
+}

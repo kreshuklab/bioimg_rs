@@ -1,18 +1,12 @@
 use std::{
     io::{Seek, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use bioimg_spec::rdf::{
-    author::Author2,
-    cite_entry::CiteEntry2,
-    maintainer::Maintainer,
-    model::{
-        ModelRdf, RdfTypeModel
-    },
-    non_empty_list::NonEmptyList,
-    version::Version_0_5_0,
-    FileReference, FsPath, HttpUrl, LicenseId, ResourceName, ResourceTextDescription, Version
+    self, author::Author2, cite_entry::CiteEntry2, maintainer::Maintainer, model::{
+        ModelRdfRefs, RdfTypeModel
+    }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, ResourceTextDescription, Version
 };
 use image::ImageError;
 
@@ -38,39 +32,39 @@ pub enum ModelPackingError {
     SerdeYamlError(#[from] serde_yaml::Error),
 }
 
-pub struct ZooModel {
-    pub description: ResourceTextDescription,
-    pub covers: Vec<CoverImage>,
-    pub attachments: Vec<std::fs::File>,
-    pub cite: NonEmptyList<CiteEntry2>,
+pub struct ZooModel<'a> {
+    pub description: &'a ResourceTextDescription,
+    pub covers: &'a [&'a CoverImage],
+    pub attachments: &'a [ &'a Path],
+    pub cite: &'a NonEmptyList<CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,
-    pub git_repo: Option<HttpUrl>,
-    pub icon: Option<Icon>,
-    pub links: Vec<String>,
-    pub maintainers: Vec<Maintainer>,
-    pub tags: Vec<String>,
-    pub version: Option<Version>,
-    pub authors: NonEmptyList<Author2>,
-    pub documentation: String,
+    pub git_repo: Option<&'a HttpUrl>,
+    pub icon: Option<&'a Icon>,
+    pub links: &'a [String],
+    pub maintainers: &'a [Maintainer],
+    pub tags: &'a [String],
+    pub version: Option<&'a Version>,
+    pub authors: &'a NonEmptyList<Author2>,
+    pub documentation: &'a str,
     pub license: LicenseId,
-    pub name: ResourceName,
+    pub name: &'a ResourceName,
     // training_data: DatasetDescrEnum, //FIXME
-    pub weights: ModelWeights,
-    pub interface: ModelInterface<ArcNpyArray>,
+    pub weights: &'a mut ModelWeights, //FIXME: mut really?
+    pub interface: &'a ModelInterface<ArcNpyArray>,
 }
 
-impl<'a> ZooModel {
-    pub fn pack_into<Sink: Write + Seek>(mut self, sink: Sink) -> Result<(), ModelPackingError> {
+impl<'a> ZooModel<'a> {
+    pub fn pack_into<Sink: Write + Seek>(self, sink: Sink) -> Result<(), ModelPackingError> {
         let mut writer = ModelZipWriter::new(sink);
 
         let (inputs, outputs) = self.interface.dump(&mut writer)?;
         let covers = self.covers.iter().map(|cov| {
             cov.dump(&mut writer)
         }).collect::<Result<Vec<_>, _>>()?;
-        let attachments = self.attachments.iter_mut().map(|file|{
+        let attachments = self.attachments.iter().map(|file|{
             file.rdf_dump(&mut writer)
         }).collect::<Result<Vec<_>, _>>()?;
-        let icon = match &self.icon{
+        let icon: Option<rdf::Icon> = match &self.icon{
             Some(icon) => Some(icon.dump(&mut writer)?),
             None => None,
         };
@@ -82,17 +76,19 @@ impl<'a> ZooModel {
                 Ok(FileReference::Path(documentation_path))
             })?
         };
+        let config = serde_yaml::Mapping::new();
+        let timestamp = iso8601_timestamp::Timestamp::now_utc();
         let weights = self.weights.rdf_dump(&mut writer)?;
 
-        let model_rdf = ModelRdf {
+        let model_rdf = ModelRdfRefs {
             description: self.description,
-            covers,
+            covers: &covers,
             id: None,
-            attachments,
+            attachments: &attachments,
             cite: self.cite,
-            config: serde_json::Map::new(),
+            config: &config,
             git_repo: self.git_repo,
-            icon,
+            icon: icon.as_ref(),
             links: self.links,
             maintainers: self.maintainers,
             tags: self.tags,
@@ -100,15 +96,15 @@ impl<'a> ZooModel {
             format_version: Version_0_5_0::new(),
             rdf_type: RdfTypeModel,
             authors: self.authors,
-            documentation,
-            inputs,
+            documentation: &documentation,
+            inputs: &inputs,
             license: self.license,
             name: self.name,
-            outputs,
+            outputs: &outputs,
             run_mode: None,
-            timestamp: iso8601_timestamp::Timestamp::now_utc(),
+            timestamp: &timestamp,
             training_data: None, //FIXME
-            weights,
+            weights: &weights,
         };
 
         writer.write_file("/rdf.yaml", |writer| serde_yaml::to_writer(writer, &model_rdf))?;

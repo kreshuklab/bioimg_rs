@@ -105,11 +105,11 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
 }
 
 
-impl ParsedFile for Result<std::fs::File>{
-    fn parse(path: PathBuf, ctx: egui::Context) -> Self{
-        Ok(std::fs::File::open(path)?)
+impl ParsedFile for Result<PathBuf>{
+    fn parse(path: PathBuf, _ctx: egui::Context) -> Self{
+        Ok(path)
     }
-    fn render(&self, ui: &mut egui::Ui, id: egui::Id){
+    fn render(&self, _ui: &mut egui::Ui, _id: egui::Id){
 
     }
 }

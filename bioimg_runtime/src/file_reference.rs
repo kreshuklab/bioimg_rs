@@ -1,4 +1,5 @@
 use std::io::{Read, Seek, Write};
+use std::path::Path;
 
 use bioimg_spec::rdf as rdf;
 
@@ -7,21 +8,21 @@ use crate::zoo_model::ModelPackingError;
 
 pub trait FileExt{
     fn rdf_dump(
-        &mut self, zip_file: &mut ModelZipWriter<impl Write + Seek>
+        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<rdf::FileReference, ModelPackingError>;
     fn rdf_dump_suffixed(
-        &mut self,
+        &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
         suffix: &str
     ) -> Result<rdf::FileReference, ModelPackingError>;
 }
 
 fn rdf_file_dump(
-    file: &mut std::fs::File,
+    file_path: &Path,
     zip_file: &mut ModelZipWriter<impl Write + Seek>,
     zip_path: rdf::FsPath,
 ) -> Result<rdf::FileReference, ModelPackingError> {
-    file.seek(std::io::SeekFrom::Start(0))?;
+    let mut file = std::fs::File::open(file_path)?;
     zip_file.write_file(&Into::<String>::into(zip_path.clone()), |writer| -> Result<usize, std::io::Error> {
         const READ_BUFFER_SIZE: usize = 1024 * 1024;
         let mut read_buffer: Vec<u8> = vec![0; READ_BUFFER_SIZE];
@@ -40,9 +41,9 @@ fn rdf_file_dump(
 }
 
 
-impl FileExt for std::fs::File{
+impl FileExt for Path{
     fn rdf_dump_suffixed(
-        &mut self,
+        &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
         suffix: &str
     ) -> Result<rdf::FileReference, ModelPackingError> {
@@ -50,7 +51,7 @@ impl FileExt for std::fs::File{
     }
 
     fn rdf_dump(
-        &mut self,
+        &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FileReference, ModelPackingError> {
         rdf_file_dump(self, zip_file, rdf::FsPath::unique())
