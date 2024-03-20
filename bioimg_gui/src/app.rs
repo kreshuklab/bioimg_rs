@@ -214,10 +214,6 @@ impl eframe::App for BioimgGui {
                                 self.packing_notice.update_message("Review model tensor interface".into());
                                 break 'done PackingStatus::Done;
                             };
-                            let Some(path) = rfd::FileDialog::new().save_file() else {
-                                break 'done PackingStatus::Done;
-                            };
-
                             let zoo_model_res = (|| -> Result<ZooModel>{
                                 let covers: Vec<_> = self.cover_images.state().into_iter().map(|file_widget_state|{
                                     match file_widget_state.loaded_value(){
@@ -277,6 +273,9 @@ impl eframe::App for BioimgGui {
                             };
 
                             ui.ctx().request_repaint();
+                            let Some(path) = rfd::FileDialog::new().save_file() else {
+                                break 'done PackingStatus::Done;
+                            };
                             PackingStatus::Packing {
                                 path: path.clone(),
                                 task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
