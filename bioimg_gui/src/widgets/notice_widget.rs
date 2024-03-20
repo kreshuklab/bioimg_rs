@@ -1,40 +1,36 @@
 use std::time::{Duration, Instant};
 
 pub struct NoticeWidget{
-    show_instant: Instant,
-    show_duration: Duration,
+    stop_at: Instant,
     message: String,
 }
 
 impl NoticeWidget{
+    pub const FADE_TIME: Duration = Duration::from_secs(5);
+
     pub fn new_hidden() -> Self{
         Self {
-            show_instant: Instant::now() - Duration::from_secs(1),
-            show_duration: Duration::from_micros(1),
-            message: String::new()
+            stop_at: Instant::now() - Duration::from_secs(10),
+            message: "".into()
         }
     }
 
     pub fn update_message(&mut self, message: String){
         self.message = message;
-        self.show_duration = Duration::from_secs(5);
-    }
-
-    pub fn hide(&mut self){
-        self.show_instant = Instant::now() - Duration::from_secs(1);
-        self.show_duration = Duration::from_micros(1);
+        self.stop_at = Instant::now() + Self::FADE_TIME;
     }
 
     pub fn draw(&self, ui: &mut egui::Ui, now: std::time::Instant){
-        let delta = now - self.show_instant;
-        if delta > self.show_duration{
+        if now > self.stop_at{
             return
         }
-        let progress = delta.as_millis() as f32 / self.show_duration.as_millis() as f32;
+        let start_time = self.stop_at - Self::FADE_TIME;
+        let delta = now - start_time;
+        let progress = delta.as_millis() as f32 / Self::FADE_TIME.as_millis() as f32;
 
-        ui.label(&self.message);
         let alpha = 255 - ( progress * 255.0 ) as u8;
         let color = egui::Color32::from_rgba_unmultiplied(255, 0, 0, alpha);
         ui.label(egui::RichText::new(&self.message).color(color));
+        ui.ctx().request_repaint();
     }
 }

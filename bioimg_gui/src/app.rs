@@ -202,17 +202,16 @@ impl eframe::App for BioimgGui {
 
                 ui.horizontal(|ui| {
                     let now = std::time::Instant::now();
+                    let save_button_clicked = ui.button("Save Model").clicked();
+                    self.packing_notice.draw(ui, now);
+
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
                         PackingStatus::Done => 'done: {
-                            let save_button_clicked = ui.add_enabled_ui(self.model_interface_widget.parsed.is_ok(), |ui| {
-                                ui.button("Save Model").clicked()
-                            }).inner;
-                            self.packing_notice.draw(ui, now);
-
                             if !save_button_clicked {
                                 break 'done PackingStatus::Done;
                             }
                             let Ok(model_interface) = self.model_interface_widget.state().as_ref().map(|interf| interf.clone()) else {
+                                self.packing_notice.update_message("Review model tensor interface".into());
                                 break 'done PackingStatus::Done;
                             };
                             let Some(path) = rfd::FileDialog::new().save_file() else {
@@ -268,7 +267,7 @@ impl eframe::App for BioimgGui {
 
                             let zoo_model = match zoo_model_res{
                                 Ok(zoo_model) => {
-                                    self.packing_notice.hide();
+                                    self.packing_notice.update_message(format!("Model saved successfully"));
                                     zoo_model
                                 }
                                 Err(err) => {
@@ -295,8 +294,7 @@ impl eframe::App for BioimgGui {
                                 PackingStatus::Done
                             },
                             Err(task) => {
-                                ui.add_enabled_ui(false, |ui| ui.button("Save Model"));
-                                ui.label(format!("Packing into {}...", path.to_string_lossy()));
+                                self.packing_notice.update_message(format!("Packing into {}...", path.to_string_lossy()));
                                 ui.ctx().request_repaint();
                                 PackingStatus::Packing { path, task }
                             }
