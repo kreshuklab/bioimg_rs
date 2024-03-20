@@ -211,7 +211,7 @@ impl eframe::App for BioimgGui {
                                 break 'done PackingStatus::Done;
                             }
                             let Ok(model_interface) = self.model_interface_widget.state().as_ref().map(|interf| interf.clone()) else {
-                                self.packing_notice.update_message("Review model tensor interface".into());
+                                self.packing_notice.update_message(Err("Review model tensor interface".into()));
                                 break 'done PackingStatus::Done;
                             };
                             let zoo_model_res = (|| -> Result<ZooModel>{
@@ -266,11 +266,11 @@ impl eframe::App for BioimgGui {
 
                             let zoo_model = match zoo_model_res{
                                 Ok(zoo_model) => {
-                                    self.packing_notice.update_message(format!("Model saved successfully"));
+                                    self.packing_notice.update_message(Ok(format!("Model saved successfully")));
                                     zoo_model
                                 }
                                 Err(err) => {
-                                    self.packing_notice.update_message(err.to_string());
+                                    self.packing_notice.update_message(Err(err.to_string()));
                                     break 'done PackingStatus::Done;
                                 }
                             };
@@ -290,13 +290,13 @@ impl eframe::App for BioimgGui {
                         PackingStatus::Packing { path, task } => match task.try_take() {
                             Ok(value) => {
                                 self.packing_notice.update_message(match &value{
-                                    Ok(_) => format!("Model saved to {}", path.to_string_lossy()),
-                                    Err(err) => format!("Error saving model: {err}")
+                                    Ok(_) => Ok(format!("Model saved to {}", path.to_string_lossy())),
+                                    Err(err) => Err(format!("Error saving model: {err}")),
                                 });
                                 PackingStatus::Done
                             },
                             Err(task) => {
-                                self.packing_notice.update_message(format!("Packing into {}...", path.to_string_lossy()));
+                                self.packing_notice.update_message(Ok(format!("Packing into {}...", path.to_string_lossy())));
                                 ui.ctx().request_repaint();
                                 PackingStatus::Packing { path, task }
                             }

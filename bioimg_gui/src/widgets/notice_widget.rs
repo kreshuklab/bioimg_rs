@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 pub struct NoticeWidget{
     stop_at: Instant,
-    message: String,
+    message: Result<String, String>,
 }
 
 impl NoticeWidget{
@@ -11,11 +11,11 @@ impl NoticeWidget{
     pub fn new_hidden() -> Self{
         Self {
             stop_at: Instant::now() - Duration::from_secs(10),
-            message: "".into()
+            message: Err("".into())
         }
     }
 
-    pub fn update_message(&mut self, message: String){
+    pub fn update_message(&mut self, message: Result<String, String>){
         self.message = message;
         self.stop_at = Instant::now() + Self::FADE_TIME;
     }
@@ -29,8 +29,11 @@ impl NoticeWidget{
         let progress = delta.as_millis() as f32 / Self::FADE_TIME.as_millis() as f32;
 
         let alpha = 255 - ( progress * 255.0 ) as u8;
-        let color = egui::Color32::from_rgba_unmultiplied(255, 0, 0, alpha);
-        ui.label(egui::RichText::new(&self.message).color(color));
+        let (message, color) = match &self.message{
+            Ok(message) => (message, egui::Color32::from_rgba_unmultiplied(0, 255, 0, alpha)),
+            Err(message) => (message, egui::Color32::from_rgba_unmultiplied(255, 0, 0, alpha)),
+        };
+        ui.label(egui::RichText::new(message).color(color));
         ui.ctx().request_repaint();
     }
 }
