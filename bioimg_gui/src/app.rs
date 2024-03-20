@@ -234,9 +234,12 @@ impl eframe::App for BioimgGui {
                                 let non_empty_cites = NonEmptyList::try_from(cite)
                                     .map_err(|_| GuiError::new("Cites are empty".into()))?;
 
-                                let tags: Vec<String> = self.staging_tags.state().into_iter().map(|res|{
-                                    res.map(|tag| String::from(tag))
-                                }).collect::<Result<_>>()?;
+                                let tags: Vec<String> = self.staging_tags.state()
+                                    .into_iter()
+                                    .map(|res|{
+                                        res.map(|tag| String::from(tag))
+                                    }).collect::<Result<_>>()
+                                    .map_err(|_| GuiError::new("Review tags".into()))?;
 
                                 let authors = NonEmptyList::try_from(self.staging_authors.state().collect_result()?)
                                     .map_err(|_| GuiError::new("Empty authors".into()))?;
