@@ -1,6 +1,6 @@
 use bioimg_spec::rdf;
 
-use super::{file_widget::FileWidgetState, staging_string::StagingString, util::DynamicImageExt, StatefulWidget};
+use super::{staging_string::StagingString, util::DynamicImageExt, StatefulWidget};
 
 use crate::result::{GuiError, Result};
 use std::{path::PathBuf, sync::Arc};
@@ -40,7 +40,7 @@ impl ParsedFile for Result<GuiIconImage> {
         Ok(GuiIconImage { path: path.clone(), contents: Arc::new(icon), context: ctx, texture_handle: texture_handle.clone() })
     }
 
-    fn render(&self, ui: &mut egui::Ui, id: egui::Id) {
+    fn render(&self, ui: &mut egui::Ui, _id: egui::Id) {
         match self {
             Ok(loaded_cover_image) => {
                 let image_source = ImageSource::Texture(SizedTexture {
@@ -96,13 +96,9 @@ impl StatefulWidget for StagingIcon {
         match &self.input_mode{
             InputMode::Emoji => self.emoji_icon_widget.state().map(|rdf_icon| Arc::new(rdf_icon.into())),
             InputMode::File => {
-                match self.image_icon_widget.state(){
-                    FileWidgetState::Finished { value: Ok(val), .. } => {
-                        return Ok(Arc::clone(val.contents()))
-                    },
-                    FileWidgetState::Finished { value: Err(err), .. } => {
-                        return Err(err.clone())
-                    },
+                match self.image_icon_widget.state().loaded_value(){
+                    Some(Ok(val)) => Ok(Arc::clone(val.contents())),
+                    Some(Err(err)) => Err(err.clone()),
                     _ => Err(GuiError::new("No file".into()))
                 }
             }

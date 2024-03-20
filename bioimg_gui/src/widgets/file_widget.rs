@@ -24,24 +24,28 @@ pub enum FileWidgetState<V: Send + 'static> {
     },
 }
 
+impl<V: Send + 'static> FileWidgetState<V>{
+    pub fn loaded_value(&self) -> Option<&V> {
+        if let Self::Finished { value, .. } = self {
+            Some(value)
+        } else {
+            None
+        }
+    }
+}
+
 pub struct FileWidget<PF: ParsedFile> {
     state: FileWidgetState<PF>,
 }
 
 impl<PF: ParsedFile> FileWidget<PF> {
+    #[allow(dead_code)]
     pub fn path(&self) -> Option<&Path> {
         match &self.state {
             FileWidgetState::Empty => None,
             FileWidgetState::Loading { path, .. } => Some(path),
             FileWidgetState::Finished { path, .. } => Some(path),
             FileWidgetState::Failed { path, .. } => Some(path),
-        }
-    }
-    pub fn loaded_value(&self) -> Option<&PF> {
-        if let FileWidgetState::Finished { value, .. } = &self.state {
-            Some(value)
-        } else {
-            None
         }
     }
 }

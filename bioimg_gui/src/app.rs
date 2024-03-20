@@ -9,9 +9,8 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 use crate::widgets::enum_widget::EnumWidget;
-use crate::widgets::error_display::show_error;
-use crate::widgets::file_widget::FileWidgetState;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
+use crate::widgets::notice_widget::NoticeWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
@@ -22,13 +21,8 @@ use crate::widgets::{
     util::group_frame, StatefulWidget,
 };
 
-struct ZooModelPackResult {
-    path: PathBuf,
-    save_result: Result<(), ModelPackingError>,
-}
-
 enum PackingStatus {
-    Done(Option<ZooModelPackResult>),
+    Done,
     Packing {
         path: PathBuf,
         task: poll_promise::Promise<Result<(), ModelPackingError>>,
@@ -37,7 +31,7 @@ enum PackingStatus {
 
 impl Default for PackingStatus {
     fn default() -> Self {
-        Self::Done(None)
+        Self::Done
     }
 }
 
@@ -64,6 +58,8 @@ pub struct BioimgGui {
     ////
     model_packing_status: PackingStatus,
     weights_widget: WeightsWidget,
+
+    packing_notice: NoticeWidget,
 }
 
 impl Default for BioimgGui {
@@ -87,6 +83,7 @@ impl Default for BioimgGui {
 
             model_packing_status: PackingStatus::default(),
             weights_widget: Default::default(),
+            packing_notice: NoticeWidget::new_hidden(),
         }
     }
 }
@@ -204,44 +201,37 @@ impl eframe::App for BioimgGui {
                 });
 
                 ui.horizontal(|ui| {
+                    let now = std::time::Instant::now();
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
-                        PackingStatus::Done(payload) => 'done: {
-                            let message = match &payload {
-                                Some(ZooModelPackResult { path, save_result: Ok(_), .. }) => {
-                                    format!("Saved model to {}", path.to_string_lossy())
-                                }
-                                Some(ZooModelPackResult { save_result: Err(err), .. }) => err.to_string(),
-                                None => "".into(),
-                            };
-                            let save_button_clicked = ui
-                                .add_enabled_ui(self.model_interface_widget.parsed.is_ok(), |ui| {
-                                    ui.button("Save Model").clicked()
-                                })
-                                .inner;
-                            ui.label(message);
+                        PackingStatus::Done => 'done: {
+                            let save_button_clicked = ui.add_enabled_ui(self.model_interface_widget.parsed.is_ok(), |ui| {
+                                ui.button("Save Model").clicked()
+                            }).inner;
+                            self.packing_notice.draw(ui, now);
+
                             if !save_button_clicked {
-                                break 'done PackingStatus::Done(payload);
+                                break 'done PackingStatus::Done;
                             }
                             let Ok(model_interface) = self.model_interface_widget.state().as_ref().map(|interf| interf.clone()) else {
-                                break 'done PackingStatus::Done(payload);
+                                break 'done PackingStatus::Done;
                             };
-                            let Some(path) = rfd::FileDialog::new().pick_file() else {
-                                break 'done PackingStatus::Done(payload);
+                            let Some(path) = rfd::FileDialog::new().save_file() else {
+                                break 'done PackingStatus::Done;
                             };
 
                             let zoo_model_res = (|| -> Result<ZooModel>{
                                 let covers: Vec<_> = self.cover_images.state().into_iter().map(|file_widget_state|{
-                                    match file_widget_state{
-                                        FileWidgetState::Finished { value: Ok(val), .. } => Ok(Arc::clone(val.contents())),
-                                        _ => Err(GuiError::new("Review cover images".into()))
+                                    match file_widget_state.loaded_value(){
+                                        Some(Ok(val)) => Ok(Arc::clone(val.contents())),
+                                        _ => return Err(GuiError::new("Review cover images".into())),
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
 
                                 let attachments_state = self.attachments_widget.state();
                                 let attachments = attachments_state.into_iter().map(|file_widget_state|{
-                                    match file_widget_state{
-                                        FileWidgetState::Finished { value: Ok(ref val), .. } => Ok(val.clone()),
-                                        _ => Err(GuiError::new("Review attachments".into()))
+                                    match file_widget_state.loaded_value(){
+                                        Some(Ok(val)) => Ok(val.clone()),
+                                        _ => return Err(GuiError::new("Review attachments".into()))
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
 
@@ -271,19 +261,23 @@ impl eframe::App for BioimgGui {
                                     documentation: self.staging_documentation.state().to_owned(),
                                     license: self.staging_license.state(),
                                     name: self.staging_name.state()?,
-                                    weights: self.weights_widget.state()?,
+                                    weights: self.weights_widget.state()?.as_ref().clone(),
                                     interface: model_interface,
                                 })
                             })();
 
                             let zoo_model = match zoo_model_res{
-                                Ok(zoo_model) => zoo_model,
+                                Ok(zoo_model) => {
+                                    self.packing_notice.hide();
+                                    zoo_model
+                                }
                                 Err(err) => {
-                                    show_error(ui, err);
-                                    break 'done PackingStatus::Done(None);
+                                    self.packing_notice.update_message(err.to_string());
+                                    break 'done PackingStatus::Done;
                                 }
                             };
 
+                            ui.ctx().request_repaint();
                             PackingStatus::Packing {
                                 path: path.clone(),
                                 task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
@@ -293,10 +287,17 @@ impl eframe::App for BioimgGui {
                             }
                         }
                         PackingStatus::Packing { path, task } => match task.try_take() {
-                            Ok(value) => PackingStatus::Done(Some(ZooModelPackResult { path, save_result: value })),
+                            Ok(value) => {
+                                self.packing_notice.update_message(match &value{
+                                    Ok(_) => format!("Model saved to {}", path.to_string_lossy()),
+                                    Err(err) => format!("Error saving model: {err}")
+                                });
+                                PackingStatus::Done
+                            },
                             Err(task) => {
                                 ui.add_enabled_ui(false, |ui| ui.button("Save Model"));
                                 ui.label(format!("Packing into {}...", path.to_string_lossy()));
+                                ui.ctx().request_repaint();
                                 PackingStatus::Packing { path, task }
                             }
                         },

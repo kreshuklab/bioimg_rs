@@ -11,6 +11,7 @@ pub enum ModelWeightsError{
     NoModels,
 }
 
+#[derive(Clone)]
 pub struct ModelWeights{
     keras_hdf5: Option<KerasHdf5Weights>,
     onnx: Option<OnnxWeights>,
@@ -79,7 +80,7 @@ impl ModelWeights{
     }
 }
 
-
+#[derive(Clone)]
 pub struct WeightsBase{
     pub source: PathBuf,
     pub authors: Option<Vec<rdf::Author2>>,
@@ -110,6 +111,7 @@ impl WeightsBase{
     }
 }
 
+#[derive(Clone)]
 pub struct KerasHdf5Weights{
     pub weights: WeightsBase,
     pub tensorflow_version: rdf::Version,
@@ -126,7 +128,7 @@ impl KerasHdf5Weights{
     }
 }
 
-
+#[derive(Clone)]
 pub struct OnnxWeights{
     pub weights: WeightsBase,
     pub opset_version: modelrdf::OnnxOpsetVersion,
@@ -144,7 +146,7 @@ impl OnnxWeights{
     }
 }
 
-
+#[derive(Clone)]
 pub struct PytorchStateDictWeights{
     pub weights: WeightsBase,
     pub architecture: modelrdf::PytorchArchitectureDescr,
@@ -167,7 +169,7 @@ impl PytorchStateDictWeights{
     }
 }
 
-
+#[derive(Clone)]
 pub struct TensorflowJsWeights{
     // FIXME: source must be a zip?
     // FIXME: double check what "wo_special_file_name" is supposed to mean
@@ -186,7 +188,7 @@ impl TensorflowJsWeights{
     }
 }
 
-
+#[derive(Clone)]
 pub struct TensorflowSavedModelBundleWeights{
     //FIXME: file should be a zip
     pub weights: WeightsBase,
@@ -208,7 +210,7 @@ impl TensorflowSavedModelBundleWeights{
     }
 }
 
-
+#[derive(Clone)]
 pub struct TorchscriptWeights {
     pub weights: WeightsBase,
     pub pytorch_version: rdf::Version,

@@ -24,6 +24,7 @@ pub mod weights_widget;
 pub mod attachments_widget;
 pub mod tags_widget;
 pub mod channel_name_widget;
+pub mod notice_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

@@ -1,21 +1,33 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use bioimg_spec::rdf::Version;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, file_widget::{FileWidget, FileWidgetState}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
+    author_widget::StagingAuthor2, error_display::show_if_error, file_widget::{FileWidget, FileWidgetState}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
 };
 
-#[derive(Default)]
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
     pub torchscript_weights_widget: StagingOpt<TorchscriptWeightsWidget>,
+
+    parsed: Result<Arc<rt::ModelWeights>>
 }
 
+impl Default for WeightsWidget{
+    fn default() -> Self {
+        Self {
+            keras_weights_widget: Default::default(),
+            torchscript_weights_widget: Default::default(),
+            parsed: Err(GuiError::new("empty".into()))
+        }
+    }
+}
+
+
 impl StatefulWidget for WeightsWidget{
-    type Value<'p> = Result<rt::ModelWeights>;
+    type Value<'p> = Result<Arc<rt::ModelWeights>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.vertical(|ui|{
@@ -27,18 +39,23 @@ impl StatefulWidget for WeightsWidget{
                 ui.strong("Keras Weights: ");
                 self.keras_weights_widget.draw_and_parse(ui, id.with("keras"));
             });
+
+            self.parsed = (|| {
+                Ok(Arc::new(rt::ModelWeights::new(
+                    self.keras_weights_widget.state().transpose()?,
+                    None,
+                    None,
+                    None,
+                    None,
+                    self.torchscript_weights_widget.state().transpose()?,
+                )?)
+            )})();
+            show_if_error(ui, &self.parsed);
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(rt::ModelWeights::new(
-            self.keras_weights_widget.state().transpose()?,
-            None,
-            None,
-            None,
-            None,
-            self.torchscript_weights_widget.state().transpose()?,
-        )?)
+        self.parsed.clone()
     }
 }
 
