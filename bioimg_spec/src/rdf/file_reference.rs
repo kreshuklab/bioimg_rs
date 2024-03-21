@@ -11,8 +11,8 @@ pub enum FsPathParsingError{
     EmptyComponent{raw: String},
     #[error("Empty path")]
     EmptyPath,
-    #[error("Path is not absolute: {0}")]
-    PathNotAbsolute(String)
+    #[error("Path is not relative: {0}")]
+    PathNotRelative(String)
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
@@ -80,11 +80,10 @@ impl FsPath{
 impl TryFrom<String> for FsPath{
     type Error = FsPathParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if !value.starts_with("/"){
-            return Err(FsPathParsingError::PathNotAbsolute(value))
+        if value.starts_with("/"){
+            return Err(FsPathParsingError::PathNotRelative(value))
         }
         let components = value.split("/")
-            .skip(1)
             .map(|comp| FsPathComponent::try_from(comp.to_owned()))
             .collect::<Result<Vec<_>, _>>()?;
         if components.len() == 0{
@@ -96,11 +95,16 @@ impl TryFrom<String> for FsPath{
 
 impl From<FsPath> for String{
     fn from(value: FsPath) -> Self {
-        let initial = String::with_capacity(value.components.iter().map(|comp| comp.0.len()).sum());
-        return value.components.iter().fold(initial, |mut acc, comp|{
-            acc += &comp.0;
-            acc
-        })
+        let mut out = String::with_capacity(
+            value.components.iter().map(|comp| comp.0.len()).sum::<usize>() + value.components.len()
+        );
+        for (comp_idx, comp) in value.components.iter().enumerate(){
+            if comp_idx != 0{
+                out += "/"
+            }
+            out += &comp.0;
+        }
+        out
     }
 }
 
