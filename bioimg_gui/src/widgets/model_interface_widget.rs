@@ -42,15 +42,15 @@ impl StatefulWidget for ModelInterfaceWidget {
 
             let inputs = match self.inputs_widget.state().into_iter().collect::<Result<Vec<_>>>() {
                 Ok(inps) => inps,
-                Err(err) => {
-                    show_error(ui, format!("Error on some of the inputs: {err}"));
+                Err(_) => {
+                    show_error(ui, format!("Check inputs for errors"));
                     return;
                 }
             };
             let outputs = match self.outputs_widget.state().into_iter().collect::<Result<Vec<_>>>() {
                 Ok(outs) => outs,
-                Err(err) => {
-                    show_error(ui, format!("Error on some of the outputs: {err}"));
+                Err(_) => {
+                    show_error(ui, format!("Check outputs for errors"));
                     return;
                 }
             };
