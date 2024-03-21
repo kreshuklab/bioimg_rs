@@ -10,8 +10,6 @@ pub type ConfString = BoundedString<1, 1023>;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum CiteEntry2ParsingError {
-    #[error("Empty")]
-    Empty,
     #[error("{0}")]
     FieldError(
         #[from]
@@ -26,11 +24,11 @@ pub struct StagingCiteEntry2 {
     staging_text: StagingString<ConfString>,
     staging_doi: StagingOpt<StagingString<ConfString>>,
     staging_url: StagingOpt<StagingUrl>,
-    parsed: Result<CiteEntry2, CiteEntry2ParsingError>,
 }
 
 impl ItemWidgetConf for StagingCiteEntry2{
     const ITEM_NAME: &'static str = "Cite";
+    const MIN_NUM_ITEMS: usize = 1;
 }
 
 impl Default for StagingCiteEntry2 {
@@ -39,7 +37,6 @@ impl Default for StagingCiteEntry2 {
             staging_text: Default::default(),
             staging_doi: Default::default(),
             staging_url: Default::default(),
-            parsed: Err(CiteEntry2ParsingError::Empty), //FIXME: could we eliminate "Empty"
         }
     }
 }

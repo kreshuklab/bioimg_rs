@@ -15,6 +15,7 @@ pub struct StagingAuthor2 {
 
 impl ItemWidgetConf for StagingAuthor2{
     const ITEM_NAME: &'static str = "Author";
+    const MIN_NUM_ITEMS: usize = 1;
 }
 
 impl Default for StagingAuthor2 {

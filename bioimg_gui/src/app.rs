@@ -192,12 +192,17 @@ impl eframe::App for BioimgGui {
 
                 ui.horizontal(|ui| {
                     ui.strong("Model Interface: ");
-                    self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
+                    group_frame(ui, |ui| {
+                        self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
+                    });
                 });
 
                 ui.horizontal(|ui| {
                     ui.strong("Model Weights: ");
-                    self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
+                    group_frame(ui, |ui| {
+                        self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
+                    });
+
                 });
 
                 ui.horizontal(|ui| {
@@ -210,15 +215,16 @@ impl eframe::App for BioimgGui {
                             if !save_button_clicked {
                                 break 'done PackingStatus::Done;
                             }
-                            let Ok(model_interface) = self.model_interface_widget.state().as_ref().map(|interf| interf.clone()) else {
-                                self.packing_notice.update_message(Err("Review model tensor interface".into()));
-                                break 'done PackingStatus::Done;
-                            };
                             let zoo_model_res = (|| -> Result<ZooModel>{
+                                let model_interface = self.model_interface_widget.state()
+                                    .as_ref()
+                                    .map(|interf| interf.clone())
+                                    .map_err(|_| GuiError::new("Check model interface for errors".into()))?;
+
                                 let covers: Vec<_> = self.cover_images.state().into_iter().map(|file_widget_state|{
                                     match file_widget_state.loaded_value(){
                                         Some(Ok(val)) => Ok(Arc::clone(val.contents())),
-                                        _ => return Err(GuiError::new("Review cover images".into())),
+                                        _ => return Err(GuiError::new("Check cover images for errors".into())),
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
 
@@ -226,11 +232,11 @@ impl eframe::App for BioimgGui {
                                 let attachments = attachments_state.into_iter().map(|file_widget_state|{
                                     match file_widget_state.loaded_value(){
                                         Some(Ok(val)) => Ok(val.clone()),
-                                        _ => return Err(GuiError::new("Review attachments".into()))
+                                        _ => return Err(GuiError::new("Check model attachments for errors".into()))
                                     }
                                 }).collect::<Result<Vec<_>, _>>()?;
 
-                                let cite = self.staging_citations.state().collect_result()?;
+                                let cite = self.staging_citations.state().collect_result().map_err(|_| GuiError::new("Check cites for errors".into()))?;
                                 let non_empty_cites = NonEmptyList::try_from(cite)
                                     .map_err(|_| GuiError::new("Cites are empty".into()))?;
 
@@ -239,27 +245,28 @@ impl eframe::App for BioimgGui {
                                     .map(|res|{
                                         res.map(|tag| String::from(tag))
                                     }).collect::<Result<_>>()
-                                    .map_err(|_| GuiError::new("Review tags".into()))?;
+                                    .map_err(|_| GuiError::new("Check tags for errors".into()))?;
 
-                                let authors = NonEmptyList::try_from(self.staging_authors.state().collect_result()?)
-                                    .map_err(|_| GuiError::new("Empty authors".into()))?;
+                                let authors = NonEmptyList::try_from(
+                                    self.staging_authors.state().collect_result().map_err(|_| GuiError::new("Check authors for errors".into()))?
+                                ).map_err(|_| GuiError::new("Empty authors".into()))?;
 
                                 Ok(ZooModel {
-                                    description: self.staging_description.state()?,
+                                    description: self.staging_description.state().map_err(|_| GuiError::new("Check resource text description for errors".into()))?,
                                     covers,
                                     attachments,
                                     cite: non_empty_cites,
-                                    git_repo: self.staging_git_repo.state().transpose().map_err(|_| GuiError::new("Review git repo field".into()))?,
-                                    icon: Some(self.staging_icon.state().map_err(|_| GuiError::new("Review icon fields".into()))?), //FIXME: make Option?,
+                                    git_repo: self.staging_git_repo.state().transpose().map_err(|_| GuiError::new("Check git repo field for errors".into()))?,
+                                    icon: Some(self.staging_icon.state().map_err(|_| GuiError::new("Check icons field for errors".into()))?), //FIXME: make Option?,
                                     links: Vec::<String>::new(),// FIXME: grab from widget,
-                                    maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Review maintainers".into()))?,
+                                    maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors".into()))?,
                                     tags,
                                     version: Some(self.staging_version.state().map_err(|_| GuiError::new("Review resource version field".into()))?),
                                     authors,
                                     documentation: self.staging_documentation.state().to_owned(),
                                     license: self.staging_license.state(),
-                                    name: self.staging_name.state().map_err(|_| GuiError::new("Review resource name".into()))?,
-                                    weights: self.weights_widget.state().map_err(|_| GuiError::new("Review model weights".into()))?.as_ref().clone(),
+                                    name: self.staging_name.state().map_err(|_| GuiError::new("Check resoure name for errors".into()))?,
+                                    weights: self.weights_widget.state().map_err(|_| GuiError::new("Check model weights for errors".into()))?.as_ref().clone(),
                                     interface: model_interface,
                                 })
                             })();

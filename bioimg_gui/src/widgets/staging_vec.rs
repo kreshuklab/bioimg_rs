@@ -4,6 +4,7 @@ use super::{util::group_frame, StatefulWidget};
 
 pub trait ItemWidgetConf{
     const ITEM_NAME: &'static str;
+    const MIN_NUM_ITEMS: usize = 0;
 }
 
 pub struct StagingVec<Stg, Conf=Stg>{
@@ -11,10 +12,10 @@ pub struct StagingVec<Stg, Conf=Stg>{
     marker: PhantomData<Conf>,
 }
 
-impl<Stg, Conf> Default for StagingVec<Stg, Conf>{
+impl<Stg: Default, Conf: ItemWidgetConf> Default for StagingVec<Stg, Conf>{
     fn default() -> Self {
         Self{
-            staging: vec![],
+            staging:  (0..Conf::MIN_NUM_ITEMS).map(|_| Stg::default()).collect(),
             marker: PhantomData,
         }
     }
@@ -43,9 +44,11 @@ where
                 if ui.button(format!("+ Add {}", Conf::ITEM_NAME)).clicked() {
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
-                if ui.button(format!("- Remove {}", Conf::ITEM_NAME)).clicked() && self.staging.len() > 0 {
-                    self.staging.resize_with(self.staging.len() - 1, Stg::default);
-                }
+                ui.add_enabled_ui(self.staging.len() > Conf::MIN_NUM_ITEMS, |ui|{
+                    if ui.button(format!("- Remove {}", Conf::ITEM_NAME)).clicked() {
+                        self.staging.resize_with(self.staging.len() - 1, Stg::default);
+                    }
+                });
             });
         });
     }
