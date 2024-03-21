@@ -5,7 +5,7 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, error_display::show_if_error, file_widget::{FileWidget, FileWidgetState}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
+    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
 };
 
 pub struct WeightsWidget{
@@ -50,7 +50,9 @@ impl StatefulWidget for WeightsWidget{
                     self.torchscript_weights_widget.state().transpose()?,
                 )?)
             )})();
-            show_if_error(ui, &self.parsed);
+            if self.parsed.is_err(){
+                show_error(ui, "Please review the model weights");
+            }
         });
     }
 
