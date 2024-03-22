@@ -14,8 +14,8 @@ impl CondaEnv{
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::EnvironmentFileDescr, ModelPackingError> {
-        let zip_path = rdf::FsPath::unique_suffixed(".yml");
-        zip_file.write_file(&Into::<String>::into(zip_path.clone()), |writer| {
+        let zip_path = rdf::FsPath::unique_suffixed("_environment.yml");
+        zip_file.write_file(&zip_path, |writer| {
             serde_yaml::to_writer(writer, &self.raw)
         })?;
         let file_ref = rdf::FileReference::Path(zip_path);

@@ -32,9 +32,8 @@ macro_rules! declare_slot { ($struct_name:ident, inout = $inout:ident) => { past
             &self,
             zip_file: &mut ModelZipWriter<impl Write + Seek>,
         ) -> Result< modelrdf::[<$inout TensorDescr>], ModelPackingError> {
-            let test_tensor_zip_path = rdf::FsPath::unique();
-            let test_tensor_zip_path_str: String = test_tensor_zip_path.clone().into();
-            zip_file.write_file(&test_tensor_zip_path_str, |writer| self.test_tensor.borrow().write_npy(writer))?;
+            let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
+            zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
             Ok(modelrdf::[<$inout TensorDescr>]{
                 id: self.id.clone(),
                 description: self.description.clone(),

@@ -1,5 +1,7 @@
 use std::io::{Seek, Write};
 
+use bioimg_spec::rdf::FsPath;
+
 use crate::zoo_model::ModelPackingError;
 
 // Hides the ZipWriter to enforce correct usage
@@ -10,13 +12,14 @@ impl<W: Write + Seek> ModelZipWriter<W> {
         Self(zip::ZipWriter::new(zip_sink))
     }
 
-    pub fn write_file<F, Out, E>(&mut self, path: &str, f: F) -> Result<Out, ModelPackingError>
+    pub fn write_file<F, Out, E>(&mut self, path: &FsPath, f: F) -> Result<Out, ModelPackingError>
     where
         //FIXME: using W as a param keeps Seek, so using dyn to remove it
         F: FnOnce(&mut dyn Write) -> Result<Out, E>,
         E: Into<ModelPackingError>,
     {
         let file_options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let path: String = path.clone().into();
         self.0.start_file(path, file_options)?;
         f(&mut self.0).map_err(|e| e.into())
     }

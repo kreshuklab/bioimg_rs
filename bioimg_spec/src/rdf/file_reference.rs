@@ -63,6 +63,13 @@ pub struct FsPath{
 }
 
 impl FsPath{
+    pub fn from_components(components: Vec<FsPathComponent>) -> Result<Self, FsPathParsingError>{
+        if components.len() == 0{
+            Err(FsPathParsingError::EmptyPath)
+        }else{
+            Ok(Self{components})
+        }
+    }
     pub fn unique() -> Self{
         Self{ components: vec![ FsPathComponent::unique() ] }
     }

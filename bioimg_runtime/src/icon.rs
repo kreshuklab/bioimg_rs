@@ -56,9 +56,8 @@ impl Icon{
             Self::Text(emoji) => return Ok(rdf::Icon::Emoji(emoji.clone())),
             Self::Image(icon_img) => icon_img,
         };
-        let test_tensor_zip_path = rdf::FsPath::unique();
-        let test_tensor_zip_path_str: String = test_tensor_zip_path.clone().into();
-        zip_file.write_file(&test_tensor_zip_path_str, |writer| -> Result<(), ModelPackingError> {
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed("_icon.png");
+        zip_file.write_file(&test_tensor_zip_path, |writer| -> Result<(), ModelPackingError> {
             let encoder = PngEncoder::new(writer);
             Ok(icon_img.0.write_with_encoder(encoder)?)
         })?;

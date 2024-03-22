@@ -21,9 +21,8 @@ impl CoverImage {
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result< rdf::CoverImageSource, ModelPackingError> {
-        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(".png");
-        let test_tensor_zip_path_str: String = test_tensor_zip_path.clone().into();
-        zip_file.write_file(&test_tensor_zip_path_str, |writer| -> Result<(), ModelPackingError> {
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed("_cover_image.png");
+        zip_file.write_file(&test_tensor_zip_path, |writer| -> Result<(), ModelPackingError> {
             let encoder = PngEncoder::new(writer);
             Ok(self.0.write_with_encoder(encoder)?)
         })?;

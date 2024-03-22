@@ -4,7 +4,7 @@ use std::{
 };
 
 use bioimg_spec::rdf::{
-    self, author::Author2, cite_entry::CiteEntry2, maintainer::Maintainer, model::{
+    self, author::Author2, cite_entry::CiteEntry2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
         ModelRdf, RdfTypeModel
     }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, ResourceTextDescription, Version
 };
@@ -69,11 +69,10 @@ impl ZooModel {
             None => None,
         };
         let documentation: FileReference = {
-            let documentation_path = FsPath::unique_suffixed(".md");
-            let documentation_path_string: String = documentation_path.clone().into(); //FIXME
-            writer.write_file(&documentation_path_string, |writer| -> Result<FileReference, std::io::Error> {
+            let documentation_path = FsPath::unique_suffixed("_README.md");
+            writer.write_file(&documentation_path, |writer| -> Result<FileReference, std::io::Error> {
                 writer.write(self.documentation.as_bytes())?;
-                Ok(FileReference::Path(documentation_path))
+                Ok(FileReference::Path(documentation_path.clone()))
             })?
         };
         let config = serde_yaml::Mapping::new();
@@ -108,7 +107,9 @@ impl ZooModel {
         };
         let model_json_val = serde_json::to_value(&model_rdf).unwrap();
 
-        writer.write_file("rdf.yaml", |writer| serde_yaml::to_writer(writer, &model_json_val))?;
+        let rdf_file_name = FsPathComponent::try_from("rdf.yaml".to_owned()).unwrap();
+        let rdf_path = FsPath::from_components(vec![rdf_file_name]).unwrap();
+        writer.write_file(&rdf_path, |writer| serde_yaml::to_writer(writer, &model_json_val))?;
 
         writer.finish()?;
         Ok(())
