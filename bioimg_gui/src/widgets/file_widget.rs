@@ -24,6 +24,8 @@ pub enum FileWidgetState<V: Send + 'static> {
     },
 }
 
+impl<V: serde::Serialize> serde::Serialize for FileWidgetState<V>
+
 impl<V: Send + 'static> FileWidgetState<V>{
     pub fn loaded_value(&self) -> Option<&V> {
         if let Self::Finished { value, .. } = self {
@@ -34,6 +36,7 @@ impl<V: Send + 'static> FileWidgetState<V>{
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct FileWidget<PF: ParsedFile> {
     state: FileWidgetState<PF>,
 }

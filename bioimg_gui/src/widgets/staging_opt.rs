@@ -1,6 +1,6 @@
 use super::{util::group_frame, StatefulWidget};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct StagingOpt<Stg: StatefulWidget>(Option<Stg>);
 
 impl<Stg> StatefulWidget for StagingOpt<Stg>

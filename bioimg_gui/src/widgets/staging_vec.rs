@@ -7,6 +7,7 @@ pub trait ItemWidgetConf{
     const MIN_NUM_ITEMS: usize = 0;
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct StagingVec<Stg, Conf=Stg>{
     pub staging: Vec<Stg>,
     marker: PhantomData<Conf>,

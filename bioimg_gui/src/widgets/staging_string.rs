@@ -4,13 +4,13 @@ use crate::result::{GuiError, Result};
 
 use super::{error_display::show_if_error, StatefulWidget};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum InputLines {
     SingleLine,
     Multiline,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct StagingString<T> {
     pub raw: String,
     pub parsed: Result<T>,

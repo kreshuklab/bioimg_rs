@@ -35,6 +35,7 @@ impl Default for PackingStatus {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct BioimgGui {
     staging_name: StagingString<ResourceName>,
     staging_description: StagingString<BoundedString<1, 1023>>,

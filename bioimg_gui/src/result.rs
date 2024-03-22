@@ -2,7 +2,7 @@ use std::{fmt::Display, sync::Arc};
 
 pub type Result<T, E = GuiError> = std::result::Result<T, E>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GuiError(Arc<str>);
 
 impl Display for GuiError {
