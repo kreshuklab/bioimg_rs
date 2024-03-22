@@ -108,7 +108,7 @@ impl ZooModel {
         };
         let model_json_val = serde_json::to_value(&model_rdf).unwrap();
 
-        writer.write_file("/rdf.yaml", |writer| serde_yaml::to_writer(writer, &model_json_val))?;
+        writer.write_file("rdf.yaml", |writer| serde_yaml::to_writer(writer, &model_json_val))?;
 
         writer.finish()?;
         Ok(())
