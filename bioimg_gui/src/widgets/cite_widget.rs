@@ -21,9 +21,9 @@ pub enum CiteEntry2ParsingError {
 }
 
 pub struct StagingCiteEntry2 {
-    staging_text: StagingString<ConfString>,
-    staging_doi: StagingOpt<StagingString<ConfString>>,
-    staging_url: StagingOpt<StagingUrl>,
+    pub staging_text: StagingString<ConfString>,
+    pub staging_doi: StagingOpt<StagingString<ConfString>>,
+    pub staging_url: StagingOpt<StagingUrl>,
 }
 
 impl ItemWidgetConf for StagingCiteEntry2{
