@@ -1,7 +1,7 @@
 use super::{util::group_frame, StatefulWidget};
 
 #[derive(Clone, Debug, Default)]
-pub struct StagingOpt<Stg: StatefulWidget>(Option<Stg>);
+pub struct StagingOpt<Stg: StatefulWidget>(pub Option<Stg>);
 
 impl<Stg> StatefulWidget for StagingOpt<Stg>
 where
