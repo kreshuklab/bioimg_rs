@@ -4,7 +4,7 @@ use super::{error_display::show_if_error, StatefulWidget};
 use crate::result::{GuiError, Result};
 
 pub struct StagingUrl {
-    raw: String,
+    pub raw: String,
     parsed: Result<HttpUrl>,
 }
 
