@@ -18,10 +18,6 @@ pub enum FileWidgetState<V: Send + 'static> {
         path: PathBuf,
         value: V,
     },
-    Failed {
-        path: PathBuf,
-        reason: String,
-    },
 }
 
 impl<V: Send + 'static> FileWidgetState<V>{
@@ -45,7 +41,6 @@ impl<PF: ParsedFile> FileWidget<PF> {
             FileWidgetState::Empty => None,
             FileWidgetState::Loading { path, .. } => Some(path),
             FileWidgetState::Finished { path, .. } => Some(path),
-            FileWidgetState::Failed { path, .. } => Some(path),
         }
     }
 }
@@ -65,10 +60,6 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
                 FileWidgetState::Empty => {
                     ui.label("None");
                     FileWidgetState::Empty
-                }
-                FileWidgetState::Failed { path, reason } => {
-                    ui.label(format!("Could not load file")); //FIMXE: tooltip with reason?
-                    FileWidgetState::Failed { path, reason }
                 }
                 FileWidgetState::Finished { path, value } => {
                     ui.label(path.to_string_lossy());
