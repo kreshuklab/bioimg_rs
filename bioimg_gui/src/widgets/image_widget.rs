@@ -27,12 +27,12 @@ impl LoadedImage{
             texture_handle,
         })
     }
-    pub fn show(&self, ui: &mut egui::Ui){
+    pub fn show(&self, ui: &mut egui::Ui, display_size: egui::Vec2){
         let ui_img = egui::Image::new(
             egui::ImageSource::Texture(
                 egui::load::SizedTexture {
                     id: self.texture_handle.id(),
-                    size: egui::Vec2 { x: 50.0, y: 50.0 },
+                    size: display_size,
                 }
             )
         );
@@ -46,7 +46,7 @@ impl Drop for LoadedImage {
 }
 
 #[derive(Default)]
-pub enum ImageWidget{
+pub enum ImageWidgetState{
     #[default]
     Empty,
     AboutToLoad{path: PathBuf}, //useful for setting widget state without a egui::Context
@@ -58,10 +58,23 @@ pub enum ImageWidget{
     Failed{path: PathBuf, message: String}
 }
 
+pub struct ImageWidget{
+    pub state: ImageWidgetState,
+    pub display_size: egui::Vec2,
+}
+
+impl Default for ImageWidget{
+    fn default() -> Self {
+        ImageWidget{
+            state: ImageWidgetState::default(),
+            display_size: egui::Vec2 { x: 50.0, y: 50.0 }
+        }
+    }
+}
 
 impl ImageWidget{
     pub fn set_path(&mut self, path: PathBuf){
-        *self = ImageWidget::AboutToLoad { path };
+        self.state = ImageWidgetState::AboutToLoad { path };
     }
 }
 
@@ -75,14 +88,14 @@ impl StatefulWidget for ImageWidget{
                 return;
             }
         }
-        *self = match std::mem::replace(self, ImageWidget::Empty){
-            ImageWidget::AboutToLoad { path } => {
+        self.state = match std::mem::replace(&mut self.state, ImageWidgetState::Empty){
+            ImageWidgetState::AboutToLoad { path } => {
                 ui.ctx().request_repaint();
                 let texture_name: String = path.to_string_lossy().into();
                 ui.label(format!("Loading {} ...", texture_name));
 
                 let ctx = ui.ctx().clone();
-                ImageWidget::Loading {
+                ImageWidgetState::Loading {
                     path: path.clone(),
                     promise: poll_promise::Promise::spawn_thread(
                         "loading image",
@@ -92,35 +105,35 @@ impl StatefulWidget for ImageWidget{
                     )
                 }
             },
-            ImageWidget::Loading { path, promise } => {
+            ImageWidgetState::Loading { path, promise } => {
                 ui.ctx().request_repaint();
                 ui.label(format!("Loading {} ...", path.to_string_lossy()));
                 match promise.try_take() {
-                    Err(promise) => ImageWidget::Loading { path, promise },
-                    Ok(Err(error)) => ImageWidget::Failed { path, message: format!("Could not open image: {error}") },
-                    Ok(Ok(loaded_image)) => ImageWidget::Ready(loaded_image),
+                    Err(promise) => ImageWidgetState::Loading { path, promise },
+                    Ok(Err(error)) => ImageWidgetState::Failed { path, message: format!("Could not open image: {error}") },
+                    Ok(Ok(loaded_image)) => ImageWidgetState::Ready(loaded_image),
                 }
             },
-            ImageWidget::Ready(loaded_image) => {
+            ImageWidgetState::Ready(loaded_image) => {
                 ui.weak(loaded_image.path.to_string_lossy());
-                loaded_image.show(ui);
-                ImageWidget::Ready(loaded_image)
+                loaded_image.show(ui, self.display_size);
+                ImageWidgetState::Ready(loaded_image)
             },
-            ImageWidget::Failed { path, message } => {
+            ImageWidgetState::Failed { path, message } => {
                 show_error(ui, &message);
-                ImageWidget::Failed { path, message }
+                ImageWidgetState::Failed { path, message }
             }
-            ImageWidget::Empty => ImageWidget::Empty,
+            ImageWidgetState::Empty => ImageWidgetState::Empty,
         };
     }
 
     //FIXME: less string allocs?
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        match self{
-            Self::Ready(loaded_image) => Ok(loaded_image.image()),
-            Self::Empty => Err(GuiError::new("No image selected".into())),
-            Self::Failed { message, .. } => Err(GuiError::new(message.clone())),
-            Self::AboutToLoad { path } | Self::Loading { path, .. } => Err(
+        match &self.state{
+            ImageWidgetState::Ready(loaded_image) => Ok(loaded_image.image()),
+            ImageWidgetState::Empty => Err(GuiError::new("No image selected".into())),
+            ImageWidgetState::Failed { message, .. } => Err(GuiError::new(message.clone())),
+            ImageWidgetState::AboutToLoad { path } | ImageWidgetState::Loading { path, .. } => Err(
                 GuiError::new(format!("Still loading {}", path.to_string_lossy()))
             )
         }
