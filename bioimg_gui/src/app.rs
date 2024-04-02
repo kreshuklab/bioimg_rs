@@ -45,7 +45,7 @@ pub struct BioimgGui {
     staging_citations: StagingVec<StagingCiteEntry2>,
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
-    staging_icon: IconWidget,
+    icon_widget: IconWidget,
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
@@ -72,7 +72,7 @@ impl Default for BioimgGui {
             attachments_widget: StagingVec::default(),
             staging_citations: StagingVec::default(),
             staging_git_repo: Default::default(),
-            staging_icon: Default::default(),
+            icon_widget: Default::default(),
             staging_maintainers: StagingVec::default(),
             staging_tags: StagingVec::default(),
             staging_version: Default::default(),
@@ -157,7 +157,7 @@ impl eframe::App for BioimgGui {
                 ui.horizontal_top(|ui| {
                     ui.strong("Icon: ");
                     group_frame(ui, |ui| {
-                        self.staging_icon.draw_and_parse(ui, egui::Id::from("Icon"));
+                        self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                     });
                 });
                 ui.add_space(10.0);
@@ -254,7 +254,7 @@ impl eframe::App for BioimgGui {
                                     attachments,
                                     cite: non_empty_cites,
                                     git_repo: self.staging_git_repo.state().transpose().map_err(|_| GuiError::new("Check git repo field for errors".into()))?,
-                                    icon: Some(self.staging_icon.state().map_err(|_| GuiError::new("Check icons field for errors".into()))?), //FIXME: make Option?,
+                                    icon: Some(self.icon_widget.state().map_err(|_| GuiError::new("Check icons field for errors".into()))?), //FIXME: make Option?,
                                     links: Vec::<String>::new(),// FIXME: grab from widget,
                                     maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors".into()))?,
                                     tags,
