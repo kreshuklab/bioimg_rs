@@ -1,6 +1,6 @@
 use std::{
     io::{Seek, Write},
-    path::PathBuf, sync::Arc,
+    path::PathBuf,
 };
 
 use bioimg_spec::rdf::{
@@ -39,7 +39,7 @@ pub struct ZooModel {
     pub cite: NonEmptyList<CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,
     pub git_repo: Option<HttpUrl>,
-    pub icon: Option<Arc<Icon>>,
+    pub icon: Option<Icon>,
     pub links: Vec<String>,
     pub maintainers: Vec<Maintainer>,
     pub tags: Vec<String>,

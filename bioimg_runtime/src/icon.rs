@@ -1,4 +1,5 @@
 use std::io::{Seek, Write};
+use std::sync::Arc;
 
 use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
@@ -10,17 +11,17 @@ use crate::zoo_model::ModelPackingError;
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum IconParsingError {
     #[error("Image is not square")]
-    ImageNotSquare(DynamicImage),
+    ImageNotSquare(Arc<DynamicImage>),
     #[error("0")]
     RdfError(#[from] rdf::IconParsingError),
 }
 
-pub struct IconImage(DynamicImage);
+pub struct IconImage(Arc<DynamicImage>);
 
-impl TryFrom<DynamicImage> for IconImage {
+impl TryFrom<Arc<DynamicImage>> for IconImage {
     type Error = IconParsingError;
 
-    fn try_from(value: DynamicImage) -> Result<Self, Self::Error> {
+    fn try_from(value: Arc<DynamicImage>) -> Result<Self, Self::Error> {
         if value.width() != value.height() {
             Err(IconParsingError::ImageNotSquare(value))
         } else {
@@ -29,9 +30,9 @@ impl TryFrom<DynamicImage> for IconImage {
     }
 }
 
-impl TryFrom<DynamicImage> for Icon {
+impl TryFrom<Arc<DynamicImage>> for Icon {
     type Error = IconParsingError;
-    fn try_from(value: DynamicImage) -> Result<Self, Self::Error> {
+    fn try_from(value: Arc<DynamicImage>) -> Result<Self, Self::Error> {
         Ok(Self::Image(IconImage::try_from(value)?))
     }
 }

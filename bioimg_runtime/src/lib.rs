@@ -12,7 +12,7 @@ pub mod model_weights;
 pub mod conda_env;
 
 pub use cover_image::{CoverImage, CoverImageParsingError};
-pub use icon::Icon;
+pub use icon::{Icon, IconImage};
 pub use model_interface::{ModelInterface, TensorValidationError};
 pub use npy_array::NpyArray;
 pub use model_weights::{WeightsBase, KerasHdf5Weights, TorchscriptWeights, ModelWeights};

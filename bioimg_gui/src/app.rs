@@ -17,7 +17,7 @@ use crate::widgets::staging_vec::StagingVec;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
-    icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
+    icon_widget::IconWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
     util::group_frame, StatefulWidget,
 };
 
@@ -45,7 +45,7 @@ pub struct BioimgGui {
     staging_citations: StagingVec<StagingCiteEntry2>,
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
-    staging_icon: StagingIcon,
+    staging_icon: IconWidget,
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
