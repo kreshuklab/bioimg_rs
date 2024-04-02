@@ -47,7 +47,7 @@ pub struct BioimgGui {
     staging_citations: StagingVec<StagingCiteEntry2>,
     //config
     staging_git_repo: StagingOpt<StagingUrl>,
-    icon_widget: IconWidget,
+    icon_widget: StagingOpt<IconWidget>,
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
@@ -256,7 +256,7 @@ impl eframe::App for BioimgGui {
                                     attachments,
                                     cite: non_empty_cites,
                                     git_repo: self.staging_git_repo.state().transpose().map_err(|_| GuiError::new("Check git repo field for errors".into()))?,
-                                    icon: Some(self.icon_widget.state().map_err(|_| GuiError::new("Check icons field for errors".into()))?), //FIXME: make Option?,
+                                    icon: self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors".into()))?,
                                     links: Vec::<String>::new(),// FIXME: grab from widget,
                                     maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors".into()))?,
                                     tags,
