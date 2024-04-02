@@ -16,6 +16,7 @@ pub enum IconParsingError {
     RdfError(#[from] rdf::IconParsingError),
 }
 
+#[derive(Clone)]
 pub struct IconImage(Arc<DynamicImage>);
 
 impl TryFrom<Arc<DynamicImage>> for IconImage {

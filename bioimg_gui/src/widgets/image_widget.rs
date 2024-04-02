@@ -1,8 +1,8 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{error::Error, path::PathBuf, sync::Arc};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::show_error, util::DynamicImageExt, StatefulWidget};
+use super::{error_display::{show_error, show_if_error}, util::DynamicImageExt, StatefulWidget};
 
 pub struct LoadedImage{
     path: PathBuf,
@@ -58,84 +58,97 @@ pub enum ImageWidgetState{
     Failed{path: PathBuf, message: String}
 }
 
-pub struct ImageWidget{
+pub struct ImageWidget<T>{
     pub state: ImageWidgetState,
+    pub parsed: Result<T>,
     pub display_size: egui::Vec2,
 }
 
-impl Default for ImageWidget{
+impl<T> Default for ImageWidget<T>{
     fn default() -> Self {
         ImageWidget{
             state: ImageWidgetState::default(),
-            display_size: egui::Vec2 { x: 50.0, y: 50.0 }
+            parsed: Err(GuiError::new("Empty".into())),
+            display_size: egui::Vec2 { x: 50.0, y: 50.0 },
         }
     }
 }
 
-impl ImageWidget{
+impl<T> ImageWidget<T>{
     pub fn set_path(&mut self, path: PathBuf){
         self.state = ImageWidgetState::AboutToLoad { path };
     }
 }
 
-impl StatefulWidget for ImageWidget{
-    type Value<'p> = Result<Arc<image::DynamicImage>>;
+impl<T> StatefulWidget for ImageWidget<T>
+where
+    T: TryFrom<Arc<image::DynamicImage>>,
+    <T as TryFrom<Arc<image::DynamicImage>>>::Error: Error,
+    T: Clone,
+{
+    type Value<'p> = Result<T> where T: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
-        if ui.button("Open...").clicked(){
-            if let Some(path) = rfd::FileDialog::new().pick_file(){
-                self.set_path(path);
-                return;
-            }
-        }
-        self.state = match std::mem::replace(&mut self.state, ImageWidgetState::Empty){
-            ImageWidgetState::AboutToLoad { path } => {
-                ui.ctx().request_repaint();
-                let texture_name: String = path.to_string_lossy().into();
-                ui.label(format!("Loading {} ...", texture_name));
+        ui.vertical(|ui|{
+            ui.horizontal(|ui|{
+                if ui.button("Open...").clicked(){
+                    if let Some(path) = rfd::FileDialog::new().pick_file(){
+                        self.set_path(path);
+                        return;
+                    }
+                }
+                self.state = match std::mem::replace(&mut self.state, ImageWidgetState::Empty){
+                    ImageWidgetState::AboutToLoad { path } => {
+                        ui.ctx().request_repaint();
+                        let texture_name: String = path.to_string_lossy().into();
+                        ui.label(format!("Loading {} ...", texture_name));
 
-                let ctx = ui.ctx().clone();
-                ImageWidgetState::Loading {
-                    path: path.clone(),
-                    promise: poll_promise::Promise::spawn_thread(
-                        "loading image",
-                        move || {
-                            LoadedImage::load(path, ctx)
+                        let ctx = ui.ctx().clone();
+                        ImageWidgetState::Loading {
+                            path: path.clone(),
+                            promise: poll_promise::Promise::spawn_thread(
+                                "loading image",
+                                move || {
+                                    LoadedImage::load(path, ctx)
+                                }
+                            )
                         }
-                    )
-                }
-            },
-            ImageWidgetState::Loading { path, promise } => {
-                ui.ctx().request_repaint();
-                ui.label(format!("Loading {} ...", path.to_string_lossy()));
-                match promise.try_take() {
-                    Err(promise) => ImageWidgetState::Loading { path, promise },
-                    Ok(Err(error)) => ImageWidgetState::Failed { path, message: format!("Could not open image: {error}") },
-                    Ok(Ok(loaded_image)) => ImageWidgetState::Ready(loaded_image),
-                }
-            },
-            ImageWidgetState::Ready(loaded_image) => {
-                ui.weak(loaded_image.path.to_string_lossy());
-                loaded_image.show(ui, self.display_size);
-                ImageWidgetState::Ready(loaded_image)
-            },
-            ImageWidgetState::Failed { path, message } => {
-                show_error(ui, &message);
-                ImageWidgetState::Failed { path, message }
-            }
-            ImageWidgetState::Empty => ImageWidgetState::Empty,
-        };
+                    },
+                    ImageWidgetState::Loading { path, promise } => {
+                        ui.ctx().request_repaint();
+                        ui.label(format!("Loading {} ...", path.to_string_lossy()));
+                        match promise.try_take() {
+                            Err(promise) => ImageWidgetState::Loading { path, promise },
+                            Ok(Err(error)) => ImageWidgetState::Failed { path, message: format!("Could not open image: {error}") },
+                            Ok(Ok(loaded_image)) => ImageWidgetState::Ready(loaded_image),
+                        }
+                    },
+                    ImageWidgetState::Ready(loaded_image) => {
+                        ui.weak(loaded_image.path.to_string_lossy());
+                        loaded_image.show(ui, self.display_size);
+                        ImageWidgetState::Ready(loaded_image)
+                    },
+                    ImageWidgetState::Failed { path, message } => {
+                        show_error(ui, &message);
+                        ImageWidgetState::Failed { path, message }
+                    }
+                    ImageWidgetState::Empty => ImageWidgetState::Empty,
+                };
+            });
+            match &self.state{
+                ImageWidgetState::Ready(loaded_image) => {
+                    self.parsed = T::try_from(loaded_image.image()).map_err(|err| GuiError::from(err));
+                    show_if_error(ui, &self.parsed);
+                },
+                _ => {
+                    self.parsed = Err(GuiError::new("No image ready".into()));
+                },
+            };
+        });
     }
 
     //FIXME: less string allocs?
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        match &self.state{
-            ImageWidgetState::Ready(loaded_image) => Ok(loaded_image.image()),
-            ImageWidgetState::Empty => Err(GuiError::new("No image selected".into())),
-            ImageWidgetState::Failed { message, .. } => Err(GuiError::new(message.clone())),
-            ImageWidgetState::AboutToLoad { path } | ImageWidgetState::Loading { path, .. } => Err(
-                GuiError::new(format!("Still loading {}", path.to_string_lossy()))
-            )
-        }
+        self.parsed.clone()
     }
 }

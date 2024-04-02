@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf::{self, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
@@ -7,8 +8,9 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
-use crate::widgets::cover_image_widget::CoverImageWidget;
+// use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
+use crate::widgets::image_widget::ImageWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::notice_widget::NoticeWidget;
 use crate::widgets::staging_opt::StagingOpt;
@@ -38,7 +40,7 @@ impl Default for PackingStatus {
 pub struct BioimgGui {
     staging_name: StagingString<ResourceName>,
     staging_description: StagingString<BoundedString<1, 1023>>,
-    cover_images: StagingVec<CoverImageWidget>,
+    cover_images: StagingVec<ImageWidget<rt::CoverImage>>,
     // id?
     staging_authors: StagingVec<StagingAuthor2>,
     attachments_widget: StagingVec<AttachmentsWidget>,

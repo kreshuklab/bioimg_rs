@@ -3,38 +3,8 @@ use bioimg_runtime as rt;
 
 use super::{image_widget::ImageWidget, staging_string::StagingString, StatefulWidget};
 use crate::result::Result;
-use super::error_display::show_error;
 
 
-
-#[derive(Default)]
-pub struct IconImageWidget{
-    pub image_widget: ImageWidget,
-}
-
-impl StatefulWidget for IconImageWidget{
-    type Value<'p> = Result<rt::IconImage>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        ui.vertical(|ui|{
-            ui.horizontal(|ui|{
-                self.image_widget.draw_and_parse(ui, id);
-            });
-            match self.image_widget.state(){
-                Err(err) => show_error(ui, err),
-                Ok(img) => {
-                    if let Err(err) = rt::IconImage::try_from(img){
-                        show_error(ui, err)
-                    }
-                }
-            };
-        });
-    }
-
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(rt::IconImage::try_from(self.image_widget.state()?)?)
-    }
-}
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum InputMode {
@@ -51,7 +21,7 @@ impl Default for InputMode {
 #[derive(Default)]
 pub struct IconWidget {
     emoji_icon_widget: StagingString<rdf::EmojiIcon>,
-    image_icon_widget: IconImageWidget,
+    image_icon_widget: ImageWidget<rt::IconImage>,
     input_mode: InputMode,
 }
 
