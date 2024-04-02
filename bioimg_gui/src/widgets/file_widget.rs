@@ -31,7 +31,7 @@ impl<V: Send + 'static> FileWidgetState<V>{
 }
 
 pub struct FileWidget<PF: ParsedFile> {
-    state: FileWidgetState<PF>,
+    pub state: FileWidgetState<PF>,
 }
 
 impl<PF: ParsedFile> FileWidget<PF> {
