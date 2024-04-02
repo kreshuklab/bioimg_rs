@@ -34,7 +34,7 @@ pub enum ModelPackingError {
 
 pub struct ZooModel {
     pub description: ResourceTextDescription,
-    pub covers: Vec<Arc<CoverImage>>,
+    pub covers: Vec<CoverImage>,
     pub attachments: Vec<PathBuf>,
     pub cite: NonEmptyList<CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,

@@ -1,58 +1,41 @@
-use std::{path::PathBuf, sync::Arc};
 
 use crate::result::Result;
 use bioimg_runtime as rt;
-use egui::{load::SizedTexture, ImageSource};
 
 use super::{
-    error_display::show_error, file_widget::{FileWidget, ParsedFile}, staging_vec::ItemWidgetConf, util::DynamicImageExt
+    error_display::show_error, image_widget::ImageWidget, staging_vec::ItemWidgetConf, StatefulWidget
 };
 
-pub struct GuiCoverImage {
-    path: PathBuf,
-    contents: Arc<rt::CoverImage>,
-    context: egui::Context,
-    texture_handle: egui::TextureHandle,
+#[derive(Default)]
+pub struct CoverImageWidget{
+    pub image_widget: ImageWidget,
 }
 
-impl GuiCoverImage{
-    pub fn contents(&self) -> &Arc<rt::CoverImage>{
-        &self.contents
+impl StatefulWidget for CoverImageWidget{
+    type Value<'p> = Result<rt::CoverImage>;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        ui.vertical(|ui|{
+            ui.horizontal(|ui|{
+                self.image_widget.draw_and_parse(ui, id);
+            });
+            match self.image_widget.state(){
+                Err(err) => show_error(ui, err),
+                Ok(img) => {
+                    if let Err(err) = rt::CoverImage::try_from(img){
+                        show_error(ui, err)
+                    }
+                }
+            };
+        });
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        Ok(rt::CoverImage::try_from(self.image_widget.state()?)?)
     }
 }
-
-impl Drop for GuiCoverImage {
-    fn drop(&mut self) {
-        self.context.forget_image(&self.path.to_string_lossy());
-    }
-}
-
-impl ParsedFile for Result<GuiCoverImage> {
-    //FIXME: specific error?
-    fn parse(path: PathBuf, ctx: egui::Context) -> Self {
-        let contents = std::fs::read(&path)?;
-        let cover_image = rt::CoverImage::try_from(contents.as_slice())?;
-        let texture_handle = cover_image.to_egui_texture_handle(path.to_string_lossy(), &ctx);
-        Ok(GuiCoverImage { path: path.clone(), contents: Arc::new(cover_image), context: ctx, texture_handle: texture_handle.clone() })
-    }
-
-    fn render(&self, ui: &mut egui::Ui, id: egui::Id) {
-        match self {
-            Ok(loaded_cover_image) => {
-                let image_source = ImageSource::Texture(SizedTexture {
-                    id: loaded_cover_image.texture_handle.id(),
-                    size: egui::Vec2 { x: 50.0, y: 50.0 },
-                });
-                let ui_img = egui::Image::new(image_source);
-                ui.add(ui_img);
-            }
-            Err(err) => show_error(ui, err.to_string()),
-        }
-    }
-}
-
-pub type CoverImageWidget = FileWidget<Result<GuiCoverImage>>;
 
 impl ItemWidgetConf for CoverImageWidget{
     const ITEM_NAME: &'static str = "Cover Image";
+    const MIN_NUM_ITEMS: usize = 1;
 }

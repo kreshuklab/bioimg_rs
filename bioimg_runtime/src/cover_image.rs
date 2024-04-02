@@ -1,11 +1,12 @@
-use std::{io::{Seek, Write}, ops::Deref};
+use std::{io::{Seek, Write}, ops::Deref, sync::Arc};
 
 use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
 
 use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
-pub struct CoverImage(image::DynamicImage);
+#[derive(Clone)]
+pub struct CoverImage(Arc<image::DynamicImage>);
 
 impl CoverImage {
     pub const ALLOWED_WIDTH_TO_HEIGHT_RATIOS: [f32; 2] = [1.0, 2.0];
@@ -47,15 +48,9 @@ pub enum CoverImageParsingError {
     BadImageData(#[from] image::ImageError),
 }
 
-impl TryFrom<&'_ [u8]> for CoverImage {
+impl TryFrom<Arc<image::DynamicImage>> for CoverImage{
     type Error = CoverImageParsingError;
-    fn try_from(value: &'_ [u8]) -> Result<Self, Self::Error> {
-        let data_size = value.len();
-        if data_size > Self::MAX_SIZE_IN_BYTES {
-            return Err(CoverImageParsingError::TooBig { size: data_size });
-        }
-        let cursor = std::io::Cursor::new(value);
-        let img = image::io::Reader::new(cursor).with_guessed_format().unwrap().decode()?;
+    fn try_from(img: Arc<image::DynamicImage>) -> Result<Self, Self::Error> {
         let ratio = (img.width() as f32) / (img.height() as f32);
         if !Self::is_valid_ratio(ratio) {
             return Err(CoverImageParsingError::BadAspectRatio { ratio });
@@ -63,3 +58,4 @@ impl TryFrom<&'_ [u8]> for CoverImage {
         return Ok(Self(img));
     }
 }
+

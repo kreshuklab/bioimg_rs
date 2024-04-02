@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf::{self, ResourceName};
@@ -8,6 +7,7 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
+use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::notice_widget::NoticeWidget;
@@ -17,7 +17,7 @@ use crate::widgets::staging_vec::StagingVec;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
-    cover_image_widget::CoverImageWidget, icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
+    icon_widget::StagingIcon, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
     util::group_frame, StatefulWidget,
 };
 
@@ -221,11 +221,8 @@ impl eframe::App for BioimgGui {
                                     .map(|interf| interf.clone())
                                     .map_err(|_| GuiError::new("Check model interface for errors".into()))?;
 
-                                let covers: Vec<_> = self.cover_images.state().into_iter().map(|file_widget_state|{
-                                    match file_widget_state.loaded_value(){
-                                        Some(Ok(val)) => Ok(Arc::clone(val.contents())),
-                                        _ => return Err(GuiError::new("Check cover images for errors".into())),
-                                    }
+                                let covers: Vec<_> = self.cover_images.state().into_iter().map(|cover_img_res|{
+                                    cover_img_res.map_err(|_| GuiError::new("Check cover images for errors".into()))
                                 }).collect::<Result<Vec<_>, _>>()?;
 
                                 let attachments_state = self.attachments_widget.state();
