@@ -36,6 +36,7 @@ pub use file_reference::{HttpUrl, FsPath, FileReference, CoverImageSource, Envir
 pub use author::Author2;
 pub use file_description::{FileDescription, EnvironmentFileDescr};
 pub use maintainer::{Maintainer, MaintainerName};
+pub use orcid::Orcid;
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
