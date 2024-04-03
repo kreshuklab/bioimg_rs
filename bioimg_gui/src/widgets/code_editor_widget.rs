@@ -2,7 +2,7 @@ use super::StatefulWidget;
 
 #[derive(Default)]
 pub struct CodeEditorWidget {
-    raw: String,
+    pub raw: String,
 }
 
 impl StatefulWidget for CodeEditorWidget {
