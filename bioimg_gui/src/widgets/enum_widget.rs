@@ -3,7 +3,7 @@ use std::fmt::Display;
 use super::StatefulWidget;
 
 pub struct EnumWidget<E> {
-    value: E,
+    pub value: E,
     search: String,
     popup_open: bool,
     lower_case_display_names: Vec<String>,
