@@ -6,11 +6,11 @@ use crate::result::Result;
 pub type ConfString = BoundedString<1, 1023>;
 
 pub struct StagingAuthor2 {
-    staging_name: StagingString<ConfString>,                    // (Name→String) Full name.
-    staging_affiliation: StagingOpt<StagingString<ConfString>>, // (String) Affiliation.
-    staging_email: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
-    staging_github_user: StagingOpt<StagingString<ConfString>>, // (String) GitHub user name.
-    staging_orcid: StagingOpt<StagingString<Orcid>>,
+    pub staging_name: StagingString<ConfString>,                    // (Name→String) Full name.
+    pub staging_affiliation: StagingOpt<StagingString<ConfString>>, // (String) Affiliation.
+    pub staging_email: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
+    pub staging_github_user: StagingOpt<StagingString<ConfString>>, // (String) GitHub user name.
+    pub staging_orcid: StagingOpt<StagingString<Orcid>>,
 }
 
 impl ItemWidgetConf for StagingAuthor2{
