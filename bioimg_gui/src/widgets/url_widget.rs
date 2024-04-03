@@ -8,13 +8,19 @@ pub struct StagingUrl {
     parsed: Result<HttpUrl>,
 }
 
-impl Default for StagingUrl {
-    fn default() -> Self {
-        let raw = String::default();
+impl StagingUrl{
+    pub fn new_with_raw(raw: impl Into<String>) -> Self{
+        let raw = raw.into();
         Self {
             raw: raw.clone(),
             parsed: HttpUrl::try_from(raw.clone()).map_err(|err| GuiError::new(err.to_string())),
         }
+    }
+}
+
+impl Default for StagingUrl {
+    fn default() -> Self {
+        Self::new_with_raw(String::default())
     }
 }
 

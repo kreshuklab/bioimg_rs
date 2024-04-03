@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{error::Error, fmt::Display};
 
 use crate::result::{GuiError, Result};
 
@@ -15,6 +15,21 @@ pub struct StagingString<T> {
     pub raw: String,
     pub parsed: Result<T>,
     pub input_lines: InputLines,
+}
+
+impl<T> StagingString<T>
+where
+    T: TryFrom<String>,
+    <T as TryFrom<String>>::Error: Error,
+{
+    pub fn new_with_raw(raw: impl Into<String>) -> Self{
+        let raw = raw.into();
+        Self {
+            raw: raw.clone(),
+            parsed: T::try_from(raw).map_err(|err| GuiError::new(err.to_string())),
+            input_lines: InputLines::SingleLine,
+        }
+    }
 }
 
 impl<T> Default for StagingString<T>
