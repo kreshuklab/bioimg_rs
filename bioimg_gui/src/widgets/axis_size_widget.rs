@@ -16,14 +16,6 @@ pub struct AxisSizeReferenceWidget {
     pub staging_offset: StagingNum<usize, usize>,
 }
 
-impl AxisSizeReferenceWidget {
-    pub fn replicate_state_on(&self, other: &mut Self) {
-        other.staging_tensor_id.raw = self.staging_tensor_id.raw.clone();
-        other.staging_axis_id.raw = self.staging_axis_id.raw.clone();
-        other.staging_offset.raw = self.staging_offset.raw;
-    }
-}
-
 impl StatefulWidget for AxisSizeReferenceWidget {
     type Value<'p> = Result<modelrdf::AxisSizeReference>;
 
@@ -61,13 +53,6 @@ impl StatefulWidget for AxisSizeReferenceWidget {
 pub struct ParameterizedAxisSizeWidget {
     pub staging_min: StagingNum<usize, NonZeroUsize>,
     pub staging_step: StagingNum<usize, NonZeroUsize>,
-}
-
-impl ParameterizedAxisSizeWidget {
-    pub fn replicate_state_on(&self, other: &mut Self) {
-        other.staging_min.raw = self.staging_min.raw;
-        other.staging_step.raw = self.staging_step.raw;
-    }
 }
 
 impl StatefulWidget for ParameterizedAxisSizeWidget {
