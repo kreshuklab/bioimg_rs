@@ -25,6 +25,76 @@ impl Default for AxisScale {
     }
 }
 
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum HaloParsingError{
+    #[error("Halo must be a positive integer, found {found}")]
+    MustBePositive{found: u64}
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct Halo(u64);
+
+impl TryFrom<u64> for Halo{
+    type Error = HaloParsingError;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if value == 0{
+            return Err(HaloParsingError::MustBePositive { found: value })
+        }
+        Ok(Self(value))
+    }
+}
+
+
+pub trait PreciseAxisId{
+    const NAME: &'static str;
+    fn
+}
+
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum SpecialAxisIdParsingError{
+    #[error("Expected '{expected}', found '{found}'")]
+    BadAxisId{expected: &'static str, found: String},
+}
+
+macro_rules! declare_special_axis_id {(
+    pub struct $struct_name:ident( $value:literal )
+) => {
+    #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+    #[serde(into = "String")]
+    #[serde(try_from = "String")]
+    pub struct $struct_name;
+
+    impl $struct_name{
+        pub fn axis_id(&self) -> AxisId{
+            AxisId::try_from($value.to_owned()).unwrap()
+        }
+    }
+
+    impl TryFrom<String> for $struct_name{
+        type Error = SpecialAxisIdParsingError;
+        fn try_from(value: String) -> Result<Self, Self::Error> {
+            if value == $value{
+                Ok(Self)
+            }else{
+                Err(SpecialAxisIdParsingError::BadAxisId{expected: $value, found: value})
+            }
+        }
+    }
+
+    impl From<$struct_name> for String{
+        fn from(_value: $struct_name) -> String{
+            $value.to_owned()
+        }
+    }
+};}
+
+declare_special_axis_id!(pub struct BatchAxisId("batch"));
+declare_special_axis_id!(pub struct ChannelAxisId("channel"));
+declare_special_axis_id!(pub struct IndexAxisId("index"));
+
+
+
 #[derive(serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum AxisType {
     #[serde(rename = "batch")]
@@ -58,8 +128,7 @@ impl TryFrom<f32> for AxisScale {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchAxis {
-    #[serde(default = "_default_batch_axis_id")]
-    pub id: AxisId,
+    pub id: BatchAxisId,
     #[serde(default)]
     pub description: AxisDescription,
     #[serde(default)]
@@ -68,8 +137,7 @@ pub struct BatchAxis {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChannelAxis {
-    #[serde(default = "_default_channel_axis_id")]
-    pub id: AxisId,
+    pub id: ChannelAxisId,
     #[serde(default)]
     pub description: AxisDescription,
     // pub size: FixedAxisSize,
@@ -86,8 +154,7 @@ impl ChannelAxis {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IndexAxis {
-    #[serde(default = "_default_index_axis_id")]
-    pub id: AxisId,
+    pub id: ChannelAxisId,
     #[serde(default)]
     pub description: AxisDescription,
     pub size: AnyAxisSize,
@@ -117,8 +184,7 @@ pub struct TimeOutputAxis {
     #[serde(default)]
     pub scale: AxisScale,
     pub size: AnyAxisSize,
-    #[serde(default)]
-    pub halo: usize,
+    pub halo: Halo,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -145,8 +211,7 @@ pub struct SpaceOutputAxis {
     #[serde(default)]
     pub scale: AxisScale,
     pub size: AnyAxisSize,
-    #[serde(default)]
-    pub halo: usize,
+    pub halo: Halo,
 }
 
 #[rustfmt::skip]
@@ -164,26 +229,35 @@ impl_resolve_size_with!(TimeInput);
 impl_resolve_size_with!(SpaceOutput);
 impl_resolve_size_with!(TimeOutput);
 
-#[rustfmt::skip]
-macro_rules! declare_axis_enum {($inout:ident) => { paste!{
-    #[derive(Serialize, Deserialize, Debug, Clone)]
-    #[serde(tag = "type")]
-    pub enum [<$inout Axis>] {
-        #[serde(rename = "batch")]
-        Batch(BatchAxis),
-        #[serde(rename = "channel")]
-        Channel(ChannelAxis),
-        #[serde(rename = "index")]
-        Index(IndexAxis),
-        #[serde(rename = "time")]
-        Time([<Time $inout Axis>]),
-        #[serde(rename = "space")]
-        Space([<Space $inout Axis>]),
-    }
-}};}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum InputAxis {
+    #[serde(rename = "batch")]
+    Batch(BatchAxis),
+    #[serde(rename = "channel")]
+    Channel(ChannelAxis),
+    #[serde(rename = "index")]
+    Index(IndexAxis),
+    #[serde(rename = "time")]
+    Time(TimeInputAxis),
+    #[serde(rename = "space")]
+    Space(SpaceInputAxis),
+}
 
-declare_axis_enum!(Input);
-declare_axis_enum!(Output);
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum OutputAxis {
+    #[serde(rename = "batch")]
+    Batch(BatchAxis),
+    #[serde(rename = "channel")]
+    Channel(ChannelAxis),
+    #[serde(rename = "index")]
+    Index(IndexAxis),
+    #[serde(rename = "time")]
+    Time(TimeOutputAxis),
+    #[serde(rename = "space")]
+    Space(SpaceOutputAxis),
+}
 
 #[rustfmt::skip]
 macro_rules! impl_axis_enum {($enum_name:ident) => { paste! {

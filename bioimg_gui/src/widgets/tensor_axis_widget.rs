@@ -2,6 +2,7 @@ use std::num::NonZeroUsize;
 
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::bounded_string::BoundedString;
+use bioimg_spec::rdf::model::axes::Halo;
 use bioimg_spec::rdf::model as modelrdf;
 
 use super::axis_size_widget::AxisSizeMode;
@@ -257,7 +258,7 @@ impl StatefulWidget for InputTensorAxisWidget {
 #[derive(Default)]
 pub struct OutputTensorAxisWidget {
     pub input_tensor_widget: InputTensorAxisWidget,
-    pub halo_widget: StagingNum<usize, usize>,
+    pub halo_widget: StagingNum<u64, Halo>,
 }
 
 impl ItemWidgetConf for OutputTensorAxisWidget{
@@ -275,10 +276,12 @@ impl StatefulWidget for OutputTensorAxisWidget {
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         self.input_tensor_widget.draw_and_parse(ui, id.with("base"));
-        ui.horizontal(|ui| {
-            ui.strong("Halo: ");
-            self.halo_widget.draw_and_parse(ui, id.with("halo"));
-        });
+        if matches!(self.input_tensor_widget.axis_type, AxisType::Space | AxisType::Time){
+            ui.horizontal(|ui| {
+                ui.strong("Halo: ");
+                self.halo_widget.draw_and_parse(ui, id.with("halo"));
+            });
+        }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {

@@ -8,6 +8,10 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
+use crate::widgets::axis_size_widget::{AnyAxisSizeWidget, AxisSizeMode, AxisSizeReferenceWidget};
+use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
+use crate::widgets::staging_num::StagingNum;
+use crate::widgets::tensor_axis_widget::{AxisType, ChannelNamesMode, InputTensorAxisWidget, OutputTensorAxisWidget};
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::image_widget::ImageWidget;
@@ -16,7 +20,7 @@ use crate::widgets::notice_widget::NoticeWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
-use crate::widgets::weights_widget::WeightsWidget;
+use crate::widgets::weights_widget::{TorchscriptWeightsWidget, WeightsWidget};
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     icon_widget::IconWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
@@ -92,7 +96,241 @@ impl Default for BioimgGui {
 
 impl BioimgGui {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Default::default()
+        let mut out = Self::default();
+
+        out.staging_name.raw = "UNet 2D Nuclei Broad".into();
+        out.staging_description.raw = "A 2d U-Net trained on the nuclei broad dataset.".into();
+        out.staging_citations.staging = vec![
+            {
+                let mut cite_widget = StagingCiteEntry2::default();
+                cite_widget.staging_text.raw =
+                    "Ronneberger, Olaf et al. U-net: Convolutional networks for biomedical image segmentation. MICCAI 2015."
+                    .into();
+                cite_widget.staging_doi.0 = Some(StagingString::new_with_raw("10.1007/978-3-319-24574-4_28"));
+                cite_widget
+            },
+            {
+                let mut cite_widget = StagingCiteEntry2::default();
+                cite_widget.staging_text.raw = "2018 Data Science Bowl".into();
+                cite_widget.staging_url.0 = Some(StagingUrl::new_with_raw("https://www.kaggle.com/c/data-science-bowl-2018"));
+                cite_widget
+            },
+        ];
+        out.cover_images.staging = vec![{
+            let mut cover_image_widget = ImageWidget::<rt::CoverImage>::default();
+            let path = PathBuf::try_from(
+                "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/cover0.png"
+            ).unwrap();
+            cover_image_widget.set_path(path);
+            cover_image_widget
+        }];
+        out.staging_authors.staging = vec![
+            {
+                let mut author_widget = StagingAuthor2::default();
+                author_widget.staging_name.raw = "Constantin Pape;@bioimage-io".into();
+                author_widget.staging_affiliation.0 = Some(StagingString::new_with_raw("EMBL Heidelberg"));
+                author_widget.staging_orcid.0 = Some(StagingString::new_with_raw("0000-0001-6562-7187"));
+                author_widget
+            },
+            {
+                let mut author_widget = StagingAuthor2::default();
+                author_widget.staging_name.raw = "Fynn Beuttenmueller".into();
+                author_widget.staging_affiliation.0 = Some(StagingString::new_with_raw("EMBL Heidelberg"));
+                author_widget.staging_orcid.0 = Some(StagingString::new_with_raw("0000-0002-8567-6389"));
+                author_widget
+            },
+        ];
+        out.attachments_widget.staging = vec![];
+        out.staging_citations.staging = vec![
+            {
+                let mut cite_widget = StagingCiteEntry2::default();
+                cite_widget.staging_text.raw =
+                    "Ronneberger, Olaf et al. U-net: Convolutional networks for biomedical image segmentation. MICCAI 2015.".into();
+                cite_widget.staging_doi.0 = Some(StagingString::new_with_raw("10.1007/978-3-319-24574-4_28"));
+                cite_widget
+            },
+            {
+                let mut cite_widget = StagingCiteEntry2::default();
+                cite_widget.staging_text.raw = "2018 Data Science Bowl".into();
+                cite_widget.staging_url.0 = Some(StagingUrl::new_with_raw("https://www.kaggle.com/c/data-science-bowl-2018"));
+                cite_widget
+            }
+        ];
+        out.staging_git_repo.0 = Some(StagingUrl::new_with_raw(
+            "https://github.com/bioimage-io/spec-bioimage-io/tree/main/example_descriptions/models/unet2d_nuclei_broad"
+        ));
+        out.staging_maintainers.staging = vec![
+            {
+                let mut maintainer_widget = StagingMaintainer::default();
+                maintainer_widget.name_widget.0 = StagingString::new_with_raw("Constantin Pape").into();
+                maintainer_widget.github_user_widget = StagingString::new_with_raw("constantinpape");
+                maintainer_widget
+            },
+            {
+                let mut maintainer_widget = StagingMaintainer::default();
+                maintainer_widget.name_widget.0 = Some({
+                    let mut name_widget = StagingString::default();
+                    name_widget.raw = "Fynn Beuttenmueller".into();
+                    name_widget
+                });
+                maintainer_widget.github_user_widget = {
+                    let mut name_widget = StagingString::default();
+                    name_widget.raw = "fynnbe".into();
+                    name_widget
+                };
+                maintainer_widget
+            }
+        ];
+        out.staging_tags.staging = vec![
+            StagingString::new_with_raw("unet2d"),
+            StagingString::new_with_raw("pytorch"),
+            StagingString::new_with_raw("nucleus"),
+            StagingString::new_with_raw("segmentation"),
+            StagingString::new_with_raw("dsb2018"),
+        ];
+        out.staging_documentation.raw = include_str!(
+            "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/README.md"
+        ).into();
+        out.staging_license.value = rdf::LicenseId::MIT;
+
+        out.model_interface_widget.inputs_widget.staging = vec![
+            {
+                let mut input_tensor_widget = InputTensorWidget::default();
+                input_tensor_widget.id_widget.raw = "raw".into();
+                input_tensor_widget.description_widget.raw = "raw input".into();
+                input_tensor_widget.axes_widget.staging = vec![
+                    InputTensorAxisWidget{
+                        id_widget: StagingString::new_with_raw("batch"),
+                        axis_type: AxisType::Batch,
+                        ..Default::default()
+                    },
+                    InputTensorAxisWidget{
+                        id_widget: StagingString::new_with_raw("channel"),
+                        axis_type: AxisType::Channel,
+                        staging_explicit_names: {
+                            let mut channel_names_widget = StagingVec::default();
+                            channel_names_widget.staging = vec![
+                                StagingString::new_with_raw("raw_intensity")
+                            ];
+                            channel_names_widget
+                        },
+                        channel_names_mode: ChannelNamesMode::Explicit,
+                        ..Default::default()
+                    },
+                    InputTensorAxisWidget{
+                        id_widget: StagingString::new_with_raw("y"),
+                        axis_type: AxisType::Space,
+                        size_widget: AnyAxisSizeWidget{
+                            mode: AxisSizeMode::Fixed,
+                            staging_fixed_size: StagingNum::new_with_raw(512),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    InputTensorAxisWidget{
+                        id_widget: StagingString::new_with_raw("x"),
+                        axis_type: AxisType::Space,
+                        size_widget: AnyAxisSizeWidget{
+                            mode: AxisSizeMode::Fixed,
+                            staging_fixed_size: StagingNum::new_with_raw(512),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                ];
+                input_tensor_widget.test_tensor_widget.set_path(
+                    PathBuf::from(
+                        "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/test_input.npy"
+                    )
+                );
+                input_tensor_widget
+            }
+        ];
+
+        out.model_interface_widget.outputs_widget.staging = vec![
+            {
+                let mut output_tensor_widget = OutputTensorWidget::default();
+                output_tensor_widget.id_widget.raw = "probability".into();
+                output_tensor_widget.description_widget.raw = "probability in [0,1]".into();
+                output_tensor_widget.axes_widget.staging = vec![
+                    OutputTensorAxisWidget{
+                        input_tensor_widget: InputTensorAxisWidget{
+                            id_widget: StagingString::new_with_raw("batch"),
+                            axis_type: AxisType::Batch,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    OutputTensorAxisWidget{
+                        input_tensor_widget: InputTensorAxisWidget{
+                            id_widget: StagingString::new_with_raw("channel"),
+                            axis_type: AxisType::Channel,
+                            staging_explicit_names: {
+                                let mut channel_names_widget = StagingVec::default();
+                                channel_names_widget.staging = vec![
+                                    StagingString::new_with_raw("probability")
+                                ];
+                                channel_names_widget
+                            },
+                            channel_names_mode: ChannelNamesMode::Explicit,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    OutputTensorAxisWidget{
+                        input_tensor_widget: InputTensorAxisWidget{
+                            id_widget: StagingString::new_with_raw("y"),
+                            axis_type: AxisType::Space,
+                            size_widget: AnyAxisSizeWidget{
+                                mode: AxisSizeMode::Reference,
+                                staging_size_ref: AxisSizeReferenceWidget{
+                                    staging_tensor_id: StagingString::new_with_raw("raw"),
+                                    staging_axis_id: StagingString::new_with_raw("y"),
+                                    staging_offset: StagingNum::new_with_raw(32),
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        halo_widget: StagingNum::new_with_raw(1),
+                    },
+                    OutputTensorAxisWidget{
+                        input_tensor_widget: InputTensorAxisWidget{
+                            id_widget: StagingString::new_with_raw("x"),
+                            axis_type: AxisType::Space,
+                            size_widget: AnyAxisSizeWidget{
+                                mode: AxisSizeMode::Reference,
+                                staging_size_ref: AxisSizeReferenceWidget{
+                                    staging_tensor_id: StagingString::new_with_raw("raw"),
+                                    staging_axis_id: StagingString::new_with_raw("x"),
+                                    staging_offset: StagingNum::new_with_raw(32),
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        halo_widget: StagingNum::new_with_raw(1),
+                    },
+                ];
+                output_tensor_widget.test_tensor_widget.set_path(
+                    PathBuf::from(
+                        "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/test_output.npy"
+                    )
+                );
+                output_tensor_widget
+            }
+        ];
+
+        out.weights_widget.torchscript_weights_widget.0 = Some({
+            let mut torchscript_weights_widget = TorchscriptWeightsWidget::default();
+            torchscript_weights_widget.base_widget.source_widget.set_path(PathBuf::from(
+                "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/weights.pt"
+            ));
+            torchscript_weights_widget.pytorch_version_widget.raw = "1.5.1".into();
+            torchscript_weights_widget
+        });
+
+        out
     }
 }
 

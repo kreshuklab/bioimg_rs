@@ -38,6 +38,7 @@ pub struct ParameterizedAxisSize {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum AnyAxisSize {
     Resolved(ResolvedAxisSize),
     Reference(AxisSizeReference),
@@ -58,6 +59,7 @@ impl AnyAxisSize {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum ResolvedAxisSize {
     Fixed(FixedAxisSize),
     Parameterized(ParameterizedAxisSize),
