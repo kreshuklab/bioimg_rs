@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::result::Result;
+use crate::result::{GuiError, Result};
 use super::StatefulWidget;
 
 pub trait ParsedFile: Send + 'static {
@@ -10,6 +10,7 @@ pub trait ParsedFile: Send + 'static {
 
 pub enum FileWidgetState<V: Send + 'static> {
     Empty,
+    AboutToLoad{ path: PathBuf },
     Loading {
         path: PathBuf,
         promise: poll_promise::Promise<V>,
@@ -39,6 +40,7 @@ impl<PF: ParsedFile> FileWidget<PF> {
     pub fn path(&self) -> Option<&Path> {
         match &self.state {
             FileWidgetState::Empty => None,
+            FileWidgetState::AboutToLoad { path } => Some(path),
             FileWidgetState::Loading { path, .. } => Some(path),
             FileWidgetState::Finished { path, .. } => Some(path),
         }
@@ -51,46 +53,58 @@ impl<PF: ParsedFile> Default for FileWidget<PF> {
     }
 }
 
+impl<T: ParsedFile> FileWidget<T>{
+    pub fn set_path(&mut self, path: PathBuf){
+        self.state = FileWidgetState::AboutToLoad { path };
+    }
+}
+
 impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
     type Value<'p> = &'p FileWidgetState<PF>;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
-        ui.horizontal(|ui| {
-            self.state = match std::mem::replace(&mut self.state, FileWidgetState::Empty) {
-                FileWidgetState::Empty => {
-                    ui.label("None");
-                    FileWidgetState::Empty
-                }
-                FileWidgetState::Finished { path, value } => {
-                    ui.label(path.to_string_lossy());
-                    value.render(ui, id.with("value"));
-                    FileWidgetState::Finished { path, value }
-                }
-                FileWidgetState::Loading { path, promise } => {
-                    ui.ctx().request_repaint();
-                    match promise.try_take() {
-                        Ok(value) => FileWidgetState::Finished { path, value },
-                        Err(promise) => {
-                            ui.label("Loading...");
-                            FileWidgetState::Loading { path, promise }
-                        }
+        ui.vertical(|ui|{
+            ui.horizontal(|ui|{
+                if ui.button("Open...").clicked(){
+                    if let Some(path) = rfd::FileDialog::new().pick_file(){
+                        self.set_path(path);
+                        return;
                     }
                 }
-            };
+                self.state = match std::mem::replace(&mut self.state, FileWidgetState::Empty){
+                    FileWidgetState::AboutToLoad { path } => {
+                        ui.ctx().request_repaint();
+                        let texture_name: String = path.to_string_lossy().into();
+                        ui.label(format!("Loading {} ...", texture_name));
 
-            if !ui.button("Open...").clicked() {
-                return;
-            }
-            let context = ui.ctx().clone();
-            let path_buf = rfd::FileDialog::new().pick_file(); //FIXME: web? async?
-            self.state = if let Some(pth) = path_buf {
-                FileWidgetState::Loading {
-                    path: pth.clone(),
-                    promise: poll_promise::Promise::spawn_thread("loading file", move || PF::parse(pth, context)),
-                }
-            } else {
-                FileWidgetState::Empty
-            };
+                        let ctx = ui.ctx().clone();
+                        FileWidgetState::Loading {
+                            path: path.clone(),
+                            promise: poll_promise::Promise::spawn_thread(
+                                "loading file",
+                                move || { PF::parse(path, ctx) }
+                            )
+                        }
+                    },
+                    FileWidgetState::Loading { path, promise } => {
+                        ui.ctx().request_repaint();
+                        ui.label(format!("Loading {} ...", path.to_string_lossy()));
+                        match promise.try_take() {
+                            Err(promise) => FileWidgetState::Loading { path, promise },
+                            Ok(parsed) => FileWidgetState::Finished{
+                                path,
+                                value: parsed
+                            },
+                        }
+                    },
+                    FileWidgetState::Finished{ path, value } => {
+                        ui.weak(path.to_string_lossy());
+                        value.render(ui, id.with("parsed"));
+                        FileWidgetState::Finished{path, value}
+                    },
+                    FileWidgetState::Empty => FileWidgetState::Empty,
+                };
+            });
         });
     }
 
@@ -102,7 +116,11 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
 
 impl ParsedFile for Result<PathBuf>{
     fn parse(path: PathBuf, _ctx: egui::Context) -> Self{
-        Ok(path)
+        if path.exists(){
+            Ok(path)
+        }else{
+            Err(GuiError::new("File does not exist".into()))
+        }
     }
     fn render(&self, _ui: &mut egui::Ui, _id: egui::Id){
 
