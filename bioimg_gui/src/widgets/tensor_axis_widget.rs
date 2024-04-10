@@ -92,7 +92,7 @@ impl Default for InputTensorAxisWidget {
 
             space_unit_widget: Default::default(),
             time_unit_widget: Default::default(),
-            scale_widget: Default::default(),
+            scale_widget: StagingNum::new_with_raw(1.0),
         }
     }
 }
