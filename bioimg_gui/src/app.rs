@@ -51,7 +51,7 @@ pub struct BioimgGui {
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
     staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
-    staging_version: StagingString<rdf::Version>,
+    staging_version: StagingOpt<StagingString<rdf::Version>>,
 
     staging_documentation: CodeEditorWidget,
     staging_license: EnumWidget<rdf::LicenseId>,
@@ -260,7 +260,9 @@ impl eframe::App for BioimgGui {
                                     links: Vec::<String>::new(),// FIXME: grab from widget,
                                     maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors".into()))?,
                                     tags,
-                                    version: Some(self.staging_version.state().map_err(|_| GuiError::new("Review resource version field".into()))?),
+                                    version: self.staging_version.state()
+                                        .transpose()
+                                        .map_err(|_| GuiError::new("Review resource version field".into()))?,
                                     authors,
                                     documentation: self.staging_documentation.state().to_owned(),
                                     license: self.staging_license.state(),
