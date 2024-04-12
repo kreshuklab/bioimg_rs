@@ -1,6 +1,5 @@
 use std::{
-    borrow::Borrow,
-    ops::{Deref, DerefMut},
+    borrow::Borrow, num::NonZeroUsize, ops::{Deref, DerefMut}
 };
 
 use serde::{Deserialize, Serialize};
@@ -46,5 +45,9 @@ impl<T> NonEmptyList<T> {
         F: Fn(&T) -> Out,
     {
         NonEmptyList(self.iter().map(f).collect())
+    }
+
+    pub fn len(&self) -> NonZeroUsize{
+        self.0.len().try_into().unwrap()
     }
 }
