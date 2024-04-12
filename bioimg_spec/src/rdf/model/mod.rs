@@ -22,9 +22,9 @@ pub mod run_mode;
 pub mod dataset_descr;
 
 pub use axes::{
-    AxisId, AxisScale, BatchAxis, ChannelAxis, IndexAxis, InputAxis, InputAxisGroup, OutputAxis, OutputAxisGroup, SpaceInputAxis,
-    SpaceOutputAxis, TimeInputAxis, TimeOutputAxis,
+    AxisId, AxisScale, BatchAxis, ChannelAxis, IndexAxis, InputAxis, InputAxisGroup, SpaceInputAxis, TimeInputAxis, 
 };
+pub use axes::output_axes::{OutputAxis, OutputAxisGroup, SpaceOutputAxis, TimeOutputAxis};
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize, QualifiedAxisId, ResolvedAxisSize};
 pub use input_tensor::InputTensorDescr;
 pub use output_tensor::OutputTensorDescr;

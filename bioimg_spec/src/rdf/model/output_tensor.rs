@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::rdf::file_reference::FileReference;
 
-use super::{axes::OutputAxisGroup, TensorTextDescription, TensorId};
+use super::{axes::output_axes::OutputAxisGroup, TensorId, TensorTextDescription};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OutputTensorDescr {

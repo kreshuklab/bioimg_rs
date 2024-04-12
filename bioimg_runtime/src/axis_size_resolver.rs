@@ -1,9 +1,54 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use bioimg_spec::rdf::model::{
-    axis_size::{QualifiedAxisId, ResolvedAxisSize},
-    AnyAxisSize, AxisSizeReference,
+    axis_size::{AxisSizeResolutionError, QualifiedAxisId, ResolvedAxisSize}, AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize
 };
+
+pub trait ResolveExt{
+    fn try_resolve(
+        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
+    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError>;
+}
+
+impl ResolveExt for FixedAxisSize{
+    fn try_resolve(
+        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
+    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
+        Ok(ResolvedAxisSize::Fixed(self.clone()))
+    }
+}
+
+impl ResolveExt for ParameterizedAxisSize{
+    fn try_resolve(
+        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
+    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
+        Ok(ResolvedAxisSize::Parameterized(self.clone()))
+    }
+}
+
+impl ResolveExt for AxisSizeReference{
+    fn try_resolve(
+        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
+    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
+        Ok(size_map.get(&self.qualified_axis_id).unwrap()) //FIXME
+    }
+}
+
+impl ResolveExt for AnyAxisSize{
+    fn try_resolve(
+        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
+    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
+        match self {
+            Self::Fixed(fixed) => fixed.try_resolve(size_map),
+            Self::Parameterized(parameterized) => parameterized.try_resolve(size_map),
+            Self::Reference(size_ref) => {
+                let resolved = size_ref.resolve_with(size_map);
+                *self = resolved.clone().into();
+                Ok(resolved.clone()) //FIXME?
+            },
+        }
+    }
+}
 
 pub struct SlotResolver {
     resolved_axes: HashMap<QualifiedAxisId, ResolvedAxisSize>,
