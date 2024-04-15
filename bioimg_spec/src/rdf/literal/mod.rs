@@ -63,7 +63,7 @@ impl<M: Marker> LitStrMarker<M>{
 }
 
 impl<N: Marker> From<LitStrMarker<N>> for String{
-    fn from(value: LitStrMarker<N>) -> Self {
+    fn from(_value: LitStrMarker<N>) -> Self {
         N::NAME.to_owned()
     }
 }

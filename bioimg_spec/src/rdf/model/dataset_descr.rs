@@ -16,7 +16,7 @@ pub enum DatasetDescrEnum{
 pub struct DatasetDescrMarker;
 
 impl From<DatasetDescrMarker> for String{
-    fn from(value: DatasetDescrMarker) -> Self {
+    fn from(_value: DatasetDescrMarker) -> Self {
         return "dataset".into()
     }
 }

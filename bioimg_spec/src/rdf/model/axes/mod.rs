@@ -1,4 +1,5 @@
 pub mod output_axes;
+pub mod input_axes;
 
 
 use paste::paste;
@@ -6,8 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     axis_size::AnyAxisSize,
-    space_unit::SpaceUnit,
-    time_unit::TimeUnit, FixedAxisSize,
+    FixedAxisSize,
 };
 use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{declare_lowercase_marker, LitStrMarker, LiteralInt, Marker}, lowercase::Lowercase, non_empty_list::NonEmptyList};
 
@@ -156,78 +156,6 @@ pub struct IndexAxis {
     pub size: AnyAxisSize,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TimeInputAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Time>,
-    #[serde(default = "_default_time_axis_id")]
-    pub id: AxisId,
-    #[serde(default)]
-    pub description: AxisDescription,
-    #[serde(default)]
-    pub unit: Option<TimeUnit>,
-    #[serde(default)]
-    pub scale: AxisScale,
-    pub size: AnyAxisSize,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SpaceInputAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Space>,
-    #[serde(default = "_default_space_axis_id")]
-    pub id: AxisId,
-    #[serde(default)]
-    pub description: AxisDescription,
-    #[serde(default)]
-    pub unit: Option<SpaceUnit>,
-    #[serde(default)]
-    pub scale: AxisScale,
-    pub size: AnyAxisSize,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
-pub enum InputAxis {
-    Batch(BatchAxis),
-    Channel(ChannelAxis),
-    Index(IndexAxis),
-    Time(TimeInputAxis),
-    Space(SpaceInputAxis),
-}
-
-
-impl InputAxis{
-    pub fn axis_type(&self) -> AxisType {
-        match self {
-            Self::Batch(_) => AxisType::Batch,
-            Self::Channel(_) => AxisType::Channel,
-            Self::Index(_) => AxisType::Index,
-            Self::Time(_) => AxisType::Time,
-            Self::Space(_) => AxisType::Space,
-       }
-    }
-
-    pub fn id(&self) -> AxisId {
-        match self {
-            Self::Batch(axis) => AxisId::from(&axis.id),
-            Self::Channel(axis) => AxisId::from(&axis.id),
-            Self::Index(axis) => AxisId::from(&axis.id),
-            Self::Time(axis) => axis.id.clone(),
-            Self::Space(axis) => axis.id.clone(),
-        }
-    }
-
-    pub fn size(&self) -> Option<AnyAxisSize>{
-        match self {
-            Self::Batch(_) => None,
-            Self::Channel(axis) => Some(AnyAxisSize::Fixed(axis.size())),
-            Self::Index(axis) => Some(axis.size.clone()),
-            Self::Time(axis) => Some(axis.size.clone()),
-            Self::Space(axis) => Some(axis.size.clone()),
-        }
-    }
-}
 
 fn _default_time_axis_id() -> AxisId {
     String::from("time").try_into().unwrap()
@@ -247,12 +175,6 @@ pub enum AxisGroupValidationError {
     RepeatedAxisType(AxisType),
 }
 
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-#[serde(try_from = "Vec::<InputAxis>")]
-pub struct InputAxisGroup(Vec<InputAxis>);
-
-#[rustfmt::skip]
 macro_rules!  impl_axis_group{($inout:ident) => { paste::paste!{
     impl std::ops::Deref for [<$inout AxisGroup>] {
         type Target = [ [<$inout Axis>] ];
@@ -281,5 +203,3 @@ macro_rules!  impl_axis_group{($inout:ident) => { paste::paste!{
 }};}
 
 pub(crate) use impl_axis_group;
-
-impl_axis_group!(Input);

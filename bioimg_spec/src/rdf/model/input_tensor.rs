@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::rdf::file_reference::FileReference;
 
-use super::{axes::InputAxisGroup, TensorTextDescription, TensorId};
+use super::{axes::input_axes::InputAxisGroup, TensorTextDescription, TensorId};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InputTensorDescr {
