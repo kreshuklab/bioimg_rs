@@ -1,9 +1,10 @@
 use std::num::NonZeroUsize;
 
-use bioimg_spec::rdf;
+use bioimg_spec::rdf::non_empty_list::NonEmptyList;
+use bioimg_spec::rdf::{self, LitStrMarker};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::Halo;
-use bioimg_spec::rdf::model as modelrdf;
+use bioimg_spec::rdf::model::{self as modelrdf, SpecialAxisId};
 
 use super::axis_size_widget::AxisSizeMode;
 use super::channel_name_widget::ChannelNamesWidget;
@@ -104,20 +105,23 @@ impl StatefulWidget for InputTensorAxisWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Axis Id: ");
-                self.id_widget.draw_and_parse(ui, id.with("id"));
-            });
-            ui.horizontal(|ui| {
-                ui.strong("Axis Description: ");
-                self.description_widget.draw_and_parse(ui, id.with("description"));
-            });
-            ui.horizontal(|ui| {
                 ui.strong("Axis Type: ");
                 ui.radio_value(&mut self.axis_type, AxisType::Space, "Space");
                 ui.radio_value(&mut self.axis_type, AxisType::Time, "Time");
                 ui.radio_value(&mut self.axis_type, AxisType::Batch, "Batch");
                 ui.radio_value(&mut self.axis_type, AxisType::Channel, "Channel");
                 ui.radio_value(&mut self.axis_type, AxisType::Index, "Index");
+            });
+            if matches!(self.axis_type, AxisType::Space | AxisType::Time){
+                ui.horizontal(|ui| {
+                    ui.strong("Axis Id: ");
+                    self.id_widget.draw_and_parse(ui, id.with("id"));
+                });
+            }
+
+            ui.horizontal(|ui| {
+                ui.strong("Axis Description: ");
+                self.description_widget.draw_and_parse(ui, id.with("description"));
             });
             match self.axis_type {
                 AxisType::Space => {
@@ -199,6 +203,7 @@ impl StatefulWidget for InputTensorAxisWidget {
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(match self.axis_type {
             AxisType::Space => modelrdf::InputAxis::Space(modelrdf::SpaceInputAxis {
+                tag: LitStrMarker::new(),
                 id: self.id_widget.state()?,
                 description: self.description_widget.state()?,
                 unit: self.space_unit_widget.state(),
@@ -206,6 +211,7 @@ impl StatefulWidget for InputTensorAxisWidget {
                 size: self.size_widget.state()?,
             }),
             AxisType::Time => modelrdf::InputAxis::Time(modelrdf::TimeInputAxis {
+                tag: LitStrMarker::new(),
                 id: self.id_widget.state()?,
                 description: self.description_widget.state()?,
                 unit: self.time_unit_widget.state(),
@@ -213,7 +219,8 @@ impl StatefulWidget for InputTensorAxisWidget {
                 size: self.size_widget.state()?,
             }),
             AxisType::Batch => modelrdf::InputAxis::Batch(modelrdf::BatchAxis {
-                id: self.id_widget.state()?,
+                tag: LitStrMarker::new(),
+                id: SpecialAxisId::new(),
                 description: self.description_widget.state()?,
                 size: if self.staging_allow_auto_size {
                     None
@@ -222,10 +229,9 @@ impl StatefulWidget for InputTensorAxisWidget {
                 },
             }),
             AxisType::Channel => {
-                let id = self.id_widget.state()?;
                 let description = self.description_widget.state()?;
 
-                let channel_names = match self.channel_names_mode {
+                let channel_names: NonEmptyList<rdf::Identifier<String>> = match self.channel_names_mode {
                     ChannelNamesMode::Pattern => {
                         let extent: usize = self.channel_extent_widget.state()?.into();
                         (0..extent)
@@ -236,18 +242,28 @@ impl StatefulWidget for InputTensorAxisWidget {
                                 Ok(identifier)
                             })
                             .collect::<Result<Vec<_>>>()?
+                            .try_into()
+                            .map_err(|_| GuiError::new("Empty list of channel names".to_owned()))?
+
                     }
                     ChannelNamesMode::Explicit => {
                         let channel_names_result: Result<Vec<rdf::Identifier<_>>, GuiError> =
                             self.staging_explicit_names.state().into_iter().collect();
-                        channel_names_result?
+                        NonEmptyList::try_from(channel_names_result?)
+                            .map_err(|_| GuiError::new("Empty list of channel names".to_owned()))?
                     }
                 };
 
-                modelrdf::InputAxis::Channel(modelrdf::ChannelAxis { id, description, channel_names })
+                modelrdf::InputAxis::Channel(modelrdf::ChannelAxis {
+                    tag: LitStrMarker::new(),
+                    id: SpecialAxisId::new(),
+                    description,
+                    channel_names
+                })
             }
             AxisType::Index => modelrdf::InputAxis::Index(modelrdf::axes::IndexAxis {
-                id: self.id_widget.state()?,
+                tag: LitStrMarker::new(),
+                id: SpecialAxisId::new(),
                 description: self.description_widget.state()?,
                 size: self.size_widget.state()?,
             }),
@@ -286,27 +302,27 @@ impl StatefulWidget for OutputTensorAxisWidget {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         let base = self.input_tensor_widget.state()?;
-        let halo = self.halo_widget.state()?;
+        // let halo = self.halo_widget.state()?;
         Ok(match base {
             modelrdf::InputAxis::Batch(batch_axis) => modelrdf::OutputAxis::Batch(batch_axis),
             modelrdf::InputAxis::Channel(channel_axis) => modelrdf::OutputAxis::Channel(channel_axis),
             modelrdf::InputAxis::Index(index_axis) => modelrdf::OutputAxis::Index(index_axis),
             modelrdf::InputAxis::Time(base) => modelrdf::OutputAxis::Time(modelrdf::TimeOutputAxis {
+                tag: LitStrMarker::new(),
                 id: base.id,
                 description: base.description,
                 unit: base.unit,
                 scale: base.scale,
                 size: base.size,
-                halo,
-            }),
+            }), //FIXME: gotta add the haloed axes!!!
             modelrdf::InputAxis::Space(base) => modelrdf::OutputAxis::Space(modelrdf::SpaceOutputAxis {
+                tag: LitStrMarker::new(),
                 id: base.id,
                 description: base.description,
                 unit: base.unit,
                 scale: base.scale,
                 size: base.size,
-                halo,
-            }),
+            }), //FIXME: gotta add the haloed axes!!!
         })
     }
 }

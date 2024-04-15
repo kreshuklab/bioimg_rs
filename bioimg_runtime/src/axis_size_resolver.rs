@@ -1,51 +1,22 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use bioimg_spec::rdf::model::{
-    axis_size::{AxisSizeResolutionError, QualifiedAxisId, ResolvedAxisSize}, AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize
+    axis_size::{QualifiedAxisId, ResolvedAxisSize}, AnyAxisSize, AxisSizeReference, ParameterizedAxisSize
 };
 
-pub trait ResolveExt{
-    fn try_resolve(
-        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
-    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError>;
+pub trait ResolvedAxisSizeExt{
+    fn is_compatible_with_extent(&self, extent: usize) -> bool;
 }
 
-impl ResolveExt for FixedAxisSize{
-    fn try_resolve(
-        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
-    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
-        Ok(ResolvedAxisSize::Fixed(self.clone()))
-    }
-}
-
-impl ResolveExt for ParameterizedAxisSize{
-    fn try_resolve(
-        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
-    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
-        Ok(ResolvedAxisSize::Parameterized(self.clone()))
-    }
-}
-
-impl ResolveExt for AxisSizeReference{
-    fn try_resolve(
-        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
-    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
-        Ok(size_map.get(&self.qualified_axis_id).unwrap()) //FIXME
-    }
-}
-
-impl ResolveExt for AnyAxisSize{
-    fn try_resolve(
-        &mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>
-    ) -> Result<ResolvedAxisSize, AxisSizeResolutionError> {
+impl ResolvedAxisSizeExt for ResolvedAxisSize{
+    fn is_compatible_with_extent(&self, extent: usize) -> bool {
         match self {
-            Self::Fixed(fixed) => fixed.try_resolve(size_map),
-            Self::Parameterized(parameterized) => parameterized.try_resolve(size_map),
-            Self::Reference(size_ref) => {
-                let resolved = size_ref.resolve_with(size_map);
-                *self = resolved.clone().into();
-                Ok(resolved.clone()) //FIXME?
-            },
+            Self::Fixed(fixed) => return usize::from(*fixed) == extent,
+            Self::Parameterized(ParameterizedAxisSize { min, step }) => {
+                let min = usize::from(*min);
+                let step = usize::from(*step);
+                return (extent - min) % step == 0;
+            }
         }
     }
 }
@@ -68,6 +39,8 @@ pub enum AxisSizeResolutionError {
     Unresolvable(QualifiedAxisId),
     #[error("Multiple axes with same ID: {0}")]
     DuplicateId(QualifiedAxisId),
+    #[error("Parameterized size not allowed")]
+    ParameterizedNotAllowed,
 }
 
 impl SlotResolver {
@@ -77,10 +50,13 @@ impl SlotResolver {
         for (qual_id, inp_size) in sizes.into_iter() {
             let duplicate_detected = match inp_size {
                 AnyAxisSize::Reference(size_ref) => {
-                    matches!(unresolved_axes.insert(qual_id.clone(), size_ref.clone()), Some(_))
-                }
-                AnyAxisSize::Resolved(resolved_size) => {
-                    matches!(resolved_axes.insert(qual_id.clone(), resolved_size.clone()), Some(_))
+                    unresolved_axes.insert(qual_id.clone(), size_ref.clone()).is_some()
+                },
+                AnyAxisSize::Parameterized(resolved_size) => {
+                    resolved_axes.insert(qual_id.clone(), resolved_size.into()).is_some()
+                },
+                AnyAxisSize::Fixed(resolved_size) => {
+                    resolved_axes.insert(qual_id.clone(), resolved_size.into()).is_some()
                 }
             };
             if duplicate_detected {
@@ -98,10 +74,9 @@ impl SlotResolver {
         if let Some(resolved) = self.resolved_axes.get(&current) {
             return Ok(resolved.clone());
         }
-        if visited.contains(&current) {
+        if !visited.insert(current.clone()) {
             return Err(AxisSizeResolutionError::Loop(current));
         }
-        visited.insert(current.clone());
         let Some(size_ref) = self.unresolved_axes.get(&current) else {
             return Err(AxisSizeResolutionError::Unresolvable(current));
         };
@@ -112,13 +87,11 @@ impl SlotResolver {
     }
 
     fn step(mut self) -> Result<ResolverStatus, AxisSizeResolutionError> {
-        Ok(match self.unresolved_axes.last_key_value() {
-            Some((key, _)) => {
-                self.try_resolve(key.clone(), HashSet::new())?;
-                ResolverStatus::Resolving(self)
-            }
-            None => ResolverStatus::Done(self.resolved_axes),
-        })
+        let Some((key, _)) = self.unresolved_axes.last_key_value() else{
+            return Ok(ResolverStatus::Done(self.resolved_axes));
+        };
+        self.try_resolve(key.clone(), HashSet::new())?;
+        Ok(ResolverStatus::Resolving(self))
     }
 
     pub fn solve(mut self) -> Result<HashMap<QualifiedAxisId, ResolvedAxisSize>, AxisSizeResolutionError> {

@@ -42,9 +42,17 @@ impl<T> Borrow<[T]> for NonEmptyList<T> {
 impl<T> NonEmptyList<T> {
     pub fn map<F, Out>(&self, f: F) -> NonEmptyList<Out>
     where
-        F: Fn(&T) -> Out,
+        F: FnMut(&T) -> Out,
     {
         NonEmptyList(self.iter().map(f).collect())
+    }
+
+    pub fn try_map<F, O, E>(&self, f: F) -> Result<NonEmptyList<O>, E>
+    where
+        F: FnMut(&T) -> Result<O, E>,
+    {
+        let v: Vec<O> = self.iter().map(f).collect::<Result<Vec<O>, E>>()?;
+        Ok(NonEmptyList(v))
     }
 
     pub fn len(&self) -> NonZeroUsize{

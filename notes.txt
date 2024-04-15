@@ -1,0 +1,34 @@
+- "there are endpoints we need that sit between CI and S3"
+- "used to be netlify functions, there as a POC in firebase"
+- "Hypha SHOULD BE - a proxy that lets you connect to a remote function"
+    - from a browser, I can connect to another browser,
+    - allows people to share files and cuntionality
+- chatbot is a service registered in Hypha
+- Hypha also has a triton runner
+- wtf is "backoffice" ? Seems to be a project form Fynn?
+
+
+idk what this is:
+
+backoffice publish "${{inputs.resource_id}}" "staged/${{inputs.stage_number}}" "${{inputs.reviewer}}"
+
+
+-----
+
+Deploying stuff?
+
+uploader is gonna be a pure frontend application (check heremy msg on eleemnt)
+    - it interacts with S3
+    - it also interacts with the review service- register_review_service -> hypha calls it to register it with hypha
+    - Hypha has a list of services o start, api.py is somewhere in there
+        - updating bioimage-uploader-review...api.py needs hypha to come get it again
+    - bioimgae-ploader-review/.../__main__.py start a local hypha server
+        - pip install hypha for that
+
+imjoy core and rpc - runs remote services
+- list services? list of functions
+- function ca;lled "chat"
+- frontend - review function  -
+
+
+- frontend is at netlify

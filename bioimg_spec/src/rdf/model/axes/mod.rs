@@ -1,20 +1,15 @@
 pub mod output_axes;
 
-use std::{
-    collections::{HashMap, HashSet},
-    marker::PhantomData,
-    ops::Deref,
-};
 
 use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    axis_size::{AnyAxisSize, FixedOrRefAxisSize, QualifiedAxisId, ResolvedAxisSize},
+    axis_size::AnyAxisSize,
     space_unit::SpaceUnit,
-    time_unit::TimeUnit,
+    time_unit::TimeUnit, FixedAxisSize,
 };
-use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{declare_lowercase_marker, LitStrMarker, LiteralInt, Marker}, lowercase::Lowercase};
+use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{declare_lowercase_marker, LitStrMarker, LiteralInt, Marker}, lowercase::Lowercase, non_empty_list::NonEmptyList};
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 pub type AxisDescription = BoundedString<0, { 128 - 1 }>;
@@ -63,9 +58,14 @@ declare_lowercase_marker!(Time);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpecialAxisId<M: AxisIdMarker>(LitStrMarker<M>);
 
+impl<M: AxisIdMarker> SpecialAxisId<M>{
+    pub fn new() -> Self{
+        Self(LitStrMarker::new())
+    }
+}
 
 impl<M: AxisIdMarker> From<&SpecialAxisId<M>> for AxisId {
-    fn from(value: &SpecialAxisId<M>) -> AxisId {
+    fn from(_value: &SpecialAxisId<M>) -> AxisId {
         AxisId::try_from(M::NAME.to_owned()).unwrap()
     }
 }
@@ -107,14 +107,6 @@ impl TryFrom<f32> for AxisScale {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum AxisResolutionError{
-    #[error("Could not resolve axis size")]
-    CouldNotResolve,
-    #[error("Resolved axis size type is not allowed")]
-    NotAllowed,
-}
-
 // ///////////////////////
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -136,14 +128,21 @@ pub struct ChannelAxis {
     #[serde(default)]
     pub description: AxisDescription,
     // pub size: FixedAxisSize,
-    pub channel_names: Vec<Identifier<String>>,
+    pub channel_names: NonEmptyList<Identifier<String>>,
     // #[serde(default)]
     // pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
 }
 
+impl ChannelAxis{
+    pub fn size(&self) -> FixedAxisSize{
+        self.channel_names.len()
+    }
+}
+
 impl ChannelAxis {
     pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
-        return self.channel_names.len() == extent;
+        let len: usize = self.channel_names.len().into();
+        len == extent
     }
 }
 
@@ -187,27 +186,6 @@ pub struct SpaceInputAxis {
     pub size: AnyAxisSize,
 }
 
-
-#[rustfmt::skip]
-macro_rules! impl_resolve_size_with {($axis:ident) => {
-    impl $axis{
-        pub fn resolve_size_with(
-            &mut self,
-            size_map: &std::collections::HashMap<
-                crate::rdf::model::axis_size::QualifiedAxisId,
-                crate::rdf::model::axis_size::ResolvedAxisSize
-            >
-        ) -> crate::rdf::model::axis_size::ResolvedAxisSize {
-            self.size.resolve_with(size_map)
-        }
-    }
-};}
-pub(crate) use impl_resolve_size_with;
-
-impl_resolve_size_with!(IndexAxis);
-impl_resolve_size_with!(SpaceInputAxis);
-impl_resolve_size_with!(TimeInputAxis);
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum InputAxis {
@@ -240,36 +218,19 @@ impl InputAxis{
         }
     }
 
-    pub fn resolve_size_with(&mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>) -> Option<ResolvedAxisSize> {
+    pub fn size(&self) -> Option<AnyAxisSize>{
         match self {
-            Self::Index(axis) => Some(axis.size.resolve_with(size_map)),
-            Self::Time(axis) => Some(axis.size.resolve_with(size_map)),
-            Self::Space(axis) => Some(axis.size.resolve_with(size_map)),
-            _ => None,
-        }
-    }
-
-    pub fn size(&self) -> Option<&AnyAxisSize>{
-        match self {
-            Self::Index(axis) => Some(&axis.size),
-            Self::Time(axis) => Some(&axis.size),
-            Self::Space(axis) => Some(&axis.size),
-            _ => None,
+            Self::Batch(_) => None,
+            Self::Channel(axis) => Some(AnyAxisSize::Fixed(axis.size())),
+            Self::Index(axis) => Some(axis.size.clone()),
+            Self::Time(axis) => Some(axis.size.clone()),
+            Self::Space(axis) => Some(axis.size.clone()),
         }
     }
 }
 
-fn _default_batch_axis_id() -> AxisId {
-    String::from("batch").try_into().unwrap()
-}
-fn _default_channel_axis_id() -> AxisId {
-    String::from("channel").try_into().unwrap()
-}
 fn _default_time_axis_id() -> AxisId {
     String::from("time").try_into().unwrap()
-}
-fn _default_index_axis_id() -> AxisId {
-    String::from("index").try_into().unwrap()
 }
 fn _default_space_axis_id() -> AxisId {
     String::from("x").try_into().unwrap()
@@ -293,12 +254,6 @@ pub struct InputAxisGroup(Vec<InputAxis>);
 
 #[rustfmt::skip]
 macro_rules!  impl_axis_group{($inout:ident) => { paste::paste!{
-    impl [<$inout AxisGroup>] {
-        pub fn resolve_sizes_with(&mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>) -> Vec<Option<ResolvedAxisSize>> {
-            self.0.iter_mut().map(|axis| axis.resolve_size_with(size_map)).collect()
-        }
-    }
-
     impl std::ops::Deref for [<$inout AxisGroup>] {
         type Target = [ [<$inout Axis>] ];
 

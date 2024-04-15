@@ -133,10 +133,10 @@ impl StatefulWidget for AnyAxisSizeWidget {
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(match self.mode {
             AxisSizeMode::Fixed => {
-                modelrdf::AnyAxisSize::Resolved(modelrdf::ResolvedAxisSize::Fixed(self.staging_fixed_size.state()?))
+                modelrdf::AnyAxisSize::Fixed(self.staging_fixed_size.state()?)
             }
             AxisSizeMode::Parameterized => {
-                modelrdf::AnyAxisSize::Resolved(modelrdf::ResolvedAxisSize::Parameterized(self.staging_parameterized.state()?))
+                modelrdf::AnyAxisSize::Parameterized(self.staging_parameterized.state()?)
             }
             AxisSizeMode::Reference => modelrdf::AnyAxisSize::Reference(self.staging_size_ref.state()?),
         })

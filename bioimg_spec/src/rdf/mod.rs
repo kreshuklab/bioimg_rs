@@ -30,7 +30,7 @@ pub use bounded_string::BoundedString;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
 pub use identifier::Identifier;
 pub use license::LicenseId;
-pub use literal::LiteralInt;
+pub use literal::{LiteralInt, LitStrMarker};
 pub use version::Version;
 pub use file_reference::{HttpUrl, FsPath, FileReference, CoverImageSource, EnvironmentFile};
 pub use author::Author2;

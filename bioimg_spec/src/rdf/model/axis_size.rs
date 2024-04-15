@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, num::NonZeroUsize};
+use std::{fmt::Display, num::NonZeroUsize};
 
 use serde::{Deserialize, Serialize};
 
@@ -45,37 +45,22 @@ pub enum AnyAxisSize {
     Reference(AxisSizeReference),
 }
 
-impl AnyAxisSize {
-    //FIXME: return a ref?
-    pub fn resolve_with(&mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>) -> ResolvedAxisSize {
-        match self {
-            Self::Reference(size_ref) => {
-                let resolved = size_ref.resolve_with(size_map);
-                *self = resolved.clone().into();
-                resolved.clone() //FIXME?
-            },
-            Self::Fixed(fixed) => ResolvedAxisSize::Fixed(fixed.clone()),
-            Self::Parameterized(parameterized) => ResolvedAxisSize::Parameterized(parameterized.clone()),
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ResolvedAxisSize {
     Fixed(FixedAxisSize),
     Parameterized(ParameterizedAxisSize),
 }
-impl ResolvedAxisSize {
-    pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
-        match self {
-            Self::Fixed(fixed) => return usize::from(*fixed) == extent,
-            Self::Parameterized(ParameterizedAxisSize { min, step }) => {
-                let min = usize::from(*min);
-                let step = usize::from(*step);
-                return (extent - min) % step == 0;
-            }
-        }
+
+impl From<FixedAxisSize> for ResolvedAxisSize{
+    fn from(value: FixedAxisSize) -> Self {
+        Self::Fixed(value)
+    }
+}
+
+impl From<ParameterizedAxisSize> for ResolvedAxisSize{
+    fn from(value: ParameterizedAxisSize) -> Self {
+        Self::Parameterized(value)
     }
 }
 
@@ -95,12 +80,6 @@ pub enum FixedOrRefAxisSize{
     Reference(AxisSizeReference),
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum AxisSizeResolutionError{
-    #[error("Parameterized axis size not allowed")]
-    ParameterizedNotAllowed(ParameterizedAxisSize)
-}
-
 impl From<FixedOrRefAxisSize> for AnyAxisSize{
     fn from(value: FixedOrRefAxisSize) -> Self {
         match value{
@@ -111,12 +90,12 @@ impl From<FixedOrRefAxisSize> for AnyAxisSize{
 }
 
 impl TryFrom<AnyAxisSize> for FixedOrRefAxisSize{
-    type Error = AxisSizeResolutionError;
+    type Error = ParameterizedAxisSize;
     fn try_from(value: AnyAxisSize) -> Result<Self, Self::Error> {
         match value{
             AnyAxisSize::Fixed(fixed) => Ok(Self::Fixed(fixed)),
             AnyAxisSize::Reference(reference) => Ok(Self::Reference(reference)),
-            AnyAxisSize::Parameterized(parameterized) => Err(AxisSizeResolutionError::ParameterizedNotAllowed(parameterized))
+            AnyAxisSize::Parameterized(parameterized) => Err(parameterized),
         }
     }
-} 
+}

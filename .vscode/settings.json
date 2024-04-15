@@ -1,0 +1,5 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./bioimg_runtime/Cargo.toml"
+    ]
+}
