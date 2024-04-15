@@ -25,7 +25,8 @@ pub enum SiMultiplier {
     d,
     c,
     m,
-    µ,
+    #[serde(rename = "µ")]
+    micro,
     n,
     p,
     f,
@@ -54,7 +55,8 @@ pub enum SiMesaure {
     C,
     V,
     F,
-    Ω,
+    #[serde(rename = "Ω")]
+    Ohm,
     S,
     Wb,
     T,
