@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{model::{AnyAxisSize, SpaceUnit, TimeUnit}, LitStrMarker};
+use crate::rdf::model::{AnyAxisSize, SpaceUnit, TimeUnit};
 
-use super::{AxisDescription, AxisId, AxisScale, AxisType, BatchAxis, ChannelAxis, IndexAxis, Space, Time, _default_space_axis_id, _default_time_axis_id, impl_axis_group};
+use super::{
+    AxisDescription, AxisId, AxisScale, AxisType, BatchAxis, ChannelAxis, IndexAxis,
+    _default_space_axis_id, _default_time_axis_id, impl_axis_group
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TimeInputAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Time>,
     #[serde(default = "_default_time_axis_id")]
     pub id: AxisId,
     #[serde(default)]
@@ -21,8 +22,6 @@ pub struct TimeInputAxis {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpaceInputAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Space>,
     #[serde(default = "_default_space_axis_id")]
     pub id: AxisId,
     #[serde(default)]
@@ -35,15 +34,45 @@ pub struct SpaceInputAxis {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum InputAxis {
+    #[serde(rename = "batch")]
     Batch(BatchAxis),
+    #[serde(rename = "channel")]
     Channel(ChannelAxis),
+    #[serde(rename = "index")]
     Index(IndexAxis),
+    #[serde(rename = "time")]
     Time(TimeInputAxis),
+    #[serde(rename = "space")]
     Space(SpaceInputAxis),
 }
 
+impl From<BatchAxis> for InputAxis{
+    fn from(value: BatchAxis) -> Self {
+        InputAxis::Batch(value)
+    }
+}
+impl From<ChannelAxis> for InputAxis{
+    fn from(value: ChannelAxis) -> Self {
+        InputAxis::Channel(value)
+    }
+}
+impl From<IndexAxis> for InputAxis{
+    fn from(value: IndexAxis) -> Self {
+        InputAxis::Index(value)
+    }
+}
+impl From<TimeInputAxis> for InputAxis{
+    fn from(value: TimeInputAxis) -> Self {
+        InputAxis::Time(value)
+    }
+}
+impl From<SpaceInputAxis> for InputAxis{
+    fn from(value: SpaceInputAxis) -> Self {
+        InputAxis::Space(value)
+    }
+}
 
 impl InputAxis{
     pub fn axis_type(&self) -> AxisType {

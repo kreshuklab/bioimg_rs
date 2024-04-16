@@ -8,6 +8,12 @@ use serde::{Deserialize, Serialize};
 #[serde(transparent)]
 pub struct NonEmptyList<T>(Vec<T>);
 
+impl<T> From<NonEmptyList<T>> for Vec<T>{
+    fn from(value: NonEmptyList<T>) -> Self {
+        value.0
+    }
+}
+
 impl<T> Deref for NonEmptyList<T> {
     type Target = [T];
 

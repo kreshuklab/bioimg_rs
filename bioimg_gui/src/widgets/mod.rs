@@ -17,7 +17,7 @@ pub mod staging_num;
 pub mod staging_opt;
 pub mod staging_string;
 pub mod staging_vec;
-pub mod tensor_axis_widget;
+pub mod axis_widget;
 pub mod url_widget;
 pub mod util;
 pub mod weights_widget;
@@ -26,6 +26,8 @@ pub mod tags_widget;
 pub mod channel_name_widget;
 pub mod notice_widget;
 pub mod image_widget;
+pub mod output_axis_widget;
+pub mod input_axis_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

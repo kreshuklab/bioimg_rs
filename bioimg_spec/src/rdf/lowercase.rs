@@ -13,6 +13,12 @@ pub enum LowercaseParsingError {
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Lowercase<T>(T);
 
+impl<T: Into<String>> From<Lowercase<T>> for String{
+    fn from(value: Lowercase<T>) -> Self {
+        value.0.into()
+    }
+}
+
 impl<T: Borrow<str>> Borrow<str> for Lowercase<T> {
     fn borrow(&self) -> &str {
         return self.0.borrow();

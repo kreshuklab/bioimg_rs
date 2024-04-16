@@ -1,17 +1,20 @@
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
+use bioimg_spec::rdf::model::axes::output_axes::OutputSpacetimeSize;
+use bioimg_spec::rdf::model::{self as modelrdf, AxisSizeReference, QualifiedAxisId, SpecialAxisId};
 use bioimg_spec::rdf::{self, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
-use crate::widgets::axis_size_widget::{AnyAxisSizeWidget, AxisSizeMode, AxisSizeReferenceWidget};
 use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
-use crate::widgets::staging_num::StagingNum;
-use crate::widgets::tensor_axis_widget::{AxisType, ChannelNamesMode, InputTensorAxisWidget, OutputTensorAxisWidget};
+use crate::widgets::input_axis_widget::InputAxisWidget;
+use crate::widgets::output_axis_widget::OutputAxisWidget;
+
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::image_widget::ImageWidget;
@@ -199,44 +202,34 @@ impl BioimgGui {
                 input_tensor_widget.id_widget.raw = "raw".into();
                 input_tensor_widget.description_widget.raw = "raw input".into();
                 input_tensor_widget.axes_widget.staging = vec![
-                    InputTensorAxisWidget{
-                        id_widget: StagingString::new_with_raw("batch"),
-                        axis_type: AxisType::Batch,
-                        ..Default::default()
-                    },
-                    InputTensorAxisWidget{
-                        id_widget: StagingString::new_with_raw("channel"),
-                        axis_type: AxisType::Channel,
-                        staging_explicit_names: {
-                            let mut channel_names_widget = StagingVec::default();
-                            channel_names_widget.staging = vec![
-                                StagingString::new_with_raw("raw_intensity")
-                            ];
-                            channel_names_widget
-                        },
-                        channel_names_mode: ChannelNamesMode::Explicit,
-                        ..Default::default()
-                    },
-                    InputTensorAxisWidget{
-                        id_widget: StagingString::new_with_raw("y"),
-                        axis_type: AxisType::Space,
-                        size_widget: AnyAxisSizeWidget{
-                            mode: AxisSizeMode::Fixed,
-                            staging_fixed_size: StagingNum::new_with_raw(512),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
-                    InputTensorAxisWidget{
-                        id_widget: StagingString::new_with_raw("x"),
-                        axis_type: AxisType::Space,
-                        size_widget: AnyAxisSizeWidget{
-                            mode: AxisSizeMode::Fixed,
-                            staging_fixed_size: StagingNum::new_with_raw(512),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
+                    InputAxisWidget::new(Some(
+                        modelrdf::BatchAxis::default().into()
+                    )),
+                    InputAxisWidget::new(Some(
+                        modelrdf::ChannelAxis{
+                            id: SpecialAxisId::new(),
+                            channel_names: vec!["raw_intensity".to_owned().try_into().unwrap()].try_into().unwrap(),
+                            description: "".try_into().unwrap(),
+                        }.into()
+                    )),
+                    InputAxisWidget::new(Some(
+                        modelrdf::SpaceInputAxis{
+                            id: "y".to_owned().try_into().unwrap(),
+                            size: NonZeroUsize::try_from(512usize).unwrap().into(),
+                            description: Default::default(),
+                            scale: Default::default(),
+                            unit: Default::default(),
+                        }.into()
+                    )),
+                    InputAxisWidget::new(Some(
+                        modelrdf::SpaceInputAxis{
+                            id: "x".to_owned().try_into().unwrap(),
+                            size: NonZeroUsize::try_from(512usize).unwrap().into(),
+                            description: Default::default(),
+                            scale: Default::default(),
+                            unit: Default::default(),
+                        }.into()
+                    )),
                 ];
                 input_tensor_widget.test_tensor_widget.set_path(
                     PathBuf::from(
@@ -253,64 +246,52 @@ impl BioimgGui {
                 output_tensor_widget.id_widget.raw = "probability".into();
                 output_tensor_widget.description_widget.raw = "probability in [0,1]".into();
                 output_tensor_widget.axes_widget.staging = vec![
-                    OutputTensorAxisWidget{
-                        input_tensor_widget: InputTensorAxisWidget{
-                            id_widget: StagingString::new_with_raw("batch"),
-                            axis_type: AxisType::Batch,
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
-                    OutputTensorAxisWidget{
-                        input_tensor_widget: InputTensorAxisWidget{
-                            id_widget: StagingString::new_with_raw("channel"),
-                            axis_type: AxisType::Channel,
-                            staging_explicit_names: {
-                                let mut channel_names_widget = StagingVec::default();
-                                channel_names_widget.staging = vec![
-                                    StagingString::new_with_raw("probability")
-                                ];
-                                channel_names_widget
+                    OutputAxisWidget::new(Some(
+                        modelrdf::BatchAxis::default().into()
+                    )),
+                    OutputAxisWidget::new(Some(
+                        modelrdf::ChannelAxis{
+                            id: SpecialAxisId::new(),
+                            channel_names: vec!["probability".to_owned().try_into().unwrap()].try_into().unwrap(),
+                            description: "".try_into().unwrap(),
+                        }.into()
+                    )),
+                    OutputAxisWidget::new(Some(
+                        modelrdf::SpaceOutputAxis{
+                            id: "y".to_owned().try_into().unwrap(),
+                            size: OutputSpacetimeSize::Haloed{
+                                halo: 32u64.try_into().unwrap(),
+                                size: AxisSizeReference{
+                                    offset: Default::default(),
+                                    qualified_axis_id: QualifiedAxisId{
+                                        tensor_id: "raw".to_owned().try_into().unwrap(),
+                                        axis_id: "y".to_owned().try_into().unwrap(),
+                                    },
+                                }.into()
                             },
-                            channel_names_mode: ChannelNamesMode::Explicit,
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
-                    OutputTensorAxisWidget{
-                        input_tensor_widget: InputTensorAxisWidget{
-                            id_widget: StagingString::new_with_raw("y"),
-                            axis_type: AxisType::Space,
-                            size_widget: AnyAxisSizeWidget{
-                                mode: AxisSizeMode::Reference,
-                                staging_size_ref: AxisSizeReferenceWidget{
-                                    staging_tensor_id: StagingString::new_with_raw("raw"),
-                                    staging_axis_id: StagingString::new_with_raw("y"),
-                                    staging_offset: StagingNum::new_with_raw(32),
-                                },
-                                ..Default::default()
+                            description: Default::default(),
+                            scale: Default::default(),
+                            unit: Default::default(),
+                        }.into()
+                    )),
+                    OutputAxisWidget::new(Some(
+                        modelrdf::SpaceOutputAxis{
+                            id: "x".to_owned().try_into().unwrap(),
+                            size: OutputSpacetimeSize::Haloed{
+                                halo: 32u64.try_into().unwrap(),
+                                size: AxisSizeReference{
+                                    offset: Default::default(),
+                                    qualified_axis_id: QualifiedAxisId{
+                                        tensor_id: "raw".to_owned().try_into().unwrap(),
+                                        axis_id: "x".to_owned().try_into().unwrap(),
+                                    },
+                                }.into()
                             },
-                            ..Default::default()
-                        },
-                        halo_widget: StagingNum::new_with_raw(1),
-                    },
-                    OutputTensorAxisWidget{
-                        input_tensor_widget: InputTensorAxisWidget{
-                            id_widget: StagingString::new_with_raw("x"),
-                            axis_type: AxisType::Space,
-                            size_widget: AnyAxisSizeWidget{
-                                mode: AxisSizeMode::Reference,
-                                staging_size_ref: AxisSizeReferenceWidget{
-                                    staging_tensor_id: StagingString::new_with_raw("raw"),
-                                    staging_axis_id: StagingString::new_with_raw("x"),
-                                    staging_offset: StagingNum::new_with_raw(32),
-                                },
-                                ..Default::default()
-                            },
-                            ..Default::default()
-                        },
-                        halo_widget: StagingNum::new_with_raw(1),
-                    },
+                            description: Default::default(),
+                            scale: Default::default(),
+                            unit: Default::default(),
+                        }.into()
+                    )),
                 ];
                 output_tensor_widget.test_tensor_widget.set_path(
                     PathBuf::from(

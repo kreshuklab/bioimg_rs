@@ -9,17 +9,30 @@ pub struct EnumWidget<E> {
     lower_case_display_names: Vec<String>,
 }
 
-impl<E> Default for EnumWidget<E>
-where
-    E: strum::VariantArray + Default + strum::VariantNames
-{
-    fn default() -> Self {
+impl<E> EnumWidget<E>{
+    pub fn new(value: E) -> Self
+    where
+        E: strum::VariantNames
+    {
         Self {
-            value: Default::default(),
+            value: value,
             search: String::with_capacity(64),
             popup_open: false,
             lower_case_display_names: <E as strum::VariantNames>::VARIANTS.iter().map(|dn| dn.to_lowercase()).collect(),
         }
+    }
+
+    pub fn set_value(&mut self, value: E){
+        self.value = value
+    }
+}
+
+impl<E> Default for EnumWidget<E>
+where
+    E: Default + strum::VariantNames
+{
+    fn default() -> Self {
+        Self::new(Default::default())
     }
 }
 

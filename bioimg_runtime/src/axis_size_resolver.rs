@@ -35,7 +35,7 @@ pub enum ResolverStatus {
 pub enum AxisSizeResolutionError {
     #[error("Loop detected when trying to resolve reference to {0}")]
     Loop(QualifiedAxisId),
-    #[error("Resolve reference to {0} is unresolvable")]
+    #[error("Reference to {0} is unresolvable")]
     Unresolvable(QualifiedAxisId),
     #[error("Multiple axes with same ID: {0}")]
     DuplicateId(QualifiedAxisId),

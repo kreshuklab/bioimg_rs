@@ -17,6 +17,13 @@ pub struct StagingString<T> {
     pub input_lines: InputLines,
 }
 
+impl<T: Into<String> + Clone> StagingString<T>{
+    pub fn set_value(&mut self, value: T){
+        self.raw = value.clone().into();
+        self.parsed = Ok(value)
+    }
+}
+
 impl<T> StagingString<T>
 where
     T: TryFrom<String>,

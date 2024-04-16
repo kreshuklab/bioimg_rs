@@ -9,6 +9,14 @@ pub struct StagingNum<Raw, Parsed> {
     pub parsed: Result<Parsed>,
 }
 
+impl<Raw, Parsed: Into<Raw> + Clone> StagingNum<Raw, Parsed>{
+    pub fn set_value(&mut self, value: Parsed){
+        self.raw = value.clone().into();
+        self.parsed = Ok(value)
+    }
+}
+
+
 impl<Raw, Parsed> StagingNum<Raw, Parsed>
 where
     Raw: Clone,

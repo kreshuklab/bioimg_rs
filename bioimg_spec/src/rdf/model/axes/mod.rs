@@ -17,12 +17,19 @@ pub type AxisDescription = BoundedString<0, { 128 - 1 }>;
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 pub struct AxisScale(f32);
 
+impl From<AxisScale> for f32{
+    fn from(value: AxisScale) -> Self {
+        value.0
+    }
+}
+
 impl Default for AxisScale {
     fn default() -> Self {
         Self(1.0)
     }
 }
 
+//FIXME: why isn't Halo just a NonNegativeU64?
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum HaloParsingError {
     #[error("Halo must be a positive integer, found {found}")]
@@ -31,6 +38,12 @@ pub enum HaloParsingError {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Halo(u64);
+
+impl From<Halo> for u64{
+    fn from(value: Halo) -> Self {
+        value.0
+    }
+}
 
 impl TryFrom<u64> for Halo {
     type Error = HaloParsingError;
@@ -55,7 +68,7 @@ declare_lowercase_marker!(Space);
 declare_lowercase_marker!(Time);
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct SpecialAxisId<M: AxisIdMarker>(LitStrMarker<M>);
 
 impl<M: AxisIdMarker> SpecialAxisId<M>{
@@ -76,7 +89,7 @@ pub enum SpecialAxisIdParsingError {
     BadAxisId { expected: &'static str, found: String },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub enum AxisType {
     #[serde(rename = "batch")]
     Batch,
@@ -86,6 +99,7 @@ pub enum AxisType {
     Index,
     #[serde(rename = "time")]
     Time,
+    #[default]
     #[serde(rename = "space")]
     Space,
 }
@@ -109,10 +123,8 @@ impl TryFrom<f32> for AxisScale {
 
 // ///////////////////////
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct BatchAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Batch>,
     pub id: SpecialAxisId<Batch>,
     #[serde(default)]
     pub description: AxisDescription,
@@ -122,8 +134,6 @@ pub struct BatchAxis {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChannelAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Channel>,
     pub id: SpecialAxisId<Channel>,
     #[serde(default)]
     pub description: AxisDescription,
@@ -148,8 +158,6 @@ impl ChannelAxis {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IndexAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Index>,
     pub id: SpecialAxisId<Index>,
     #[serde(default)]
     pub description: AxisDescription,

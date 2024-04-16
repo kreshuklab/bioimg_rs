@@ -6,6 +6,12 @@ use super::{axes::AxisId, tensor_id::TensorId};
 
 pub type FixedAxisSize = NonZeroUsize;
 
+impl From<FixedAxisSize> for AnyAxisSize{
+    fn from(value: FixedAxisSize) -> Self {
+        AnyAxisSize::Fixed(value)
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash, Clone, Debug, PartialOrd, Ord)]
 pub struct QualifiedAxisId {
     pub tensor_id: TensorId,
@@ -22,7 +28,20 @@ impl Display for QualifiedAxisId {
 pub struct AxisSizeReference {
     #[serde(flatten)]
     pub qualified_axis_id: QualifiedAxisId,
+    #[serde(default)]
     pub offset: usize,
+}
+
+impl From<AxisSizeReference> for AnyAxisSize{
+    fn from(value: AxisSizeReference) -> Self {
+        AnyAxisSize::Reference(value)
+    }
+}
+
+impl From<AxisSizeReference> for FixedOrRefAxisSize{
+    fn from(value: AxisSizeReference) -> Self {
+        FixedOrRefAxisSize::Reference(value)
+    }
 }
 
 impl Display for AxisSizeReference {
@@ -35,6 +54,12 @@ impl Display for AxisSizeReference {
 pub struct ParameterizedAxisSize {
     pub min: NonZeroUsize,
     pub step: NonZeroUsize,
+}
+
+impl From<ParameterizedAxisSize> for AnyAxisSize{
+    fn from(value: ParameterizedAxisSize) -> Self {
+        AnyAxisSize::Parameterized(value)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

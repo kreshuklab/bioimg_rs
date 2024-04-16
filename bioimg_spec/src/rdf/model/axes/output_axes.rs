@@ -1,34 +1,41 @@
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::literal::LitStrMarker;
 use crate::rdf::model::axis_size::FixedOrRefAxisSize;
 use crate::rdf::model::AnyAxisSize;
 
-use super::{impl_axis_group, AxisDescription, AxisId, AxisScale, AxisType, BatchAxis, ChannelAxis, Halo, IndexAxis, Space, Time, _default_space_axis_id, _default_time_axis_id};
+use super::{
+    impl_axis_group, AxisDescription, AxisId, AxisScale, AxisType, BatchAxis, ChannelAxis,
+    Halo, IndexAxis, _default_space_axis_id, _default_time_axis_id
+};
 use crate::rdf::model::time_unit::TimeUnit;
 use crate::rdf::model::space_unit::SpaceUnit;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum OutputSpacetimeSize{
+    Standard(AnyAxisSize),
+    Haloed{
+        size: FixedOrRefAxisSize,
+        halo: Halo,
+    }
+}
 
+impl From<AnyAxisSize> for OutputSpacetimeSize{
+    fn from(value: AnyAxisSize) -> Self {
+        Self::Standard(value)
+    }
+}
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TimeOutputAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Time>,
-    #[serde(default = "_default_time_axis_id")]
-    pub id: AxisId,
-    #[serde(default)]
-    pub description: AxisDescription,
-    #[serde(default)]
-    pub unit: Option<TimeUnit>,
-    #[serde(default)]
-    pub scale: AxisScale,
-    pub size: AnyAxisSize,
+impl OutputSpacetimeSize{
+    pub fn size(&self) -> AnyAxisSize{
+        match self{
+            Self::Standard(size) => size.clone(),
+            Self::Haloed { size, .. } => size.clone().into(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TimeOutputAxisWithHalo {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Time>,
+pub struct TimeOutputAxis {
     #[serde(default = "_default_time_axis_id")]
     pub id: AxisId,
     #[serde(default)]
@@ -37,14 +44,12 @@ pub struct TimeOutputAxisWithHalo {
     pub unit: Option<TimeUnit>,
     #[serde(default)]
     pub scale: AxisScale,
-    pub size: FixedOrRefAxisSize,
-    pub halo: Halo,
+    #[serde(flatten)]
+    pub size: OutputSpacetimeSize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpaceOutputAxis {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Space>,
     #[serde(default = "_default_space_axis_id")]
     pub id: AxisId,
     #[serde(default)]
@@ -53,35 +58,49 @@ pub struct SpaceOutputAxis {
     pub unit: Option<SpaceUnit>,
     #[serde(default)]
     pub scale: AxisScale,
-    pub size: AnyAxisSize,
+    #[serde(flatten)]
+    pub size: OutputSpacetimeSize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SpaceOutputAxisWithHalo {
-    #[serde(rename = "type")]
-    pub tag: LitStrMarker<Space>,
-    #[serde(default = "_default_space_axis_id")]
-    pub id: AxisId,
-    #[serde(default)]
-    pub description: AxisDescription,
-    #[serde(default)]
-    pub unit: Option<SpaceUnit>,
-    #[serde(default)]
-    pub scale: AxisScale,
-    pub size: FixedOrRefAxisSize,
-    pub halo: Halo,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum OutputAxis {
+    #[serde(rename = "batch")]
     Batch(BatchAxis),
+    #[serde(rename = "channel")]
     Channel(ChannelAxis),
+    #[serde(rename = "index")]
     Index(IndexAxis),
-    TimeWithHalo(TimeOutputAxisWithHalo),  // haloed must come first since it has more fields
+    #[serde(rename = "time")]
     Time(TimeOutputAxis),
-    SpaceWithHalo(SpaceOutputAxisWithHalo), // haloed must come first since it has more fields
+    #[serde(rename = "space")]
     Space(SpaceOutputAxis),
+}
+
+impl From<BatchAxis> for OutputAxis{
+    fn from(value: BatchAxis) -> Self {
+        OutputAxis::Batch(value)
+    }
+}
+impl From<ChannelAxis> for OutputAxis{
+    fn from(value: ChannelAxis) -> Self {
+        OutputAxis::Channel(value)
+    }
+}
+impl From<IndexAxis> for OutputAxis{
+    fn from(value: IndexAxis) -> Self {
+        OutputAxis::Index(value)
+    }
+}
+impl From<TimeOutputAxis> for OutputAxis{
+    fn from(value: TimeOutputAxis) -> Self {
+        OutputAxis::Time(value)
+    }
+}
+impl From<SpaceOutputAxis> for OutputAxis{
+    fn from(value: SpaceOutputAxis) -> Self {
+        OutputAxis::Space(value)
+    }
 }
 
 impl OutputAxis{
@@ -91,9 +110,7 @@ impl OutputAxis{
             Self::Channel(_) => AxisType::Channel,
             Self::Index(_) => AxisType::Index,
             Self::Time(_) => AxisType::Time,
-            Self::TimeWithHalo(_) => AxisType::Time,
             Self::Space(_) => AxisType::Space,
-            Self::SpaceWithHalo(_) => AxisType::Space,
        }
     }
 
@@ -103,9 +120,7 @@ impl OutputAxis{
             Self::Channel(axis) => AxisId::from(&axis.id),
             Self::Index(axis) => AxisId::from(&axis.id),
             Self::Time(axis) => axis.id.clone(),
-            Self::TimeWithHalo(axis) => axis.id.clone(),
             Self::Space(axis) => axis.id.clone(),
-            Self::SpaceWithHalo(axis) => axis.id.clone(),
         }
     }
 
@@ -114,10 +129,8 @@ impl OutputAxis{
             Self::Batch(_) => None,
             Self::Channel(axis) => Some(AnyAxisSize::Fixed(axis.size())),
             Self::Index(axis) => Some(axis.size.clone()),
-            Self::Time(axis) => Some(axis.size.clone()),
-            Self::TimeWithHalo(axis) => Some(axis.size.clone().into()),
-            Self::Space(axis) => Some(axis.size.clone()),
-            Self::SpaceWithHalo(axis) => Some(axis.size.clone().into()),
+            Self::Time(axis) => Some(axis.size.size()),
+            Self::Space(axis) => Some(axis.size.size()),
         }
     }
 }

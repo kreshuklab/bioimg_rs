@@ -12,8 +12,8 @@ use super::file_widget::{FileWidget, FileWidgetState};
 use super::gui_npy_array::GuiNpyArray;
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
-use super::tensor_axis_widget::InputTensorAxisWidget;
-use super::tensor_axis_widget::OutputTensorAxisWidget;
+use super::input_axis_widget::InputAxisWidget;
+use super::output_axis_widget::OutputAxisWidget;
 use super::StatefulWidget;
 use crate::widgets::staging_vec::ItemWidgetConf;
 
@@ -22,7 +22,7 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
     pub struct [<$inout TensorWidget>] {
         pub id_widget: StagingString<modelrdf::TensorId>,
         pub description_widget: StagingString<modelrdf::TensorTextDescription>,
-        pub axes_widget: StagingVec< [<$inout TensorAxisWidget>] >,
+        pub axes_widget: StagingVec< [<$inout AxisWidget>] >,
         pub test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
     }
 
@@ -53,13 +53,12 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
                         .unwrap_or(String::default());
                 }
                 let sample_shape = gui_npy_arr.shape();
-                let mut extents = sample_shape.iter();
-                (0..self.axes_widget.staging.len()).for_each(|_| {
-                    extents.next();
-                });
+                let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
+
                 while let Some(extent) = extents.next() {
-                    let mut axis_widget = [<$inout TensorAxisWidget>]::default();
-                    axis_widget.set_fixed(*extent);
+                    let mut axis_widget = [<$inout AxisWidget>]::default();
+                    axis_widget.axis_type = modelrdf::AxisType::Space;
+                    axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
                     self.axes_widget.staging.push(axis_widget)
                 }
             };

@@ -39,12 +39,12 @@ pub enum MarkerParsingError{
     UnexpectedString{expected: &'static str, found: String}
 }
 
-pub trait Marker: Clone{
+pub trait Marker: Clone + Default{
     const NAME: &'static str;
 }
 
 macro_rules! declare_lowercase_marker {($name:ident) => { paste!{
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize, Default)]
     pub struct $name;
     impl Marker for $name {
         const NAME: &'static str = stringify!( [<$name:lower>] );
@@ -53,7 +53,7 @@ macro_rules! declare_lowercase_marker {($name:ident) => { paste!{
 
 pub(crate) use declare_lowercase_marker;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(try_from = "String")]
 #[serde(into = "String")]
 pub struct LitStrMarker<M: Marker>(PhantomData<M>);

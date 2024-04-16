@@ -22,9 +22,10 @@ pub mod run_mode;
 pub mod dataset_descr;
 
 pub use axes::{
-    AxisId, AxisScale,
+    AxisType, AxisId, AxisScale,
     BatchAxis, ChannelAxis, IndexAxis,
     SpecialAxisId, Batch, Index, Channel, Space, Time,
+    Halo,
 };
 pub use axes::input_axes::{InputAxis, InputAxisGroup, SpaceInputAxis, TimeInputAxis};
 pub use axes::output_axes::{OutputAxis, OutputAxisGroup, SpaceOutputAxis, TimeOutputAxis};
