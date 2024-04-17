@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::{util::group_frame, StatefulWidget};
+use super::{util::group_frame, StatefulWidget, ValueWidget};
 
 pub trait ItemWidgetConf{
     const ITEM_NAME: &'static str;
@@ -10,6 +10,20 @@ pub trait ItemWidgetConf{
 pub struct StagingVec<Stg, Conf=Stg>{
     pub staging: Vec<Stg>,
     marker: PhantomData<Conf>,
+}
+
+impl<Stg, Conf> ValueWidget for StagingVec<Stg, Conf>
+where
+    Stg: ValueWidget + Default
+{
+    type Value<'a> = Vec<<Stg as ValueWidget>::Value<'a>>;
+    fn set_value<'a>(&mut self, value: Self::Value<'a>){
+        self.staging = value.into_iter().map(|item_value|{
+            let mut widget = Stg::default();
+            widget.set_value(item_value);
+            widget
+        }).collect();
+    }
 }
 
 impl<Stg: Default, Conf: ItemWidgetConf> Default for StagingVec<Stg, Conf>{

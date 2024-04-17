@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
 pub type ConfString = BoundedString<1, 1023>;
@@ -11,6 +11,17 @@ pub struct StagingAuthor2 {
     pub staging_email: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
     pub staging_github_user: StagingOpt<StagingString<ConfString>>, // (String) GitHub user name.
     pub staging_orcid: StagingOpt<StagingString<Orcid>>,
+}
+
+impl ValueWidget for StagingAuthor2{
+    type Value<'a> = Author2;
+    fn set_value<'a>(&mut self, value: Self::Value<'a>) {
+        self.staging_name.set_value(value.name);
+        self.staging_affiliation.set_value(value.affiliation);
+        self.staging_email.set_value(value.email);
+        self.staging_github_user.set_value(value.github_user);
+        self.staging_orcid.set_value(value.orcid);
+    }
 }
 
 impl ItemWidgetConf for StagingAuthor2{

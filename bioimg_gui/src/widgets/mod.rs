@@ -36,3 +36,8 @@ pub trait StatefulWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id);
     fn state<'p>(&'p self) -> Self::Value<'p>;
 }
+
+pub trait ValueWidget{
+    type Value<'v>;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>);
+}

@@ -9,7 +9,7 @@ use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
 use super::axis_widget::{BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
 use super::util::group_frame;
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::result::{GuiError, Result};
 

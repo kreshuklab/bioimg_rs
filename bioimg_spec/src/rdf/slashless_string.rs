@@ -16,6 +16,16 @@ pub enum SlashlessStringError {
     ContainsSlashes(String),
 }
 
+impl<T> From<SlashlessString<T>> for String
+where
+    T: Borrow<str> + TryFrom<String>,
+    <T as TryFrom<String>>::Error: Error + 'static
+{
+    fn from(value: SlashlessString<T>) -> Self {
+        value.0.borrow().to_owned()
+    }
+}
+
 impl<T> TryFrom<String> for SlashlessString<T>
 where
     T: Borrow<str> + TryFrom<String>,

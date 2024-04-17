@@ -7,7 +7,7 @@ use bioimg_spec::rdf::model::{axes::AxisId, tensor_id::TensorId};
 use super::staging_num::StagingNum;
 use super::staging_string::StagingString;
 use super::util::group_frame;
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 
 #[derive(Default)]
 pub struct AxisSizeReferenceWidget {

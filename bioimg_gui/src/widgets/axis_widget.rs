@@ -7,7 +7,7 @@ use bioimg_spec::rdf::model::{self as modelrdf};
 
 use super::channel_name_widget::ChannelNamesWidget;
 use super::staging_string::StagingString;
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::result::{GuiError, Result};
 

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::result::{GuiError, Result};
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 
 pub trait ParsedFile: Send + 'static {
     fn parse(path: PathBuf, ctx: egui::Context) -> Self;
@@ -33,6 +33,13 @@ impl<V: Send + 'static> FileWidgetState<V>{
 
 pub struct FileWidget<PF: ParsedFile> {
     pub state: FileWidgetState<PF>,
+}
+
+impl<PF: ParsedFile> ValueWidget for FileWidget<PF>{
+    type Value<'a> = PathBuf;
+    fn set_value<'a>(&mut self, value: Self::Value<'a>) {
+        self.set_path(value)
+    }
 }
 
 impl<PF: ParsedFile> FileWidget<PF> {

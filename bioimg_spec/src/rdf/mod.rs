@@ -37,6 +37,7 @@ pub use author::Author2;
 pub use file_description::{FileDescription, EnvironmentFileDescr};
 pub use maintainer::{Maintainer, MaintainerName};
 pub use orcid::Orcid;
+pub use cite_entry::CiteEntry2;
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
