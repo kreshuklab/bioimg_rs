@@ -25,7 +25,10 @@ impl InputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
         self.size_widget.prefil_parameterized(min)
     }
-    pub fn set_value(&mut self, value: modelrdf::SpaceInputAxis){
+}
+impl ValueWidget for InputSpaceAxisWidget{
+    type Value<'v> = modelrdf::SpaceInputAxis;
+    fn set_value(&mut self, value: modelrdf::SpaceInputAxis){
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
@@ -83,8 +86,9 @@ pub struct InputTimeAxisWidget {
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
 }
 
-impl InputTimeAxisWidget{
-    pub fn set_value(&mut self, value: modelrdf::TimeInputAxis){
+impl ValueWidget for InputTimeAxisWidget{
+    type Value<'v> = modelrdf::TimeInputAxis;
+    fn set_value(&mut self, value: modelrdf::TimeInputAxis){
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
@@ -152,7 +156,10 @@ impl InputAxisWidget{
         }
         out
     }
-    pub fn set_value(&mut self, value: modelrdf::InputAxis){
+}
+impl ValueWidget for InputAxisWidget{
+    type Value<'v> = modelrdf::InputAxis;
+    fn set_value(&mut self, value: modelrdf::InputAxis){
         match value{
             modelrdf::InputAxis::Batch(axis) => {
                 self.axis_type = AxisType::Batch;

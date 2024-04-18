@@ -1,5 +1,6 @@
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
@@ -229,12 +230,11 @@ impl BioimgGui {
             }
         ];
 
-        out.model_interface_widget.outputs_widget.staging = vec![
-            {
-                let mut output_tensor_widget = OutputTensorWidget::default();
-                output_tensor_widget.id_widget.set_value("probability".to_owned().try_into().unwrap());
-                output_tensor_widget.description_widget.set_value("probability in [0,1]".to_owned().try_into().unwrap());
-                output_tensor_widget.axes_widget.set_value(vec![
+        out.model_interface_widget.outputs_widget.set_value(vec![
+            (
+                "probability".to_owned().try_into().unwrap(),
+                "probability in [0,1]".to_owned().try_into().unwrap(),
+                vec![
                     modelrdf::BatchAxis::default().into(),
                     modelrdf::ChannelAxis{
                         id: SpecialAxisId::new(),
@@ -273,15 +273,16 @@ impl BioimgGui {
                         scale: Default::default(),
                         unit: Default::default(),
                     }.into(),
-                ]);
-                output_tensor_widget.test_tensor_widget.set_path(
-                    PathBuf::from(
-                        "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/test_output.npy"
-                    )
-                );
-                output_tensor_widget
-            }
-        ];
+                ],
+                Arc::new(
+                    rt::NpyArray::try_read(
+                        &PathBuf::from(
+                            "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/test_output.npy"
+                        )
+                    ).unwrap()
+                ),
+            ),
+        ]);
 
         out.weights_widget.torchscript_weights_widget.0 = Some({
             let mut torchscript_weights_widget = TorchscriptWeightsWidget::default();
