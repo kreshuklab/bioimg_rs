@@ -157,16 +157,9 @@ impl OutputTimeAxisWidget{
         self.scale_widget.set_value(value.scale);
     }
 }
-
-impl OutputAxisWidget{
-    pub fn new(value: Option<modelrdf::OutputAxis>) -> Self{
-        let mut out = Self::default();
-        if let Some(val) = value{
-            out.set_value(val);
-        }
-        out
-    }
-    pub fn set_value(&mut self, value: modelrdf::OutputAxis){
+impl ValueWidget for OutputAxisWidget{
+    type Value<'v> = modelrdf::OutputAxis;
+    fn set_value(&mut self, value: modelrdf::OutputAxis){
         match value{
             modelrdf::OutputAxis::Batch(axis) => {
                 self.axis_type = AxisType::Batch;

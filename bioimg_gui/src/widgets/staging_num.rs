@@ -16,21 +16,6 @@ impl<Raw, Parsed: Into<Raw> + Clone> StagingNum<Raw, Parsed>{
     }
 }
 
-
-impl<Raw, Parsed> StagingNum<Raw, Parsed>
-where
-    Raw: Clone,
-    Parsed: TryFrom<Raw>,
-    Parsed::Error: Display,
-{
-    pub fn new_with_raw(raw: Raw) -> Self{
-        Self {
-            raw: raw.clone(),
-            parsed: Parsed::try_from(raw).map_err(|err| GuiError::new(err.to_string())),
-        }
-    }
-}
-
 impl<Raw, Parsed> Default for StagingNum<Raw, Parsed>
 where
     Raw: Default,

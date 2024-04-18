@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 
 pub struct EnumWidget<E> {
     pub value: E,
@@ -22,7 +22,11 @@ impl<E> EnumWidget<E>{
         }
     }
 
-    pub fn set_value(&mut self, value: E){
+}
+
+impl<E> ValueWidget for EnumWidget<E>{
+    type Value<'v> = E;
+    fn set_value(&mut self, value: E){
         self.value = value
     }
 }

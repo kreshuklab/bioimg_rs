@@ -13,7 +13,6 @@ use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
 use crate::widgets::input_axis_widget::InputAxisWidget;
-use crate::widgets::output_axis_widget::OutputAxisWidget;
 
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
@@ -189,8 +188,8 @@ impl BioimgGui {
         out.model_interface_widget.inputs_widget.staging = vec![
             {
                 let mut input_tensor_widget = InputTensorWidget::default();
-                input_tensor_widget.id_widget.raw = "raw".into();
-                input_tensor_widget.description_widget.raw = "raw input".into();
+                input_tensor_widget.id_widget.set_value("raw".to_owned().try_into().unwrap());
+                input_tensor_widget.description_widget.set_value("raw input".to_owned().try_into().unwrap());
                 input_tensor_widget.axes_widget.staging = vec![
                     InputAxisWidget::new(Some(
                         modelrdf::BatchAxis::default().into()
@@ -233,56 +232,48 @@ impl BioimgGui {
         out.model_interface_widget.outputs_widget.staging = vec![
             {
                 let mut output_tensor_widget = OutputTensorWidget::default();
-                output_tensor_widget.id_widget.raw = "probability".into();
-                output_tensor_widget.description_widget.raw = "probability in [0,1]".into();
-                output_tensor_widget.axes_widget.staging = vec![
-                    OutputAxisWidget::new(Some(
-                        modelrdf::BatchAxis::default().into()
-                    )),
-                    OutputAxisWidget::new(Some(
-                        modelrdf::ChannelAxis{
-                            id: SpecialAxisId::new(),
-                            channel_names: vec!["probability".to_owned().try_into().unwrap()].try_into().unwrap(),
-                            description: "".try_into().unwrap(),
-                        }.into()
-                    )),
-                    OutputAxisWidget::new(Some(
-                        modelrdf::SpaceOutputAxis{
-                            id: "y".to_owned().try_into().unwrap(),
-                            size: OutputSpacetimeSize::Haloed{
-                                halo: 32u64.try_into().unwrap(),
-                                size: AxisSizeReference{
-                                    offset: Default::default(),
-                                    qualified_axis_id: QualifiedAxisId{
-                                        tensor_id: "raw".to_owned().try_into().unwrap(),
-                                        axis_id: "y".to_owned().try_into().unwrap(),
-                                    },
-                                }.into()
-                            },
-                            description: Default::default(),
-                            scale: Default::default(),
-                            unit: Default::default(),
-                        }.into()
-                    )),
-                    OutputAxisWidget::new(Some(
-                        modelrdf::SpaceOutputAxis{
-                            id: "x".to_owned().try_into().unwrap(),
-                            size: OutputSpacetimeSize::Haloed{
-                                halo: 32u64.try_into().unwrap(),
-                                size: AxisSizeReference{
-                                    offset: Default::default(),
-                                    qualified_axis_id: QualifiedAxisId{
-                                        tensor_id: "raw".to_owned().try_into().unwrap(),
-                                        axis_id: "x".to_owned().try_into().unwrap(),
-                                    },
-                                }.into()
-                            },
-                            description: Default::default(),
-                            scale: Default::default(),
-                            unit: Default::default(),
-                        }.into()
-                    )),
-                ];
+                output_tensor_widget.id_widget.set_value("probability".to_owned().try_into().unwrap());
+                output_tensor_widget.description_widget.set_value("probability in [0,1]".to_owned().try_into().unwrap());
+                output_tensor_widget.axes_widget.set_value(vec![
+                    modelrdf::BatchAxis::default().into(),
+                    modelrdf::ChannelAxis{
+                        id: SpecialAxisId::new(),
+                        channel_names: vec!["probability".to_owned().try_into().unwrap()].try_into().unwrap(),
+                        description: "".try_into().unwrap(),
+                    }.into(),
+                    modelrdf::SpaceOutputAxis{
+                        id: "y".to_owned().try_into().unwrap(),
+                        size: OutputSpacetimeSize::Haloed{
+                            halo: 32u64.try_into().unwrap(),
+                            size: AxisSizeReference{
+                                offset: Default::default(),
+                                qualified_axis_id: QualifiedAxisId{
+                                    tensor_id: "raw".to_owned().try_into().unwrap(),
+                                    axis_id: "y".to_owned().try_into().unwrap(),
+                                },
+                            }.into()
+                        },
+                        description: Default::default(),
+                        scale: Default::default(),
+                        unit: Default::default(),
+                    }.into(),
+                    modelrdf::SpaceOutputAxis{
+                        id: "x".to_owned().try_into().unwrap(),
+                        size: OutputSpacetimeSize::Haloed{
+                            halo: 32u64.try_into().unwrap(),
+                            size: AxisSizeReference{
+                                offset: Default::default(),
+                                qualified_axis_id: QualifiedAxisId{
+                                    tensor_id: "raw".to_owned().try_into().unwrap(),
+                                    axis_id: "x".to_owned().try_into().unwrap(),
+                                },
+                            }.into()
+                        },
+                        description: Default::default(),
+                        scale: Default::default(),
+                        unit: Default::default(),
+                    }.into(),
+                ]);
                 output_tensor_widget.test_tensor_widget.set_path(
                     PathBuf::from(
                         "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/test_output.npy"
