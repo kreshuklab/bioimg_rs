@@ -11,6 +11,7 @@ use crate::rdf::model::time_unit::TimeUnit;
 use crate::rdf::model::space_unit::SpaceUnit;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(untagged)]
 pub enum OutputSpacetimeSize{
     Standard(AnyAxisSize),
     Haloed{

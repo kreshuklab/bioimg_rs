@@ -38,7 +38,10 @@ macro_rules! declare_slot { ($struct_name:ident, inout = $inout:ident) => { past
                 id: self.id.clone(),
                 description: self.description.clone(),
                 axes: self.axes.clone(),
-                test_tensor: test_tensor_zip_path.into(),
+                test_tensor: rdf::FileDescription{
+                    source: test_tensor_zip_path.into(),
+                    sha256: None,
+                },
                 sample_tensor: None, //FIXME
             })
         }
