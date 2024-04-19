@@ -4,6 +4,7 @@ use super::{util::group_frame, StatefulWidget, ValueWidget};
 
 pub trait ItemWidgetConf{
     const ITEM_NAME: &'static str;
+    const INLINE_ITEM: bool = false;
     const MIN_NUM_ITEMS: usize = 0;
 }
 
@@ -49,9 +50,17 @@ where
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
-                ui.label(format!("{} #{}", Conf::ITEM_NAME, idx + 1));
+                let item_label = format!("{} #{}", Conf::ITEM_NAME, idx + 1);
                 group_frame(ui, |ui| {
-                    staging_item.draw_and_parse(ui, id.with(idx));
+                    if Conf::INLINE_ITEM{
+                        ui.horizontal(|ui|{
+                            ui.label(item_label);
+                            staging_item.draw_and_parse(ui, id.with(idx));
+                        });
+                    }else{
+                        ui.label(item_label);
+                        staging_item.draw_and_parse(ui, id.with(idx));
+                    }
                 });
             });
             ui.horizontal(|ui| {

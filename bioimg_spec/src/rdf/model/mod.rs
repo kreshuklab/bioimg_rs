@@ -4,6 +4,7 @@ use super::{
     author::Author2, cite_entry::CiteEntry2, file_reference::CoverImageSource, maintainer::Maintainer, non_empty_list::NonEmptyList, version::Version_0_5_0, BoundedString, FileReference, HttpUrl, Icon, LicenseId, ResourceTextDescription, Version
 };
 use crate::rdf::ResourceId;
+use crate::rdf;
 
 pub mod axes;
 pub mod axis_size;
@@ -132,7 +133,7 @@ pub struct ModelRdf {
 
     /// Associated tags
     /// e.g. "unet2d", "pytorch", "nucleus", "segmentation", "dsb2018"
-    pub tags: Vec<String>,
+    pub tags: Vec<rdf::Tag>,
 
     /// The version number of the resource. Its format must be a string in
     /// `MAJOR.MINOR.PATCH` format following the guidelines in Semantic Versioning 2.0.0 (see https://semver.org/).
@@ -221,7 +222,7 @@ pub struct ModelRdfRefs<'a> {
     pub icon: Option<&'a Icon>,
     pub links: &'a [String],
     pub maintainers: &'a [Maintainer],
-    pub tags: &'a [String],
+    pub tags: &'a [rdf::Tag],
     pub version: Option<&'a Version>,
     pub format_version: Version_0_5_0,
     pub rdf_type: RdfTypeModel,

@@ -12,7 +12,7 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
-use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
+use crate::widgets::inout_tensor_widget::InputTensorWidget;
 use crate::widgets::input_axis_widget::InputAxisWidget;
 
 // use crate::widgets::cover_image_widget::CoverImageWidget;
@@ -58,7 +58,7 @@ pub struct BioimgGui {
     icon_widget: StagingOpt<IconWidget>,
     //links
     staging_maintainers: StagingVec<StagingMaintainer>,
-    staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
+    staging_tags: StagingVec<StagingString<rdf::Tag>>,
     staging_version: StagingOpt<StagingString<rdf::Version>>,
 
     staging_documentation: CodeEditorWidget,
@@ -440,11 +440,8 @@ impl eframe::App for BioimgGui {
                                 let non_empty_cites = NonEmptyList::try_from(cite)
                                     .map_err(|_| GuiError::new("Cites are empty".into()))?;
 
-                                let tags: Vec<String> = self.staging_tags.state()
-                                    .into_iter()
-                                    .map(|res|{
-                                        res.map(|tag| String::from(tag))
-                                    }).collect::<Result<_>>()
+                                let tags: Vec<rdf::Tag> = self.staging_tags.state()
+                                    .collect_result()
                                     .map_err(|_| GuiError::new("Check tags for errors".into()))?;
 
                                 let authors = NonEmptyList::try_from(

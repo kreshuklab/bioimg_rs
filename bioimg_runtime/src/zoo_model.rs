@@ -42,7 +42,7 @@ pub struct ZooModel {
     pub icon: Option<Icon>,
     pub links: Vec<String>,
     pub maintainers: Vec<Maintainer>,
-    pub tags: Vec<String>,
+    pub tags: Vec<rdf::Tag>,
     pub version: Option<Version>,
     pub authors: NonEmptyList<Author2>,
     pub documentation: String,
