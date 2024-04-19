@@ -29,7 +29,9 @@ pub struct StagingCiteEntry2 {
 impl ValueWidget for StagingCiteEntry2{
     type Value<'a> = CiteEntry2;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
-        self.staging_doi.set_value(value.doi)
+        self.staging_text.set_value(value.text);
+        self.staging_doi.set_value(value.doi);
+        self.staging_url.set_value(value.url);
     }
 }
 
