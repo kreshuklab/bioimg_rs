@@ -182,7 +182,7 @@ impl BioimgGui {
             "dsb2018".to_owned().try_into().unwrap(),
         ]);
         out.staging_documentation.set_value(
-            "/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/README.md"
+            include_str!("/home/builder/source/spec-bioimage-io/example_descriptions/models/unet2d_nuclei_broad/README.md")
         );
         out.staging_license.value = rdf::LicenseId::MIT;
 
