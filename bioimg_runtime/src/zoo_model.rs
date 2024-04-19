@@ -71,7 +71,7 @@ impl ZooModel {
         let documentation: FileReference = {
             let documentation_path = FsPath::unique_suffixed("_README.md");
             writer.write_file(&documentation_path, |writer| -> Result<FileReference, std::io::Error> {
-                writer.write(self.documentation.as_bytes())?;
+                writer.write_all(self.documentation.as_bytes())?;
                 Ok(FileReference::Path(documentation_path.clone()))
             })?
         };

@@ -33,7 +33,7 @@ fn rdf_file_dump(
                 break;
             }
             total_bytes_read += num_read_bytes;
-            writer.write(&read_buffer[0..num_read_bytes])?; //FIXME: check if == num_read_bytes ?
+            writer.write_all(&read_buffer[0..num_read_bytes])?;
         }
         Ok(total_bytes_read)
     })?;
