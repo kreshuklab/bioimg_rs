@@ -3,12 +3,11 @@ name = "bioimg_gui"
 version = "0.1.0"
 authors = ["Tomaz Vieira<tom.fogaca@gmail.com>"]
 edition = "2021"
-rust-version = "1.74.1"
-
+rust-version = "1.76"
 
 [dependencies]
-egui = "0.24.1"
-eframe = { version = "0.24.1", default-features = false, features = [
+egui = "0.27.0"
+eframe = { version = "0.27.0", default-features = false, features = [
     # "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".

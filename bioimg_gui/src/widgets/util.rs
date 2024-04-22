@@ -16,24 +16,18 @@ impl DynamicImageExt for image::DynamicImage {
             egui::TextureOptions {
                 magnification: egui::TextureFilter::Linear,
                 minification: egui::TextureFilter::Nearest,
+                wrap_mode: egui::TextureWrapMode::ClampToEdge,
             },
         )
     }
 }
 
 pub fn group_frame<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui) -> R) -> InnerResponse<R> {
-    let margin = egui::Margin {
-        left: 20.0,
-        ..Default::default()
-    };
+    let margin = egui::Margin { left: 20.0, ..Default::default() };
     let response = egui::Frame::none().inner_margin(margin).show(ui, add_contents);
     let response_rect = response.response.rect;
     let line_start = response_rect.min;
-    let line_end = line_start
-        + egui::Vec2 {
-            x: 0.0,
-            y: response_rect.height(),
-        };
+    let line_end = line_start + egui::Vec2 { x: 0.0, y: response_rect.height() };
     ui.painter().line_segment([line_start, line_end], ui.visuals().window_stroke);
     response
 }
