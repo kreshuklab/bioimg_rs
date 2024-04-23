@@ -71,7 +71,11 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
 
                 while let Some(extent) = extents.next() {
                     let mut axis_widget = [<$inout AxisWidget>]::default();
-                    axis_widget.axis_type = modelrdf::AxisType::Space;
+                    axis_widget.axis_type = if *extent == 1{
+                        modelrdf::AxisType::Channel
+                    } else {
+                        modelrdf::AxisType::Space
+                    };
                     axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
                     self.axes_widget.staging.push(axis_widget)
                 }
