@@ -24,7 +24,7 @@ fn rdf_file_dump(
 ) -> Result<rdf::FileReference, ModelPackingError> {
     let mut file = std::fs::File::open(file_path)?;
     zip_file.write_file(&zip_path, |writer| -> Result<usize, std::io::Error> {
-        const READ_BUFFER_SIZE: usize = 16 * 1024 * 1024 * 1024;
+        const READ_BUFFER_SIZE: usize = 16 * 1024 * 1024;
         let mut read_buffer: Vec<u8> = vec![0; READ_BUFFER_SIZE];
         let mut total_bytes_read: usize = 0;
         loop {
