@@ -23,7 +23,8 @@ pub struct InputSpaceAxisWidget {
 
 impl InputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
-        self.size_widget.prefil_parameterized(min)
+        self.size_widget.prefil_parameterized(min);
+        self.scale_widget.raw = 1.0;
     }
 }
 impl ValueWidget for InputSpaceAxisWidget{

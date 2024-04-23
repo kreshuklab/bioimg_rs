@@ -121,6 +121,7 @@ impl AnyAxisSizeWidget{
     pub fn prefil_parameterized(&mut self, min: usize){
         self.mode = AxisSizeMode::Parameterized;
         self.staging_parameterized.staging_min.raw = min;
+        self.staging_fixed_size.raw = min;
     }
     pub fn set_value(&mut self, value: modelrdf::AnyAxisSize){
         match value{

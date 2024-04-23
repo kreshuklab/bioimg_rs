@@ -88,6 +88,7 @@ pub struct OutputSpaceAxisWidget {
 impl OutputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
         self.size_widget.prefil_parameterized(min);
+        self.scale_widget.raw = 1.0;
     }
 
     pub fn set_value(&mut self, value: modelrdf::SpaceOutputAxis){
