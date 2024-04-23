@@ -27,7 +27,7 @@ impl OutputSpacetimeSizeWidget{
     }
     pub fn set_value(&mut self, value: OutputSpacetimeSize){
         match value{
-            OutputSpacetimeSize::Standard(size) => {
+            OutputSpacetimeSize::Standard{size} => {
                 self.has_halo = false;
                 self.size_widget.set_value(size);
             },
@@ -70,7 +70,7 @@ impl StatefulWidget for OutputSpacetimeSizeWidget{
                 halo: self.halo_widget.state()?,
             }
         }else{
-            OutputSpacetimeSize::Standard(self.size_widget.state()?)
+            OutputSpacetimeSize::Standard{size: self.size_widget.state()?}
         })
     }
 }

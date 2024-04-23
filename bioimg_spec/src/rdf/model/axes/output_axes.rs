@@ -13,23 +13,23 @@ use crate::rdf::model::space_unit::SpaceUnit;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum OutputSpacetimeSize{
-    Standard(AnyAxisSize),
     Haloed{
         size: FixedOrRefAxisSize,
         halo: Halo,
-    }
+    },
+    Standard{size: AnyAxisSize},
 }
 
 impl From<AnyAxisSize> for OutputSpacetimeSize{
-    fn from(value: AnyAxisSize) -> Self {
-        Self::Standard(value)
+    fn from(size: AnyAxisSize) -> Self {
+        Self::Standard{size}
     }
 }
 
 impl OutputSpacetimeSize{
     pub fn size(&self) -> AnyAxisSize{
         match self{
-            Self::Standard(size) => size.clone(),
+            Self::Standard{ size } => size.clone(),
             Self::Haloed { size, .. } => size.clone().into(),
         }
     }
