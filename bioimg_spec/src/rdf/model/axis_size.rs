@@ -1,10 +1,16 @@
-use std::{collections::HashMap, fmt::Display, num::NonZeroUsize};
+use std::{fmt::Display, num::NonZeroUsize};
 
 use serde::{Deserialize, Serialize};
 
 use super::{axes::AxisId, tensor_id::TensorId};
 
 pub type FixedAxisSize = NonZeroUsize;
+
+impl From<FixedAxisSize> for AnyAxisSize{
+    fn from(value: FixedAxisSize) -> Self {
+        AnyAxisSize::Fixed(value)
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash, Clone, Debug, PartialOrd, Ord)]
 pub struct QualifiedAxisId {
@@ -22,7 +28,20 @@ impl Display for QualifiedAxisId {
 pub struct AxisSizeReference {
     #[serde(flatten)]
     pub qualified_axis_id: QualifiedAxisId,
+    #[serde(default)]
     pub offset: usize,
+}
+
+impl From<AxisSizeReference> for AnyAxisSize{
+    fn from(value: AxisSizeReference) -> Self {
+        AnyAxisSize::Reference(value)
+    }
+}
+
+impl From<AxisSizeReference> for FixedOrRefAxisSize{
+    fn from(value: AxisSizeReference) -> Self {
+        FixedOrRefAxisSize::Reference(value)
+    }
 }
 
 impl Display for AxisSizeReference {
@@ -37,40 +56,71 @@ pub struct ParameterizedAxisSize {
     pub step: NonZeroUsize,
 }
 
+impl From<ParameterizedAxisSize> for AnyAxisSize{
+    fn from(value: ParameterizedAxisSize) -> Self {
+        AnyAxisSize::Parameterized(value)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum AnyAxisSize {
-    Resolved(ResolvedAxisSize),
+    Fixed(FixedAxisSize),
+    Parameterized(ParameterizedAxisSize),
     Reference(AxisSizeReference),
 }
 
-impl AnyAxisSize {
-    //FIXME: return a ref?
-    pub fn resolve_with(&mut self, size_map: &HashMap<QualifiedAxisId, ResolvedAxisSize>) -> ResolvedAxisSize {
-        match self {
-            Self::Reference(size_ref) => {
-                let resolved = size_map.get(&size_ref.qualified_axis_id).unwrap().clone();
-                *self = Self::Resolved(resolved.clone());
-                resolved
-            }
-            Self::Resolved(resolved) => resolved.clone(),
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum ResolvedAxisSize {
+    Fixed(FixedAxisSize),
+    Parameterized(ParameterizedAxisSize),
+}
+
+impl From<FixedAxisSize> for ResolvedAxisSize{
+    fn from(value: FixedAxisSize) -> Self {
+        Self::Fixed(value)
+    }
+}
+
+impl From<ParameterizedAxisSize> for ResolvedAxisSize{
+    fn from(value: ParameterizedAxisSize) -> Self {
+        Self::Parameterized(value)
+    }
+}
+
+impl From<ResolvedAxisSize> for AnyAxisSize{
+    fn from(value: ResolvedAxisSize) -> Self {
+        match value{
+            ResolvedAxisSize::Fixed(fixed) => AnyAxisSize::Fixed(fixed),
+            ResolvedAxisSize::Parameterized(parameterized) => AnyAxisSize::Parameterized(parameterized)
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ResolvedAxisSize {
+#[serde(untagged)]
+pub enum FixedOrRefAxisSize{
     Fixed(FixedAxisSize),
-    Parameterized(ParameterizedAxisSize),
+    Reference(AxisSizeReference),
 }
-impl ResolvedAxisSize {
-    pub fn is_compatible_with_extent(&self, extent: usize) -> bool {
-        match self {
-            Self::Fixed(fixed) => return usize::from(*fixed) == extent,
-            Self::Parameterized(ParameterizedAxisSize { min, step }) => {
-                let min = usize::from(*min);
-                let step = usize::from(*step);
-                return (extent - min) % step == 0;
-            }
+
+impl From<FixedOrRefAxisSize> for AnyAxisSize{
+    fn from(value: FixedOrRefAxisSize) -> Self {
+        match value{
+            FixedOrRefAxisSize::Fixed(fixed) => AnyAxisSize::Fixed(fixed),
+            FixedOrRefAxisSize::Reference(reference) => AnyAxisSize::Reference(reference)
+        }
+    }
+}
+
+impl TryFrom<AnyAxisSize> for FixedOrRefAxisSize{
+    type Error = ParameterizedAxisSize;
+    fn try_from(value: AnyAxisSize) -> Result<Self, Self::Error> {
+        match value{
+            AnyAxisSize::Fixed(fixed) => Ok(Self::Fixed(fixed)),
+            AnyAxisSize::Reference(reference) => Ok(Self::Reference(reference)),
+            AnyAxisSize::Parameterized(parameterized) => Err(parameterized),
         }
     }
 }

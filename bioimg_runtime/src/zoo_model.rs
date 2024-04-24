@@ -42,7 +42,7 @@ pub struct ZooModel {
     pub icon: Option<Icon>,
     pub links: Vec<String>,
     pub maintainers: Vec<Maintainer>,
-    pub tags: Vec<String>,
+    pub tags: Vec<rdf::Tag>,
     pub version: Option<Version>,
     pub authors: NonEmptyList<Author2>,
     pub documentation: String,
@@ -71,7 +71,7 @@ impl ZooModel {
         let documentation: FileReference = {
             let documentation_path = FsPath::unique_suffixed("_README.md");
             writer.write_file(&documentation_path, |writer| -> Result<FileReference, std::io::Error> {
-                writer.write(self.documentation.as_bytes())?;
+                writer.write_all(self.documentation.as_bytes())?;
                 Ok(FileReference::Path(documentation_path.clone()))
             })?
         };

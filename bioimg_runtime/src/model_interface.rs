@@ -6,12 +6,12 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 use bioimg_spec::rdf;
 use paste::paste;
 
-use crate::axis_size_resolver::SlotResolver;
+use crate::axis_size_resolver::{ResolvedAxisSizeExt, SlotResolver};
 use crate::npy_array::NpyArray;
 use crate::zip_writer_ext::ModelZipWriter;
 use crate::zoo_model::ModelPackingError;
 use bioimg_spec::rdf::model::axis_size::QualifiedAxisId;
-use bioimg_spec::rdf::model::AnyAxisSize;
+use bioimg_spec::rdf::model::{AnyAxisSize, InputAxis, OutputAxis};
 use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 
 use super::axis_size_resolver::AxisSizeResolutionError;
@@ -38,15 +38,39 @@ macro_rules! declare_slot { ($struct_name:ident, inout = $inout:ident) => { past
                 id: self.id.clone(),
                 description: self.description.clone(),
                 axes: self.axes.clone(),
-                test_tensor: test_tensor_zip_path.into(),
+                test_tensor: rdf::FileDescription{
+                    source: test_tensor_zip_path.into(),
+                    sha256: None,
+                },
                 sample_tensor: None, //FIXME
             })
+        }
+    }
+
+    pub trait [<Vec $struct_name Ext>]{
+        fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &[<$inout Axis>])>;
+        fn qual_id_sizes(&self) -> impl Iterator<Item=(QualifiedAxisId, AnyAxisSize)>{
+            self.qual_id_axes().filter_map(|(qual_id, axis)| axis.size().map(|size| (qual_id, size)))
+        }
+    }
+    impl<DATA: Borrow<NpyArray>> [<Vec $struct_name Ext>] for [$struct_name<DATA>]{
+        fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &[<$inout Axis>])>{
+            self.iter()
+                .map(|rt_tensor_descr|{
+                    rt_tensor_descr.axes.iter().map(|axis|{
+                        let qual_id = QualifiedAxisId{tensor_id: rt_tensor_descr.id.clone(), axis_id: axis.id()};
+                        (qual_id, axis)
+                    })
+                })
+                .flatten()
         }
     }
 }};}
 
 declare_slot!(InputSlot, inout=Input);
 declare_slot!(OutputSlot, inout=Output);
+
+
 
 #[derive(thiserror::Error, Debug)]
 pub enum TensorValidationError {
@@ -59,11 +83,13 @@ pub enum TensorValidationError {
         test_tensor_shape: Vec<usize>,
         num_described_axes: usize,
     },
-    #[error("Axis '{qualified_axis_id}' is incompatible with test tensor dim #{axis_index} with extent {expected_extent}")]
+    #[error(
+        "Axis '{qualified_axis_id}' is incompatible with test tensor dim #{test_tensor_dim_index} with extent {test_tensor_dim_size}"
+    )]
     IncompatibleAxis {
         qualified_axis_id: QualifiedAxisId,
-        expected_extent: usize,
-        axis_index: usize,
+        test_tensor_dim_size: usize,
+        test_tensor_dim_index: usize,
     },
     #[error("{0}")]
     AxisSizeResolutionError(#[from] AxisSizeResolutionError),
@@ -78,8 +104,8 @@ pub enum TensorValidationError {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct ModelInterface<DATA: Borrow<NpyArray>> {
-    inputs: Vec<InputSlot<DATA>>,
-    outputs: Vec<OutputSlot<DATA>>,
+    inputs: NonEmptyList<InputSlot<DATA>>,
+    outputs: NonEmptyList<OutputSlot<DATA>>,
 }
 
 impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
@@ -93,85 +119,63 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         ),
         ModelPackingError,
     > {
-        let inputs: NonEmptyList<_> = self
-            .inputs
-            .iter()
-            .map(|inp| inp.dump(zip_writer))
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .unwrap();
-        let outputs: NonEmptyList<_> = self
-            .outputs
-            .iter()
-            .map(|inp| inp.dump(zip_writer))
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .unwrap();
+        let inputs = self.inputs.try_map(|inp| inp.dump(zip_writer))?;
+        let outputs = self.outputs.try_map(|out| out.dump(zip_writer))?;
         Ok((inputs, outputs))
     }
-    pub fn try_build(mut inputs: Vec<InputSlot<DATA>>, mut outputs: Vec<OutputSlot<DATA>>) -> Result<Self, TensorValidationError> {
-        if inputs.len() == 0 {
-            return Err(TensorValidationError::EmptyInputs);
+    pub fn try_build(inputs: Vec<InputSlot<DATA>>, outputs: Vec<OutputSlot<DATA>>) -> Result<Self, TensorValidationError> {
+        let inputs = NonEmptyList::try_from(inputs).map_err(|_| TensorValidationError::EmptyInputs)?;
+        let outputs = NonEmptyList::try_from(outputs).map_err(|_| TensorValidationError::EmptyOutputs)?;
+
+        {
+            let capacity: usize = usize::from(inputs.len()) + usize::from(outputs.len());
+            let mut seen_tensor_ids = HashSet::<&TensorId>::with_capacity(capacity);
+            inputs.iter().map(|tensor_descr| &tensor_descr.id)
+                .chain(outputs.iter().map(|tensor_descr| &tensor_descr.id))
+                .map(|tensor_id|{
+                    if !seen_tensor_ids.insert(tensor_id){
+                        Err(TensorValidationError::DuplicateTensorId(tensor_id.clone()))
+                    }else{
+                        Ok(())
+                    }
+                })
+                .collect::<Result<(), TensorValidationError>>()?;
         }
-        if outputs.len() == 0 {
-            return Err(TensorValidationError::EmptyOutputs);
-        }
-        let mut axes_sizes: Vec<(QualifiedAxisId, AnyAxisSize)> = Vec::with_capacity(inputs.len() + outputs.len());
-        let mut seen_tensor_ids = HashSet::<TensorId>::with_capacity(inputs.len() + outputs.len());
 
-        #[rustfmt::skip]
-        macro_rules! collect_sizes {($slots:ident) => { paste! {
-            for slot in $slots.iter() {
-                if !seen_tensor_ids.insert(slot.id.clone()){
-                    return Err(TensorValidationError::DuplicateTensorId(slot.id.clone()))
-                }
-                for axis in slot.axes.iter() {
-                    let Some(size) = axis.size() else{
-                        continue;
-                    };
-                    let qual_id = QualifiedAxisId {
-                        tensor_id: slot.id.clone(),
-                        axis_id: axis.id().clone(),
-                    };
-                    axes_sizes.push((qual_id, size.clone()));
-                }
-            }
-        }};}
-        collect_sizes!(inputs);
-        collect_sizes!(outputs);
+        let axis_sizes: Vec<(QualifiedAxisId, AnyAxisSize)> = inputs.qual_id_sizes()
+            .chain(outputs.qual_id_sizes())
+            .collect();
 
-        let size_map = SlotResolver::new(axes_sizes)?.solve()?;
+        let size_map = SlotResolver::new(axis_sizes)?.solve()?;
 
-        #[rustfmt::skip] macro_rules! resolve_and_validate {($slots:ident) => {
-            for slot in $slots.iter_mut() {
+        macro_rules! validate_resolution {( $slots:ident ) => {
+            for slot in $slots.iter(){
                 let test_tensor_shape = slot.test_tensor.borrow().shape();
-                let mut test_tensor_dims = test_tensor_shape.iter();
-                let num_described_axes = slot.axes.len();
-                for (axis_index, resolved_size) in slot.axes.resolve_sizes_with(&size_map).iter().enumerate() {
-                    let Some(dim) = test_tensor_dims.next() else {
+                let mut test_tensor_dims = test_tensor_shape.iter().enumerate();
+                for axis in slot.axes.iter(){
+                    let Some((test_tensor_dim_index, test_tensor_dim_size)) = test_tensor_dims.next() else{
                         return Err(TensorValidationError::MismatchedNumDimensions {
                             test_tensor_shape: test_tensor_shape.into(),
-                            num_described_axes,
+                            num_described_axes: slot.axes.len(),
                         });
                     };
-                    let Some(resolved_size) = resolved_size else {
+                    if axis.size().is_none(){ // batch i guess?
                         continue;
                     };
-                    if !resolved_size.is_compatible_with_extent(*dim) {
+                    let qual_id = QualifiedAxisId{tensor_id: slot.id.clone(), axis_id: axis.id()};
+                    let resolved = size_map.get(&qual_id).unwrap();
+                    if !resolved.is_compatible_with_extent(*test_tensor_dim_size){
                         return Err(TensorValidationError::IncompatibleAxis {
-                            qualified_axis_id: QualifiedAxisId{
-                                tensor_id: slot.id.clone(),
-                                axis_id: slot.axes[axis_index].id().clone(), //FIXME: alternative to indexing?
-                            },
-                            expected_extent: *dim,
-                            axis_index,
+                            qualified_axis_id: qual_id,
+                            test_tensor_dim_index,
+                            test_tensor_dim_size: *test_tensor_dim_size,
                         });
                     }
                 }
             }
-        }}
-        resolve_and_validate!(inputs);
-        resolve_and_validate!(outputs);
+        };}
+        validate_resolution!(inputs);
+        validate_resolution!(outputs);
 
         Ok(Self{inputs, outputs})
     }

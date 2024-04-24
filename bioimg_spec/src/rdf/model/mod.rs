@@ -4,6 +4,7 @@ use super::{
     author::Author2, cite_entry::CiteEntry2, file_reference::CoverImageSource, maintainer::Maintainer, non_empty_list::NonEmptyList, version::Version_0_5_0, BoundedString, FileReference, HttpUrl, Icon, LicenseId, ResourceTextDescription, Version
 };
 use crate::rdf::ResourceId;
+use crate::rdf;
 
 pub mod axes;
 pub mod axis_size;
@@ -22,9 +23,13 @@ pub mod run_mode;
 pub mod dataset_descr;
 
 pub use axes::{
-    AxisId, AxisScale, BatchAxis, ChannelAxis, IndexAxis, InputAxis, InputAxisGroup, OutputAxis, OutputAxisGroup, SpaceInputAxis,
-    SpaceOutputAxis, TimeInputAxis, TimeOutputAxis,
+    AxisType, AxisId, AxisScale,
+    BatchAxis, ChannelAxis, IndexAxis,
+    SpecialAxisId, Batch, Index, Channel, Space, Time,
+    Halo,
 };
+pub use axes::input_axes::{InputAxis, InputAxisGroup, SpaceInputAxis, TimeInputAxis};
+pub use axes::output_axes::{OutputAxis, OutputAxisGroup, SpaceOutputAxis, TimeOutputAxis};
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize, QualifiedAxisId, ResolvedAxisSize};
 pub use input_tensor::InputTensorDescr;
 pub use output_tensor::OutputTensorDescr;
@@ -128,7 +133,7 @@ pub struct ModelRdf {
 
     /// Associated tags
     /// e.g. "unet2d", "pytorch", "nucleus", "segmentation", "dsb2018"
-    pub tags: Vec<String>,
+    pub tags: Vec<rdf::Tag>,
 
     /// The version number of the resource. Its format must be a string in
     /// `MAJOR.MINOR.PATCH` format following the guidelines in Semantic Versioning 2.0.0 (see https://semver.org/).
@@ -217,7 +222,7 @@ pub struct ModelRdfRefs<'a> {
     pub icon: Option<&'a Icon>,
     pub links: &'a [String],
     pub maintainers: &'a [Maintainer],
-    pub tags: &'a [String],
+    pub tags: &'a [rdf::Tag],
     pub version: Option<&'a Version>,
     pub format_version: Version_0_5_0,
     pub rdf_type: RdfTypeModel,

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
@@ -9,21 +10,34 @@ use bioimg_spec::rdf::model as modelrdf;
 
 use super::error_display::show_error;
 use super::file_widget::{FileWidget, FileWidgetState};
-use super::gui_npy_array::GuiNpyArray;
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
-use super::tensor_axis_widget::InputTensorAxisWidget;
-use super::tensor_axis_widget::OutputTensorAxisWidget;
-use super::StatefulWidget;
+use super::input_axis_widget::InputAxisWidget;
+use super::output_axis_widget::OutputAxisWidget;
+use super::{StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
+
 
 #[rustfmt::skip]
 macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
     pub struct [<$inout TensorWidget>] {
         pub id_widget: StagingString<modelrdf::TensorId>,
         pub description_widget: StagingString<modelrdf::TensorTextDescription>,
-        pub axes_widget: StagingVec< [<$inout TensorAxisWidget>] >,
-        pub test_tensor_widget: FileWidget<Result<GuiNpyArray>>,
+        pub axes_widget: StagingVec< [<$inout AxisWidget>] >,
+        pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
+    }
+
+    impl ValueWidget for [<$inout TensorWidget>]{
+        type Value<'v> = (modelrdf::TensorId, modelrdf::TensorTextDescription, Vec<modelrdf::[<$inout Axis>]>, ArcNpyArray);
+        fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+            self.id_widget.set_value(value.0);
+            self.description_widget.set_value(value.1);
+            self.axes_widget.set_value(value.2);
+            self.test_tensor_widget.state = FileWidgetState::Finished {
+                path: PathBuf::from("__dummy__"),
+                value: Ok(value.3)
+            }
+        }
     }
 
     impl ItemWidgetConf for [<$inout TensorWidget>]{
@@ -53,13 +67,16 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
                         .unwrap_or(String::default());
                 }
                 let sample_shape = gui_npy_arr.shape();
-                let mut extents = sample_shape.iter();
-                (0..self.axes_widget.staging.len()).for_each(|_| {
-                    extents.next();
-                });
+                let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
+
                 while let Some(extent) = extents.next() {
-                    let mut axis_widget = [<$inout TensorAxisWidget>]::default();
-                    axis_widget.set_fixed(*extent);
+                    let mut axis_widget = [<$inout AxisWidget>]::default();
+                    axis_widget.axis_type = if *extent == 1{
+                        modelrdf::AxisType::Channel
+                    } else {
+                        modelrdf::AxisType::Space
+                    };
+                    axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
                     self.axes_widget.staging.push(axis_widget)
                 }
             };
@@ -96,7 +113,7 @@ macro_rules!  declare_inout_tensor_widget {($inout:ident) => { paste!{
                 id: self.id_widget.state()?,
                 description: self.description_widget.state()?,
                 axes: input_axis_group,
-                test_tensor: Arc::clone(gui_npy_array.contents()),
+                test_tensor: Arc::clone(gui_npy_array),
             })
         }
     }

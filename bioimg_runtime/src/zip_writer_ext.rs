@@ -18,7 +18,7 @@ impl<W: Write + Seek> ModelZipWriter<W> {
         F: FnOnce(&mut dyn Write) -> Result<Out, E>,
         E: Into<ModelPackingError>,
     {
-        let file_options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let file_options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         let path: String = path.clone().into();
         self.0.start_file(path, file_options)?;
         f(&mut self.0).map_err(|e| e.into())

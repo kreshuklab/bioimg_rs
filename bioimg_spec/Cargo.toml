@@ -19,6 +19,12 @@ url = { version = "2.4.1", features = ["serde"] }
 ndarray = { workspace = true }
 ndarray-npy = { workspace = true }
 paste = "1.0.14"
-uuid = { version = "1.7.0", features = ["v4"] }
 iso8601-timestamp = { workspace = true }
 serde_yaml = "0.9.32"
+uuid = { version = "1.7.0", features = ["v4"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { version = "1.7.0", features = ["v4", "js"] }
+iso8601-timestamp = { workspace = true, features = ["js"]}
+
+

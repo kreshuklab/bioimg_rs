@@ -15,7 +15,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Box::new(bioimg_gui::BioimgGui::new(cc))),
+        Box::new(|_cc| Box::new(bioimg_gui::BioimgGui::default())),
     )
 }
 

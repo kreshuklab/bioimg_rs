@@ -1,7 +1,7 @@
-use super::{util::group_frame, StatefulWidget};
+use super::{util::group_frame, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug, Default)]
-pub struct StagingOpt<Stg: StatefulWidget>(pub Option<Stg>);
+pub struct StagingOpt<Stg>(pub Option<Stg>);
 
 impl<Stg> StatefulWidget for StagingOpt<Stg>
 where
@@ -33,5 +33,19 @@ where
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         self.0.as_ref().map(|inner_widget| inner_widget.state())
+    }
+}
+
+impl<Stg> ValueWidget for StagingOpt<Stg>
+where
+    Stg: ValueWidget + Default
+{
+    type Value<'a> = Option< <Stg as ValueWidget>::Value<'a> >;
+    fn set_value<'a>(&mut self, value: Self::Value<'a>){
+        self.0 = value.map(|val|{
+            let mut widget = Stg::default();
+            widget.set_value(val);
+            widget
+        });
     }
 }

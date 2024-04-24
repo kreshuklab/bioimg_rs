@@ -2,7 +2,7 @@ use std::{error::Error, path::PathBuf, sync::Arc};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::{show_error, show_if_error}, util::DynamicImageExt, StatefulWidget};
+use super::{error_display::{show_error, show_if_error}, util::DynamicImageExt, StatefulWidget, ValueWidget};
 
 pub struct LoadedImage{
     path: PathBuf,
@@ -74,6 +74,14 @@ impl<T> Default for ImageWidget<T>{
     }
 }
 
+impl<T> ValueWidget for ImageWidget<T>{
+    type Value<'a> = PathBuf;
+    fn set_value<'a>(&mut self, path: Self::Value<'a>) {
+        self.state = ImageWidgetState::AboutToLoad { path };
+    }
+}
+
+//FIXME: remove this, use ValueWidget
 impl<T> ImageWidget<T>{
     pub fn set_path(&mut self, path: PathBuf){
         self.state = ImageWidgetState::AboutToLoad { path };

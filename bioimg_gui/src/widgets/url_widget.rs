@@ -1,11 +1,19 @@
 use bioimg_spec::rdf::HttpUrl;
 
-use super::{error_display::show_if_error, StatefulWidget};
+use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 use crate::result::{GuiError, Result};
 
 pub struct StagingUrl {
     pub raw: String,
     parsed: Result<HttpUrl>,
+}
+
+impl ValueWidget for StagingUrl{
+    type Value<'a> = HttpUrl;
+    fn set_value<'a>(&mut self, value: Self::Value<'a>) {
+        self.raw = value.clone().into();
+        self.parsed = Ok(value)
+    }
 }
 
 impl StagingUrl{

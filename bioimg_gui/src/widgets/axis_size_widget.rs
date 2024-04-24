@@ -7,13 +7,21 @@ use bioimg_spec::rdf::model::{axes::AxisId, tensor_id::TensorId};
 use super::staging_num::StagingNum;
 use super::staging_string::StagingString;
 use super::util::group_frame;
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 
 #[derive(Default)]
 pub struct AxisSizeReferenceWidget {
     pub staging_tensor_id: StagingString<TensorId>,
     pub staging_axis_id: StagingString<AxisId>,
     pub staging_offset: StagingNum<usize, usize>,
+}
+
+impl AxisSizeReferenceWidget{
+    pub fn set_value(&mut self, value: modelrdf::AxisSizeReference){
+        self.staging_tensor_id.set_value(value.qualified_axis_id.tensor_id);
+        self.staging_axis_id.set_value(value.qualified_axis_id.axis_id);
+        self.staging_offset.set_value(value.offset);
+    }
 }
 
 impl StatefulWidget for AxisSizeReferenceWidget {
@@ -53,6 +61,13 @@ impl StatefulWidget for AxisSizeReferenceWidget {
 pub struct ParameterizedAxisSizeWidget {
     pub staging_min: StagingNum<usize, NonZeroUsize>,
     pub staging_step: StagingNum<usize, NonZeroUsize>,
+}
+
+impl ParameterizedAxisSizeWidget{
+    pub fn set_value(&mut self, value: modelrdf::ParameterizedAxisSize){
+        self.staging_min.set_value(value.min);
+        self.staging_step.set_value(value.step);
+    }
 }
 
 impl StatefulWidget for ParameterizedAxisSizeWidget {
@@ -102,6 +117,31 @@ pub struct AnyAxisSizeWidget {
     pub staging_parameterized: ParameterizedAxisSizeWidget,
 }
 
+impl AnyAxisSizeWidget{
+    pub fn prefil_parameterized(&mut self, min: usize){
+        self.mode = AxisSizeMode::Parameterized;
+        self.staging_parameterized.staging_min.raw = min;
+        self.staging_fixed_size.raw = min;
+    }
+    pub fn set_value(&mut self, value: modelrdf::AnyAxisSize){
+        match value{
+            modelrdf::AnyAxisSize::Fixed(fixed) => {
+                self.mode = AxisSizeMode::Fixed;
+                self.staging_fixed_size.set_value(fixed);
+            },
+            modelrdf::AnyAxisSize::Reference(reference) => {
+                self.mode = AxisSizeMode::Reference;
+                self.staging_size_ref.set_value(reference)
+            },
+            modelrdf::AnyAxisSize::Parameterized(parameterized) => {
+                self.mode = AxisSizeMode::Parameterized;
+                self.staging_parameterized.set_value(parameterized);
+            }
+        }
+
+    }
+}
+
 impl StatefulWidget for AnyAxisSizeWidget {
     type Value<'p> = Result<modelrdf::AnyAxisSize>;
 
@@ -133,10 +173,10 @@ impl StatefulWidget for AnyAxisSizeWidget {
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(match self.mode {
             AxisSizeMode::Fixed => {
-                modelrdf::AnyAxisSize::Resolved(modelrdf::ResolvedAxisSize::Fixed(self.staging_fixed_size.state()?))
+                modelrdf::AnyAxisSize::Fixed(self.staging_fixed_size.state()?)
             }
             AxisSizeMode::Parameterized => {
-                modelrdf::AnyAxisSize::Resolved(modelrdf::ResolvedAxisSize::Parameterized(self.staging_parameterized.state()?))
+                modelrdf::AnyAxisSize::Parameterized(self.staging_parameterized.state()?)
             }
             AxisSizeMode::Reference => modelrdf::AnyAxisSize::Reference(self.staging_size_ref.state()?),
         })

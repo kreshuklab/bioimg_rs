@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::show_if_error, StatefulWidget};
+use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug)]
 pub enum InputLines {
@@ -15,6 +15,14 @@ pub struct StagingString<T> {
     pub raw: String,
     pub parsed: Result<T>,
     pub input_lines: InputLines,
+}
+
+impl<T: Into<String> + Clone> ValueWidget for StagingString<T>{
+    type Value<'a> = T;
+    fn set_value(&mut self, value: T){
+        self.raw = value.clone().into();
+        self.parsed = Ok(value)
+    }
 }
 
 impl<T> StagingString<T>

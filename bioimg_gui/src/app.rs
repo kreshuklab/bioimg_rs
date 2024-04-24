@@ -8,6 +8,7 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
+
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::image_widget::ImageWidget;
@@ -38,30 +39,30 @@ impl Default for PackingStatus {
 }
 
 pub struct BioimgGui {
-    staging_name: StagingString<ResourceName>,
-    staging_description: StagingString<BoundedString<1, 1023>>,
-    cover_images: StagingVec<ImageWidget<rt::CoverImage>>,
+    pub staging_name: StagingString<ResourceName>,
+    pub staging_description: StagingString<BoundedString<1, 1023>>,
+    pub cover_images: StagingVec<ImageWidget<rt::CoverImage>>,
     // id?
-    staging_authors: StagingVec<StagingAuthor2>,
-    attachments_widget: StagingVec<AttachmentsWidget>,
-    staging_citations: StagingVec<StagingCiteEntry2>,
+    pub staging_authors: StagingVec<StagingAuthor2>,
+    pub attachments_widget: StagingVec<AttachmentsWidget>,
+    pub staging_citations: StagingVec<StagingCiteEntry2>,
     //config
-    staging_git_repo: StagingOpt<StagingUrl>,
-    icon_widget: StagingOpt<IconWidget>,
+    pub staging_git_repo: StagingOpt<StagingUrl>,
+    pub icon_widget: StagingOpt<IconWidget>,
     //links
-    staging_maintainers: StagingVec<StagingMaintainer>,
-    staging_tags: StagingVec<StagingString<BoundedString<3, 1024>>>,
-    staging_version: StagingOpt<StagingString<rdf::Version>>,
+    pub staging_maintainers: StagingVec<StagingMaintainer>,
+    pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
+    pub staging_version: StagingOpt<StagingString<rdf::Version>>,
 
-    staging_documentation: CodeEditorWidget,
-    staging_license: EnumWidget<rdf::LicenseId>,
+    pub staging_documentation: CodeEditorWidget,
+    pub staging_license: EnumWidget<rdf::LicenseId>,
     //badges
-    model_interface_widget: ModelInterfaceWidget,
+    pub model_interface_widget: ModelInterfaceWidget,
     ////
-    model_packing_status: PackingStatus,
-    weights_widget: WeightsWidget,
+    pub weights_widget: WeightsWidget,
 
-    packing_notice: NoticeWidget,
+    pub packing_notice: NoticeWidget,
+    model_packing_status: PackingStatus,
 }
 
 impl Default for BioimgGui {
@@ -90,11 +91,6 @@ impl Default for BioimgGui {
     }
 }
 
-impl BioimgGui {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Default::default()
-    }
-}
 
 impl eframe::App for BioimgGui {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
@@ -239,11 +235,8 @@ impl eframe::App for BioimgGui {
                                 let non_empty_cites = NonEmptyList::try_from(cite)
                                     .map_err(|_| GuiError::new("Cites are empty".into()))?;
 
-                                let tags: Vec<String> = self.staging_tags.state()
-                                    .into_iter()
-                                    .map(|res|{
-                                        res.map(|tag| String::from(tag))
-                                    }).collect::<Result<_>>()
+                                let tags: Vec<rdf::Tag> = self.staging_tags.state()
+                                    .collect_result()
                                     .map_err(|_| GuiError::new("Check tags for errors".into()))?;
 
                                 let authors = NonEmptyList::try_from(

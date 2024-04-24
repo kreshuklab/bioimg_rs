@@ -1,8 +1,16 @@
-use super::StatefulWidget;
+use super::{StatefulWidget, ValueWidget};
 
 #[derive(Default)]
 pub struct CodeEditorWidget {
     pub raw: String,
+}
+
+impl ValueWidget for CodeEditorWidget{
+    type Value<'v> = &'v str;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.raw.clear();
+        self.raw += value;
+    }
 }
 
 impl StatefulWidget for CodeEditorWidget {

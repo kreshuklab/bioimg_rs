@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{self, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
 pub struct StagingMaintainer {
@@ -9,6 +9,17 @@ pub struct StagingMaintainer {
     pub email_widget: StagingOpt<StagingString<BoundedString<1, 1023>>>, //FIXME
     pub orcid_widget: StagingOpt<StagingString<Orcid>>,
     pub name_widget: StagingOpt<StagingString<rdf::MaintainerName>>,
+}
+
+impl ValueWidget for StagingMaintainer{
+    type Value<'a> = rdf::Maintainer;
+    fn set_value<'a>(&mut self, value: Self::Value<'a>) {
+        self.github_user_widget.set_value(value.github_user);
+        self.affiliation_widget.set_value(value.affiliation);
+        self.email_widget.set_value(value.email);
+        self.orcid_widget.set_value(value.orcid);
+        self.name_widget.set_value(value.name);
+    }
 }
 
 impl ItemWidgetConf for StagingMaintainer{

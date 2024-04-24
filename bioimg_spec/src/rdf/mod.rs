@@ -25,18 +25,21 @@ pub mod orcid;
 pub mod si_units;
 pub mod slashless_string;
 pub mod version;
+pub mod tag;
 
 pub use bounded_string::BoundedString;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
 pub use identifier::Identifier;
 pub use license::LicenseId;
-pub use literal::LiteralInt;
+pub use literal::{LiteralInt, LitStrMarker};
 pub use version::Version;
 pub use file_reference::{HttpUrl, FsPath, FileReference, CoverImageSource, EnvironmentFile};
 pub use author::Author2;
 pub use file_description::{FileDescription, EnvironmentFileDescr};
 pub use maintainer::{Maintainer, MaintainerName};
 pub use orcid::Orcid;
+pub use cite_entry::CiteEntry2;
+pub use tag::Tag;
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
