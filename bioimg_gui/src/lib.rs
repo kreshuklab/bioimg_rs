@@ -4,4 +4,6 @@ mod app;
 mod result;
 mod task;
 mod widgets;
+mod prefil;
+
 pub use app::BioimgGui;
