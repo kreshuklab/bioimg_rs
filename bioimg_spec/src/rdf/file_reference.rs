@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt::Display, ops::Deref};
 
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -127,6 +127,12 @@ pub enum UrlParsingError{
 #[serde(into = "String")]
 #[serde(try_from = "String")]
 pub struct HttpUrl(url::Url);
+
+impl Display for HttpUrl{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl Deref for HttpUrl{
     type Target = url::Url;
