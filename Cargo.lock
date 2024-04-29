@@ -178,6 +178,7 @@ name = "bioimg_runtime"
 version = "0.1.0"
 dependencies = [
  "bioimg_spec",
+ "ehttp 0.5.0",
  "image",
  "iso8601-timestamp",
  "ndarray",
@@ -738,7 +739,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "753c36d3e2f7a32425af5290af2e52efb3471ea3a263b87f003b5433351b0fd7"
 dependencies = [
  "egui 0.25.0",
- "ehttp",
+ "ehttp 0.3.1",
  "enum-map",
  "image",
  "log",
@@ -767,6 +768,20 @@ name = "ehttp"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f88f45662356f96afc7d9e2bc9910ad8352ee01417f7c69b8b16a53c8767a75d"
+dependencies = [
+ "document-features",
+ "js-sys",
+ "ureq",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "ehttp"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59a81c221a1e4dad06cb9c9deb19aea1193a5eea084e8cd42d869068132bf876"
 dependencies = [
  "document-features",
  "js-sys",
