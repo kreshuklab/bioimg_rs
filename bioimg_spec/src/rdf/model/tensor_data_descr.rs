@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{non_empty_list::NonEmptyList, si_units::SiUnit};
+use crate::rdf::{literal::StrMarker, non_empty_list::NonEmptyList, si_units::SiUnit, LitStr};
 
 use super::data_type::DataType;
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum TensorDataDescr {
-    NominalOrOrdinal,
-    IntervalOrRatio,
+    NominalOrOrdinal(NominalOrOrdinalDataDescr),
+    IntervalOrRatio(IntervalOrRatioDataDescr),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
