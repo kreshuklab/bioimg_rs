@@ -7,6 +7,7 @@ pub enum IconParsingError {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(untagged)]
 pub enum Icon {
     Emoji(EmojiIcon),
     FileRef(FileReference),
