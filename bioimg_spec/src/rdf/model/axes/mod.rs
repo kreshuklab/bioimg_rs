@@ -2,16 +2,45 @@ pub mod output_axes;
 pub mod input_axes;
 
 
+use std::borrow::Borrow;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
     axis_size::AnyAxisSize,
     FixedAxisSize,
 };
-use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{LitStr, LiteralInt, StrMarker}, lowercase::Lowercase, non_empty_list::NonEmptyList};
+use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{LitStr, LiteralInt, StrMarker}, lowercase::{Lowercase, LowercaseParsingError}, non_empty_list::NonEmptyList};
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 pub type AxisDescription = BoundedString<0, { 128 - 1 }>;
+
+#[derive(thiserror::Error, Debug)]
+pub enum AxisIdParsingError{
+    #[error("AxisId mut be lowercase: {0}")]
+    LowercaseParsingError(LowercaseParsingError),
+    #[error("Axis can't be 'batch'")]
+    CantBeBatch,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct NonBatchAxisId(AxisId);
+
+impl TryFrom<AxisId> for NonBatchAxisId{
+    type Error = AxisIdParsingError;
+    fn try_from(value: AxisId) -> Result<Self, Self::Error> {
+        let raw_axis_id: &'_ str = value.borrow();
+        if raw_axis_id == "batch"{
+            Err(AxisIdParsingError::CantBeBatch)
+        }else{
+            Ok(Self(value))
+        }
+    }
+}
+
+impl TryFrom<String> for NonBatchAxisId{
+
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 pub struct AxisScale(f32);

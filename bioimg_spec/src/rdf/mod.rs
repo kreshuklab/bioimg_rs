@@ -26,6 +26,7 @@ pub mod si_units;
 pub mod slashless_string;
 pub mod version;
 pub mod tag;
+pub mod constrained;
 
 pub use bounded_string::BoundedString;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
