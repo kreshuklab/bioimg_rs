@@ -49,6 +49,7 @@ pub use weights::{
     TensorflowSavedModelBundleWeightsDescr,
     TorchscriptWeightsDescr,
 };
+pub use preprocessing::PreprocessingDescr;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[serde(try_from = "String")]

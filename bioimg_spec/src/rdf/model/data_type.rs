@@ -25,3 +25,26 @@ pub enum DataType {
     #[serde(rename = "int64")]
     Int64,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum UintDataType{
+    #[serde(rename = "uint8")]
+    Uint8,
+    #[serde(rename = "uint16")]
+    Uint16,
+    #[serde(rename = "uint32")]
+    Uint32,
+    #[serde(rename = "uint64")]
+    Uint64,
+}
+
+impl From<UintDataType> for DataType{
+    fn from(value: UintDataType) -> Self {
+        match value{
+            UintDataType::Uint8 => Self::Uint8,
+            UintDataType::Uint16 => Self::Uint16,
+            UintDataType::Uint32 => Self::Uint32,
+            UintDataType::Uint64 => Self::Uint64,
+        }
+    }
+}

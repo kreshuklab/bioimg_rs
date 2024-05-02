@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(into = "usize")]
@@ -39,36 +39,26 @@ pub enum MarkerParsingError{
     UnexpectedString{expected: &'static str, found: String}
 }
 
-pub trait Marker: Clone + Default{
+pub trait StrMarker: Copy + Clone + Default{
     const NAME: &'static str;
 }
-
-macro_rules! declare_lowercase_marker {($name:ident) => { paste!{
-    #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-    pub struct $name;
-    impl Marker for $name {
-        const NAME: &'static str = stringify!( [<$name:lower>] );
-    }
-}};}
-
-pub(crate) use declare_lowercase_marker;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(try_from = "String")]
 #[serde(into = "String")]
-pub struct LitStrMarker<M: Marker>(PhantomData<M>);
+pub struct LitStr<M: StrMarker>(#[serde(bound = "M: StrMarker")]PhantomData<M>);
 
-impl<M: Marker> LitStrMarker<M>{
+impl<M: StrMarker> LitStr<M>{
     pub fn new() -> Self{ Self(PhantomData) }
 }
 
-impl<N: Marker> From<LitStrMarker<N>> for String{
-    fn from(_value: LitStrMarker<N>) -> Self {
+impl<N: StrMarker> From<LitStr<N>> for String{
+    fn from(_value: LitStr<N>) -> Self {
         N::NAME.to_owned()
     }
 }
 
-impl<N: Marker> TryFrom<String> for LitStrMarker<N>{
+impl<N: StrMarker> TryFrom<String> for LitStr<N>{
     type Error = MarkerParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value == N::NAME{

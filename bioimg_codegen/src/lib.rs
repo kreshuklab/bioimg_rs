@@ -4,14 +4,14 @@
 
 use proc_macro::TokenStream;
 
-mod modelrecord;
+mod str_marker;
 mod syn_extensions;
 
 ////////////////////////////////////////////
 
-#[proc_macro_derive(BinRecord, attributes(binrecord))]
-pub fn derive_binrecord(input: TokenStream) -> TokenStream {
-    match modelrecord::do_derive_ModelRecord(input) {
+#[proc_macro_derive(StrMarker, attributes(strmarker))]
+pub fn derive_str_marker(input: TokenStream) -> TokenStream {
+    match str_marker::do_derive_str_marker(input) {
         Ok(tokens) => tokens,
         Err(err) => err.to_compile_error().into(),
     }

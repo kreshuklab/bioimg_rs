@@ -2,17 +2,49 @@ pub mod output_axes;
 pub mod input_axes;
 
 
-use paste::paste;
+use std::borrow::Borrow;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
     axis_size::AnyAxisSize,
     FixedAxisSize,
 };
-use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{declare_lowercase_marker, LitStrMarker, LiteralInt, Marker}, lowercase::Lowercase, non_empty_list::NonEmptyList};
+use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{LitStr, LiteralInt, StrMarker}, lowercase::{Lowercase, LowercaseParsingError}, non_empty_list::NonEmptyList};
 
 pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
 pub type AxisDescription = BoundedString<0, { 128 - 1 }>;
+
+#[derive(thiserror::Error, Debug)]
+pub enum AxisIdParsingError{
+    #[error("AxisId mut be lowercase: {0}")]
+    LowercaseParsingError(#[from] LowercaseParsingError),
+    #[error("Axis can't be 'batch'")]
+    CantBeBatch,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct NonBatchAxisId(AxisId);
+
+impl TryFrom<AxisId> for NonBatchAxisId{
+    type Error = AxisIdParsingError;
+    fn try_from(value: AxisId) -> Result<Self, Self::Error> {
+        let raw_axis_id: &'_ str = value.borrow();
+        if raw_axis_id == "batch"{
+            Err(AxisIdParsingError::CantBeBatch)
+        }else{
+            Ok(Self(value))
+        }
+    }
+}
+
+impl TryFrom<String> for NonBatchAxisId{
+    type Error = AxisIdParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let axisid = AxisId::try_from(value)?;
+        Ok(Self::try_from(axisid)?)
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 pub struct AxisScale(f32);
@@ -56,24 +88,38 @@ impl TryFrom<u64> for Halo {
     }
 }
 
-pub trait AxisIdMarker: Marker{}
+pub trait AxisIdMarker: StrMarker{}
 
-declare_lowercase_marker!(Batch);
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Batch;
+impl StrMarker for Batch { const NAME: &'static str = "batch"; }
 impl AxisIdMarker for Batch{}
-declare_lowercase_marker!(Index);
+
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Index;
+impl StrMarker for Index { const NAME: &'static str = "index"; }
 impl AxisIdMarker for Index{}
-declare_lowercase_marker!(Channel);
+
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Channel;
+impl StrMarker for Channel { const NAME: &'static str = "channel"; }
 impl AxisIdMarker for Channel{}
-declare_lowercase_marker!(Space);
-declare_lowercase_marker!(Time);
+
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Space;
+impl StrMarker for Space { const NAME: &'static str = "space"; }
+
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Time;
+impl StrMarker for Time { const NAME: &'static str = "time"; }
 
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct SpecialAxisId<M: AxisIdMarker>(LitStrMarker<M>);
+pub struct SpecialAxisId<M: AxisIdMarker>(#[serde(bound = "M: AxisIdMarker")]LitStr<M>);
 
 impl<M: AxisIdMarker> SpecialAxisId<M>{
     pub fn new() -> Self{
-        Self(LitStrMarker::new())
+        Self(LitStr::new())
     }
 }
 
@@ -130,6 +176,14 @@ pub struct BatchAxis {
     pub description: AxisDescription,
     #[serde(default)]
     pub size: Option<LiteralInt<1>>,
+}
+
+#[test]
+fn test_batch_marker_serialization(){
+    match serde_json::to_value(SpecialAxisId::<Batch>::default()).unwrap() {
+        serde_json::Value::String(s) => assert_eq!(s, "batch"),
+        _ => panic!("Did not serialize batch id into a string"),
+    };
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

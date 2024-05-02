@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{non_empty_list::NonEmptyList, si_units::SiUnit};
+use crate::rdf::{literal::StrMarker, non_empty_list::NonEmptyList, si_units::SiUnit, LitStr};
 
 use super::data_type::DataType;
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum TensorDataDescr {
-    NominalOrOrdinal,
-    IntervalOrRatio,
+    NominalOrOrdinal(NominalOrOrdinalDataDescr),
+    IntervalOrRatio(IntervalOrRatioDataDescr),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -17,14 +19,27 @@ pub enum TVs {
     Strings(NonEmptyList<String>),
 }
 
+#[derive(Copy, Clone, Debug, Default)]
+pub struct ArbitraryUnit;
+
+impl StrMarker for ArbitraryUnit{
+    const NAME: &'static str = "arbitrary unit";
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
 pub enum TensorDataUnit {
-    ArbitraryUnit,
+    ArbitraryUnit(LitStr<ArbitraryUnit>),
     Si(SiUnit),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NominalOrOrdinalDataDescr {
+    /// A fixed set of nominal or an ascending sequence of ordinal values.
+    /// In this case `data_type` is required to be an unsigend integer type, e.g. 'uint8'.
+    /// String `values` are interpreted as labels for tensor values 0, ..., N.
+    /// Note: as YAML 1.2 does not natively support a "set" datatype,
+    /// nominal values should be given as a sequence (aka list/array) as well.
     pub values: TVs,
     #[serde(rename = "type")]
     #[serde(default = "_default_data_type")]
