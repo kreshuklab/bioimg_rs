@@ -26,7 +26,6 @@ pub mod si_units;
 pub mod slashless_string;
 pub mod version;
 pub mod tag;
-pub mod constrained;
 
 pub use bounded_string::BoundedString;
 pub use icon::{EmojiIcon, Icon, IconParsingError};
@@ -41,6 +40,7 @@ pub use maintainer::{Maintainer, MaintainerName};
 pub use orcid::Orcid;
 pub use cite_entry::CiteEntry2;
 pub use tag::Tag;
+pub use non_empty_list::NonEmptyList;
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 

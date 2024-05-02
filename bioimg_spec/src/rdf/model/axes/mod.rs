@@ -18,7 +18,7 @@ pub type AxisDescription = BoundedString<0, { 128 - 1 }>;
 #[derive(thiserror::Error, Debug)]
 pub enum AxisIdParsingError{
     #[error("AxisId mut be lowercase: {0}")]
-    LowercaseParsingError(LowercaseParsingError),
+    LowercaseParsingError(#[from] LowercaseParsingError),
     #[error("Axis can't be 'batch'")]
     CantBeBatch,
 }
@@ -39,7 +39,11 @@ impl TryFrom<AxisId> for NonBatchAxisId{
 }
 
 impl TryFrom<String> for NonBatchAxisId{
-
+    type Error = AxisIdParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let axisid = AxisId::try_from(value)?;
+        Ok(Self::try_from(axisid)?)
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]

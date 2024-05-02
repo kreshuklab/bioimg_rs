@@ -2,9 +2,7 @@ use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::io::{Seek, Write};
 
-use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 use bioimg_spec::rdf;
-use paste::paste;
 
 use crate::axis_size_resolver::{ResolvedAxisSizeExt, SlotResolver};
 use crate::npy_array::NpyArray;
@@ -16,60 +14,105 @@ use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 
 use super::axis_size_resolver::AxisSizeResolutionError;
 
-#[rustfmt::skip]
-macro_rules! declare_slot { ($struct_name:ident, inout = $inout:ident) => { paste!{
-    #[allow(dead_code)]
-    #[derive(Clone)]
-    pub struct $struct_name <DATA: Borrow<NpyArray>> {
-        pub id: TensorId,
-        pub description: modelrdf::TensorTextDescription,
-        pub axes: modelrdf::[<$inout AxisGroup>],
-        pub test_tensor: DATA,
-    }
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct InputSlot <DATA: Borrow<NpyArray>> {
+    pub id: TensorId,
+    pub optional: bool,
+    pub preprocessing: Vec<modelrdf::PreprocessingDescr>,
+    pub description: modelrdf::TensorTextDescription,
+    pub axes: modelrdf::InputAxisGroup,
+    pub test_tensor: DATA,
+}
 
-    impl<DATA: Borrow<NpyArray>> $struct_name <DATA> {
-        pub fn dump(
-            &self,
-            zip_file: &mut ModelZipWriter<impl Write + Seek>,
-        ) -> Result< modelrdf::[<$inout TensorDescr>], ModelPackingError> {
-            let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
-            zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
-            Ok(modelrdf::[<$inout TensorDescr>]{
-                id: self.id.clone(),
-                description: self.description.clone(),
-                axes: self.axes.clone(),
-                test_tensor: rdf::FileDescription{
-                    source: test_tensor_zip_path.into(),
-                    sha256: None,
-                },
-                sample_tensor: None, //FIXME
-            })
-        }
+impl<DATA: Borrow<NpyArray>> InputSlot <DATA> {
+    pub fn dump(
+        &self,
+        zip_file: &mut ModelZipWriter<impl Write + Seek>,
+    ) -> Result<modelrdf::InputTensorDescr, ModelPackingError> {
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
+        zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
+        Ok(modelrdf::InputTensorDescr{
+            id: self.id.clone(),
+            optional: self.optional,
+            preprocessing: self.preprocessing.clone(),
+            description: self.description.clone(),
+            axes: self.axes.clone(),
+            test_tensor: rdf::FileDescription{
+                source: test_tensor_zip_path.into(),
+                sha256: None,
+            },
+            sample_tensor: None, //FIXME
+        })
     }
+}
 
-    pub trait [<Vec $struct_name Ext>]{
-        fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &[<$inout Axis>])>;
-        fn qual_id_sizes(&self) -> impl Iterator<Item=(QualifiedAxisId, AnyAxisSize)>{
-            self.qual_id_axes().filter_map(|(qual_id, axis)| axis.size().map(|size| (qual_id, size)))
-        }
+pub trait VecInputSlotExt{
+    fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &InputAxis)>;
+    fn qual_id_sizes(&self) -> impl Iterator<Item=(QualifiedAxisId, AnyAxisSize)>{
+        self.qual_id_axes().filter_map(|(qual_id, axis)| axis.size().map(|size| (qual_id, size)))
     }
-    impl<DATA: Borrow<NpyArray>> [<Vec $struct_name Ext>] for [$struct_name<DATA>]{
-        fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &[<$inout Axis>])>{
-            self.iter()
-                .map(|rt_tensor_descr|{
-                    rt_tensor_descr.axes.iter().map(|axis|{
-                        let qual_id = QualifiedAxisId{tensor_id: rt_tensor_descr.id.clone(), axis_id: axis.id()};
-                        (qual_id, axis)
-                    })
+}
+impl<DATA: Borrow<NpyArray>> VecInputSlotExt for [InputSlot<DATA>]{
+    fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &InputAxis)>{
+        self.iter()
+            .map(|rt_tensor_descr|{
+                rt_tensor_descr.axes.iter().map(|axis|{
+                    let qual_id = QualifiedAxisId{tensor_id: rt_tensor_descr.id.clone(), axis_id: axis.id()};
+                    (qual_id, axis)
                 })
-                .flatten()
-        }
+            })
+            .flatten()
     }
-}};}
+}
 
-declare_slot!(InputSlot, inout=Input);
-declare_slot!(OutputSlot, inout=Output);
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct OutputSlot<DATA: Borrow<NpyArray>> {
+    pub id: TensorId,
+    pub description: modelrdf::TensorTextDescription,
+    pub axes: modelrdf::OutputAxisGroup,
+    pub test_tensor: DATA,
+}
 
+impl<DATA: Borrow<NpyArray>> OutputSlot<DATA> {
+    pub fn dump(
+        &self,
+        zip_file: &mut ModelZipWriter<impl Write + Seek>,
+    ) -> Result<modelrdf::OutputTensorDescr, ModelPackingError> {
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
+        zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
+        Ok(modelrdf::OutputTensorDescr{
+            id: self.id.clone(),
+            description: self.description.clone(),
+            axes: self.axes.clone(),
+            test_tensor: rdf::FileDescription{
+                source: test_tensor_zip_path.into(),
+                sha256: None,
+            },
+            sample_tensor: None, //FIXME
+        })
+    }
+}
+
+pub trait VecOutputSlotExt{
+    fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &OutputAxis)>;
+    fn qual_id_sizes(&self) -> impl Iterator<Item=(QualifiedAxisId, AnyAxisSize)>{
+        self.qual_id_axes().filter_map(|(qual_id, axis)| axis.size().map(|size| (qual_id, size)))
+    }
+}
+impl<DATA: Borrow<NpyArray>> VecOutputSlotExt for [OutputSlot<DATA>]{
+    fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &OutputAxis)>{
+        self.iter()
+            .map(|rt_tensor_descr|{
+                rt_tensor_descr.axes.iter().map(|axis|{
+                    let qual_id = QualifiedAxisId{tensor_id: rt_tensor_descr.id.clone(), axis_id: axis.id()};
+                    (qual_id, axis)
+                })
+            })
+            .flatten()
+    }
+}
 
 
 #[derive(thiserror::Error, Debug)]
@@ -104,8 +147,8 @@ pub enum TensorValidationError {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct ModelInterface<DATA: Borrow<NpyArray>> {
-    inputs: NonEmptyList<InputSlot<DATA>>,
-    outputs: NonEmptyList<OutputSlot<DATA>>,
+    inputs: rdf::NonEmptyList<InputSlot<DATA>>,
+    outputs: rdf::NonEmptyList<OutputSlot<DATA>>,
 }
 
 impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
@@ -114,8 +157,8 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         zip_writer: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<
         (
-            NonEmptyList<modelrdf::InputTensorDescr>,
-            NonEmptyList<modelrdf::OutputTensorDescr>,
+            rdf::NonEmptyList<modelrdf::InputTensorDescr>,
+            rdf::NonEmptyList<modelrdf::OutputTensorDescr>,
         ),
         ModelPackingError,
     > {
@@ -124,8 +167,8 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         Ok((inputs, outputs))
     }
     pub fn try_build(inputs: Vec<InputSlot<DATA>>, outputs: Vec<OutputSlot<DATA>>) -> Result<Self, TensorValidationError> {
-        let inputs = NonEmptyList::try_from(inputs).map_err(|_| TensorValidationError::EmptyInputs)?;
-        let outputs = NonEmptyList::try_from(outputs).map_err(|_| TensorValidationError::EmptyOutputs)?;
+        let inputs = rdf::NonEmptyList::try_from(inputs).map_err(|_| TensorValidationError::EmptyInputs)?;
+        let outputs = rdf::NonEmptyList::try_from(outputs).map_err(|_| TensorValidationError::EmptyOutputs)?;
 
         {
             let capacity: usize = usize::from(inputs.len()) + usize::from(outputs.len());
