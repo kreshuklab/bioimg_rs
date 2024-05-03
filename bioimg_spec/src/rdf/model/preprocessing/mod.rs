@@ -5,8 +5,8 @@ pub mod sigmoid;
 pub mod zero_mean_unit_variance;
 pub mod scale_range;
 
-pub use self::scale_linear::ScaleLinearDescr;
-pub use self::binarize::BinarizeDescr;
+pub use self::scale_linear::{ScaleLinearDescr, SimpleScaleLinearDescr, ScaleLinearAlongAxisDescr};
+pub use self::binarize::{BinarizeDescr, SimpleBinarizeDescr, BinarizeAlongAxisDescr};
 pub use self::clip::ClipDescr;
 pub use self::sigmoid::Sigmoid;
 pub use self::zero_mean_unit_variance::ZeroMeanUnitVariance;
@@ -36,7 +36,7 @@ fn _default_to_single_0() -> SingleOrMultiple<f32>{
     SingleOrMultiple::Single(0.0)
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum PreprocessingEpsilonParsingError{
     #[error("Preprocessing epsilon must be in open interval ]0, 0.1], found {0}")]
     OutOfRange(f32)
