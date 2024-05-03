@@ -28,6 +28,9 @@ pub mod notice_widget;
 pub mod image_widget;
 pub mod output_axis_widget;
 pub mod input_axis_widget;
+pub mod preprocessing_widget;
+pub mod binarize_widget;
+pub mod clip_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

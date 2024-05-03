@@ -6,7 +6,7 @@ pub mod zero_mean_unit_variance;
 pub mod scale_range;
 
 pub use self::scale_linear::ScaleLinearDescr;
-pub use self::binarize::BinarizeDescr;
+pub use self::binarize::{BinarizeDescr, SimpleBinarizeDescr, BinarizeAlongAxisDescr};
 pub use self::clip::ClipDescr;
 pub use self::sigmoid::Sigmoid;
 pub use self::zero_mean_unit_variance::ZeroMeanUnitVariance;
