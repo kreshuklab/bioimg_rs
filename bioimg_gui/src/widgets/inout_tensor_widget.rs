@@ -9,6 +9,7 @@ use bioimg_spec::rdf::model as modelrdf;
 
 use super::error_display::show_error;
 use super::file_widget::{FileWidget, FileWidgetState};
+use super::preprocessing_widget::PreprocessingWidget;
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
 use super::input_axis_widget::InputAxisWidget;
@@ -24,6 +25,7 @@ pub struct InputTensorWidget {
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<InputAxisWidget>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
+    pub preprocessing_widget: StagingVec<PreprocessingWidget>,
 }
 
 impl ValueWidget for InputTensorWidget{
@@ -91,6 +93,10 @@ impl StatefulWidget for InputTensorWidget {
             ui.horizontal(|ui| {
                 ui.strong("Axes: ");
                 self.axes_widget.draw_and_parse(ui, id.with("Axes"));
+            });
+            ui.horizontal(|ui| {
+                ui.strong("Preprocessing: ");
+                self.preprocessing_widget.draw_and_parse(ui, id.with("preproc".as_ptr()));
             });
         });
     }

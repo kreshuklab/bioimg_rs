@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{error::Error, fmt::Display};
 
 use crate::result::{GuiError, Result};
 
@@ -7,6 +7,21 @@ use super::{error_display::show_if_error, StatefulWidget};
 pub struct StagingNum<Raw, Parsed> {
     pub raw: Raw,
     pub parsed: Result<Parsed>,
+}
+
+impl<Raw, Parsed> StagingNum<Raw, Parsed>
+where
+    Raw: Clone,
+    Parsed: TryFrom<Raw>,
+    <Parsed as TryFrom<Raw>>::Error: Error,
+{
+    pub fn new_with_raw(raw: impl Into<Raw>) -> Self{
+        let raw = raw.into();
+        Self {
+            raw: raw.clone(),
+            parsed: Parsed::try_from(raw).map_err(|err| GuiError::new(err.to_string())),
+        }
+    }
 }
 
 impl<Raw, Parsed: Into<Raw> + Clone> StagingNum<Raw, Parsed>{

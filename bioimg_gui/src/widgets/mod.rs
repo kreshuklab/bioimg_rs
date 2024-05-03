@@ -31,6 +31,9 @@ pub mod input_axis_widget;
 pub mod preprocessing_widget;
 pub mod binarize_widget;
 pub mod clip_widget;
+pub mod scale_linear_widget;
+pub mod zero_mean_unit_variance_widget;
+pub mod scale_range_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

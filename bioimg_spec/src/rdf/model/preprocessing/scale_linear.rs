@@ -12,10 +12,10 @@ pub enum ScaleLinearDescr{
 pub struct SimpleScaleLinearDescr{
     /// multiplicative factor
     #[serde(default = "_default_to_1")]
-    gain: f32,
+    pub gain: f32,
     /// additive term
     #[serde(default)]
-    offset: f32,
+    pub offset: f32,
 }
 
 // //////////////////////

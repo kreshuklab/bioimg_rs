@@ -1,4 +1,4 @@
-use crate::rdf::model::TensorId;
+use crate::rdf::model::{AxisId, TensorId};
 
 use super::{PreprocessingEpsilon, PreprocessingEpsilonParsingError, _default_to_0f32, _default_to_100f32};
 
@@ -37,6 +37,12 @@ pub struct ScaleRangePercentile{
     max_percentile: f32,
 }
 
+impl ScaleRangePercentile{
+    pub fn try_from_min_max(min: f32, max: f32) -> Result<Self, ScaleRangeParsingError>{
+        return Self::try_from(ScaleRangePercentileMessage{min_percentile: min, max_percentile: max})
+    }
+}
+
 impl TryFrom<ScaleRangePercentileMessage> for ScaleRangePercentile{
     type Error = ScaleRangeParsingError;
     fn try_from(value: ScaleRangePercentileMessage) -> Result<Self, Self::Error> {
@@ -62,7 +68,7 @@ impl From<ScaleRangePercentile> for ScaleRangePercentileMessage{
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct ScaleRangePercentileMessage{
+struct ScaleRangePercentileMessage{
     #[serde(default="_default_to_0f32")]
     pub min_percentile: f32,
     #[serde(default="_default_to_100f32")]
@@ -71,36 +77,28 @@ pub struct ScaleRangePercentileMessage{
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct ScaleRangeDescr{
-    /// Mode for computing percentiles.
-    /// |     mode    |             description              |
-    /// | ----------- | ------------------------------------ |
-    /// | per_dataset | compute for the entire dataset       |
-    /// | per_sample  | compute for each sample individually |
-    mode: ScaleRangeMode,
+    /// The subset of axes to normalize jointly, i.e. axes to reduce to compute the min/max percentile value.
+    /// For example to normalize 'batch', 'x' and 'y' jointly in a tensor ('batch', 'channel', 'y', 'x')
+    /// resulting in a tensor of equal shape normalized per channel, specify `axes=('batch', 'x', 'y')`.
+    /// To normalize samples indepdencently, leave out the "batch" axis.
+    /// Default: Scale all axes jointly.
+    pub axes: Option<Vec<AxisId>>,
 
     /// The subset of axes to normalize jointly.
     /// For example xy to normalize the two image axes for 2d data jointly
     // FIXME: axes: Annotated[AxesInCZYX, Field(examples=["xy"])]
 
     #[serde(flatten)]
-    percentiles: ScaleRangePercentile,
+    pub percentiles: ScaleRangePercentile,
 
     /// Epsilon for numeric stability.
     /// `out = (tensor - v_lower) / (v_upper - v_lower + eps)`;
     /// with `v_lower,v_upper` values at the respective percentiles.
-    eps: PreprocessingEpsilon,
+    pub eps: PreprocessingEpsilon,
 
     // Tensor name to compute the percentiles from. Default: The tensor itself.
     // For any tensor in `inputs` only input tensor references are allowed.
     // For a tensor in `outputs` only input tensor refereences are allowed if `mode: per_dataset`
     #[serde(default)]
-    reference_tensor: Option<TensorId>,
-}
-
-const fn _default_min_percentile() -> f32 {
-    0f32
-}
-
-const fn _default_max_percentile() -> f32 {
-    100f32
+    pub reference_tensor: Option<TensorId>,
 }

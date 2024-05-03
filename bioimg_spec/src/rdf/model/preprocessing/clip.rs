@@ -1,4 +1,4 @@
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum ClipDescrParsingError{
     #[error("Max '{max}' not greater than min '{min}'")]
     MaxNotGreaterThanMin{min: f32, max: f32},
@@ -12,6 +12,18 @@ pub struct ClipDescr {
     min: f32,
     max: f32,
 }
+impl ClipDescr {
+    pub fn min(&self) ->  f32{
+        self.min
+    }
+    pub fn max(&self) ->  f32{
+        self.max
+    }
+    pub fn try_from_min_max(min: f32, max: f32) -> Result<Self, ClipDescrParsingError>{
+        Self::try_from(ClipDescrMessage{min, max})
+    }
+}
+
 
 impl TryFrom<ClipDescrMessage> for ClipDescr{
     type Error = ClipDescrParsingError;
@@ -27,7 +39,7 @@ impl TryFrom<ClipDescrMessage> for ClipDescr{
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct ClipDescrMessage {
+struct ClipDescrMessage {
     pub min: f32,
     pub max: f32,
 }
