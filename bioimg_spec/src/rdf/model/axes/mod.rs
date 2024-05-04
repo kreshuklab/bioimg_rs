@@ -26,6 +26,12 @@ pub enum AxisIdParsingError{
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct NonBatchAxisId(AxisId);
 
+impl Borrow<AxisId> for NonBatchAxisId{
+    fn borrow(&self) -> &AxisId {
+        &self.0
+    }
+}
+
 impl TryFrom<AxisId> for NonBatchAxisId{
     type Error = AxisIdParsingError;
     fn try_from(value: AxisId) -> Result<Self, Self::Error> {

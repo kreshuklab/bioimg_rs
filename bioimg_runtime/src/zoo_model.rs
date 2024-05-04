@@ -8,6 +8,7 @@ use bioimg_spec::rdf::{
         ModelRdf, RdfTypeModel
     }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, ResourceTextDescription, Version
 };
+use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
 
 use crate::{
@@ -30,6 +31,8 @@ pub enum ModelPackingError {
     RdfSerializationError(#[from] serde_json::Error),
     #[error("Could not write yaml file to zip: {0}")]
     SerdeYamlError(#[from] serde_yaml::Error),
+    #[error("Could not produce a valid Input tensor description: {0}")]
+    InputTensorParsingError(#[from] modelrdf::input_tensor::InputTensorParsingError)
 }
 
 pub struct ZooModel {

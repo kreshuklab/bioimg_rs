@@ -32,7 +32,7 @@ impl<DATA: Borrow<NpyArray>> InputSlot <DATA> {
     ) -> Result<modelrdf::InputTensorDescr, ModelPackingError> {
         let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
         zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
-        Ok(modelrdf::InputTensorDescr{
+        Ok(modelrdf::input_tensor::InputTensorDescrMessage{
             id: self.id.clone(),
             optional: self.optional,
             preprocessing: self.preprocessing.clone(),
@@ -43,7 +43,7 @@ impl<DATA: Borrow<NpyArray>> InputSlot <DATA> {
                 sha256: None,
             },
             sample_tensor: None, //FIXME
-        })
+        }.try_into()?)
     }
 }
 
