@@ -122,7 +122,7 @@ pub struct OnnxWeightsDescr{
 pub struct PyTorchArchitectureFromFileDescr{
     /// Identifier of the callable that returns a torch.nn.Module instance."""
     /// examples: "MyNetworkClass", "get_my_model"
-    pub callable: Identifier<String>,
+    pub callable: Identifier,
     /// key word arguments for the `callable`
     pub kwargs: serde_json::Map<String, serde_json::Value>,
 }
@@ -131,7 +131,7 @@ pub struct PyTorchArchitectureFromFileDescr{
 pub struct PyTorchArchitectureFromLibraryDescr{
     /// Identifier of the callable that returns a torch.nn.Module instance.
     /// examples: "MyNetworkClass", "get_my_model"
-    pub callable: Identifier<String>,
+    pub callable: Identifier,
     /// key word arguments for the `callable`
     pub kwargs: serde_yaml::Mapping,
     /// Where to import the callable from, i.e. `from <import_from> import <callable>`

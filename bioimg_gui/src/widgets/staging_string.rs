@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display};
+use std::{borrow::Borrow, error::Error, fmt::Display};
 
 use crate::result::{GuiError, Result};
 
@@ -17,10 +17,11 @@ pub struct StagingString<T> {
     pub input_lines: InputLines,
 }
 
-impl<T: Into<String> + Clone> ValueWidget for StagingString<T>{
+impl<T: Borrow<str> + Clone> ValueWidget for StagingString<T>{
     type Value<'a> = T;
     fn set_value(&mut self, value: T){
-        self.raw = value.clone().into();
+        self.raw.clear();
+        self.raw += value.borrow();
         self.parsed = Ok(value)
     }
 }

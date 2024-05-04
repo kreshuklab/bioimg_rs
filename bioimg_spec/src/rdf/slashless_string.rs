@@ -1,12 +1,13 @@
 use std::{borrow::Borrow, error::Error};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "String")]
-pub struct SlashlessString<T>(T)
-where
-    T: Borrow<str> + TryFrom<String>,
-    <T as TryFrom<String>>::Error: Error + 'static
-;
+pub struct SlashlessString<T>(T);
+
+impl<T: Borrow<str>> Borrow<str> for SlashlessString<T>{
+    fn borrow(&self) -> &str {
+        self.0.borrow()
+    }
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum SlashlessStringError {
@@ -26,13 +27,13 @@ where
     }
 }
 
-impl<T> TryFrom<String> for SlashlessString<T>
+impl<T> TryFrom<&str> for SlashlessString<T>
 where
-    T: Borrow<str> + TryFrom<String>,
-    <T as TryFrom<String>>::Error: Error + 'static
+    T: Borrow<str> + for <'a> TryFrom<&'a str>,
+    for<'a> <T as TryFrom<&'a str>>::Error: Error + 'static
 {
     type Error = SlashlessStringError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let t = match T::try_from(value) {
             Ok(t) => t,
             Err(err) => return Err(SlashlessStringError::BadString(Box::new(err)))
@@ -41,5 +42,18 @@ where
             return Err(SlashlessStringError::ContainsSlashes(t.borrow().into()));
         }
         Ok(Self(t))
+    }
+}
+
+
+//FIXME: cane we live withhout this and just have From<&str> ?
+impl<T> TryFrom<String> for SlashlessString<T>
+where
+    T: Borrow<str> + for <'a> TryFrom<&'a str>,
+    for<'a> <T as TryFrom<&'a str>>::Error: Error + 'static
+{
+    type Error = SlashlessStringError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
     }
 }

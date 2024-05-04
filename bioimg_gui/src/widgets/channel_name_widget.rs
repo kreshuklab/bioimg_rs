@@ -12,4 +12,4 @@ impl ItemWidgetConf for ChannelNameItemConf{
     const MIN_NUM_ITEMS: usize = 1;
 }
 
-pub type ChannelNamesWidget = StagingVec<StagingString<rdf::Identifier<String>>, ChannelNameItemConf>;
+pub type ChannelNamesWidget = StagingVec<StagingString<rdf::Identifier>, ChannelNameItemConf>;

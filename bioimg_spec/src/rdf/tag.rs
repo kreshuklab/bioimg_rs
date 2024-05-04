@@ -1,8 +1,16 @@
+use std::borrow::Borrow;
+
 use super::{bounded_string::BoundedStringParsingError, BoundedString};
 
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Tag(BoundedString<1, {1024 -1}>);
+
+impl Borrow<str> for Tag{
+    fn borrow(&self) -> &str {
+        self.0.borrow()
+    }
+}
 
 impl From<Tag> for String{
     fn from(value: Tag) -> Self {

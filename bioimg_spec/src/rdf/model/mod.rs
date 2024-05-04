@@ -8,7 +8,6 @@ use crate::rdf;
 
 pub mod axes;
 pub mod axis_size;
-pub mod channel_name;
 pub mod data_range;
 pub mod data_type;
 pub mod input_tensor;

@@ -121,14 +121,14 @@ impl StatefulWidget for ChannelAxisWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        let channel_names: NonEmptyList<rdf::Identifier<String>> = match self.channel_names_mode {
+        let channel_names: NonEmptyList<rdf::Identifier> = match self.channel_names_mode {
             ChannelNamesMode::Pattern => {
                 let extent: usize = self.channel_extent_widget.state()?.into();
                 (0..extent)
                     .map(|idx| {
                         let prefix = self.channel_name_prefix_widget.state()?;
                         let suffix = self.channel_name_suffix_widget.state()?;
-                        let identifier = rdf::Identifier::<String>::try_from(format!("{prefix}{idx}{suffix}"))?;
+                        let identifier = rdf::Identifier::try_from(format!("{prefix}{idx}{suffix}"))?;
                         Ok(identifier)
                     })
                     .collect::<Result<Vec<_>>>()?
@@ -137,7 +137,7 @@ impl StatefulWidget for ChannelAxisWidget{
 
             }
             ChannelNamesMode::Explicit => {
-                let channel_names_result: Result<Vec<rdf::Identifier<_>>, GuiError> =
+                let channel_names_result: Result<Vec<rdf::Identifier>, GuiError> =
                     self.staging_explicit_names.state().into_iter().collect();
                 NonEmptyList::try_from(channel_names_result?)
                     .map_err(|_| GuiError::new("Empty list of channel names".to_owned()))?

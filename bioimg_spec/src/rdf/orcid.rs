@@ -1,7 +1,11 @@
+use std::{borrow::Borrow, sync::Arc};
+
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum OrcidParsingError{
-    #[error("Bad ORCID string: {0}")]
-    BadCode(String),
+    #[error("Bad ORCID string")]
+    BadCode,
+    #[error("Bad checksum")]
+    BadChecksum,
     #[error("Bad ORCID char: {0}")]
     BadChar(char),
     #[error("Bad ORCID checksum char: {0}")]
@@ -12,15 +16,14 @@ pub enum OrcidParsingError{
 #[serde(into = "String")]
 #[serde(try_from = "String")]
 pub struct Orcid{
+    digits: Arc<str>,
     value: u64,
     checksum: u64,
 }
-impl Orcid{
-    pub fn value(&self) -> u64{
-        self.value
-    }
-    pub fn checksum(&self) -> u64{
-        self.checksum
+
+impl Borrow<str> for Orcid{
+    fn borrow(&self) -> &str {
+        &self.digits
     }
 }
 
@@ -40,44 +43,24 @@ impl CharExt for char{
     }
 }
 
-impl Into<String> for Orcid{
-    fn into(self) -> String {
-        let mut value = self.value;
-        let reverse_digits: Vec<char> = (0..15).map(|_|{
-            let ch = char::from_digit((value % 10) as u32, 10).unwrap();
-            value = value / 10;
-            ch
-        }).collect();
-
-        let mut out = String::with_capacity(4 * 4 + 3);
-        reverse_digits.into_iter().rev().enumerate().for_each(|(idx, ch)|{
-            if idx != 0 && idx % 4 == 0{
-                out.push('-');
-            }
-            out.push(ch);
-        });
-
-        if self.checksum == 10{
-            out.push('X')
-        }else{
-            out.push(char::from_digit(self.checksum as  u32, 10).unwrap())
-        }
-        out
+impl From<Orcid> for String{
+    fn from(value: Orcid) -> String {
+        value.digits.as_ref().to_owned()
     }
 }
 
-impl TryFrom<String> for Orcid{
+impl TryFrom<&str> for Orcid{
     type Error = OrcidParsingError;
-    fn try_from(value: String) -> Result<Self, Self::Error>{
+    fn try_from(value: &str) -> Result<Self, Self::Error>{
         let parts = value.split("-")
             .map(|part_str| part_str.chars().collect::<Vec<_>>())
             .map(|part_vec| {
                 TryInto::<[char; 4]>::try_into(part_vec)
-                    .map_err(|_| OrcidParsingError::BadCode(value.clone()))
+                    .map_err(|_| OrcidParsingError::BadCode)
             })
             .collect::<Result<Vec<[char; 4]>, _>>()?;
         let Ok(four_parts) = TryInto::<[[char; 4]; 4]>::try_into(parts) else {
-            return Err(OrcidParsingError::BadCode(value));
+            return Err(OrcidParsingError::BadCode);
         };
 
         let chars = four_parts[0].iter()
@@ -98,9 +81,16 @@ impl TryFrom<String> for Orcid{
         let found_checksum = four_parts[3][3].try_as_orcid_checksum()?;
 
         if expected_checksum != found_checksum{
-            return Err(OrcidParsingError::BadCode(value))
+            return Err(OrcidParsingError::BadChecksum)
         }
-        Ok(Self{value: orcid_value, checksum: found_checksum})
+        Ok(Self{digits: Arc::from(value), value: orcid_value, checksum: found_checksum})
+    }
+}
+
+impl TryFrom<String> for Orcid{
+    type Error = OrcidParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
     }
 }
 

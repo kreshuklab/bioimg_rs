@@ -38,6 +38,29 @@ impl<T: Borrow<str>> Deref for Lowercase<T> {
     }
 }
 
+impl<T, E> TryFrom<&str> for Lowercase<T>
+where
+    E: Error + 'static,
+    T: for<'a> TryFrom<&'a str, Error = E>,
+    T: Borrow<str>,
+{
+    type Error = LowercaseParsingError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let inner = match T::try_from(value) {
+            Err(err) => return Err(LowercaseParsingError::BadString { source: Box::new(err) }),
+            Ok(inner_val) => inner_val,
+        };
+        let inner_str: &str = inner.borrow();
+        if let Some(uppercase_idx) = inner_str.chars().position(|c| c.is_uppercase()) {
+            return Err(LowercaseParsingError::IsNotLowercase {
+                value: inner_str.into(),
+                idx: uppercase_idx,
+            });
+        }
+        Ok(Self(inner))
+    }
+}
+
 impl<T, E> TryFrom<String> for Lowercase<T>
 where
     E: Error + 'static,

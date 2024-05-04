@@ -192,7 +192,7 @@ pub struct ChannelAxis {
     #[serde(default)]
     pub description: AxisDescription,
     // pub size: FixedAxisSize,
-    pub channel_names: NonEmptyList<Identifier<String>>,
+    pub channel_names: NonEmptyList<Identifier>,
     // #[serde(default)]
     // pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
 }

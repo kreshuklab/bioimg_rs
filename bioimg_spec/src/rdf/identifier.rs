@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, fmt::Display};
+use std::{borrow::Borrow, error::Error, fmt::Display, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,21 +10,21 @@ const PYTHON_KEYWORDS: [&'static str; 35] = [
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(transparent)]
-pub struct Identifier<T>(T);
+pub struct Identifier(Arc<str>);
 
-impl Identifier<String> {
-    pub fn appended_with(&self, suffix: &str) -> Self {
-        return Self(format!("{}{suffix}", self.0));
+impl Identifier {
+    pub fn appended_with(&self, suffix: &str) -> Self { //FIXME?
+        return Self(Arc::from(format!("{}{suffix}", self.0).as_str()));
     }
 }
 
-impl<T: Borrow<str>> Borrow<str> for Identifier<T> {
+impl Borrow<str> for Identifier {
     fn borrow(&self) -> &str {
         return self.0.borrow();
     }
 }
 
-impl<T: Display> Display for Identifier<T> {
+impl Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
@@ -44,43 +44,41 @@ pub enum IdentifierParsingError {
     IsPythonKeyword { value: String },
 }
 
-impl<T, E> TryFrom<String> for Identifier<T>
-where
-    T: Borrow<str>,
-    E: Error + 'static,
-    T: TryFrom<String, Error = E>,
-{
+impl TryFrom<&str> for Identifier{
     type Error = IdentifierParsingError;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let inner = match T::try_from(value) {
-            Err(err) => return Err(IdentifierParsingError::BadString { source: Box::new(err) }),
-            Ok(inner_val) => inner_val,
-        };
-        let inner_str: &str = inner.borrow();
-        let Some(first_char) = inner_str.chars().next() else {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let Some(first_char) = value.chars().next() else {
             return Err(IdentifierParsingError::EmptyString);
         };
         if !first_char.is_alphabetic() && first_char != '_' {
-            return Err(IdentifierParsingError::MustStartWithAlphabeticalOrUnderscore { value: inner_str.into() });
+            return Err(IdentifierParsingError::MustStartWithAlphabeticalOrUnderscore { value: value.into() });
         }
-        for (idx, c) in inner_str.char_indices() {
+        for (idx, c) in value.char_indices() {
             if !c.is_alphanumeric() && c != '_' {
                 return Err(IdentifierParsingError::ContainsbadCharacter {
-                    value: inner_str.into(),
+                    value: value.into(),
                     position: idx,
                 });
             }
         }
-        if PYTHON_KEYWORDS.iter().copied().position(|kw| kw == inner_str).is_some() {
-            return Err(IdentifierParsingError::IsPythonKeyword { value: inner_str.into() });
+        if PYTHON_KEYWORDS.iter().copied().position(|kw| kw == value).is_some() {
+            return Err(IdentifierParsingError::IsPythonKeyword { value: value.into() });
         }
-        Ok(Self(inner))
+        Ok(Self(Arc::from(value)))
     }
 }
 
-impl<T: Into<String>> From<Identifier<T>> for String {
-    fn from(value: Identifier<T>) -> Self {
-        return value.0.into();
+impl TryFrom<String> for Identifier{
+    type Error = IdentifierParsingError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
+    }
+}
+
+impl From<Identifier> for String {
+    fn from(value: Identifier) -> Self {
+        return value.0.as_ref().to_owned();
     }
 }
