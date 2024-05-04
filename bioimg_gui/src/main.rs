@@ -13,7 +13,7 @@ fn main() -> eframe::Result<()> {
         ..Default::default()
     };
     eframe::run_native(
-        "eframe template",
+        "Bioimage Model Builder",
         native_options,
         Box::new(|_cc| Box::new(bioimg_gui::BioimgGui::default())),
     )
