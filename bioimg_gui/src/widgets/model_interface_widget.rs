@@ -40,14 +40,14 @@ impl StatefulWidget for ModelInterfaceWidget {
                 self.outputs_widget.draw_and_parse(ui, id.with("out"));
             });
 
-            let inputs = match self.inputs_widget.state().into_iter().collect::<Result<Vec<_>>>() {
+            let inputs = match self.inputs_widget.state().into_iter().map(|i| i.clone()).collect::<Result<Vec<_>>>() {
                 Ok(inps) => inps,
                 Err(_) => {
                     show_error(ui, format!("Check inputs for errors"));
                     return;
                 }
             };
-            let outputs = match self.outputs_widget.state().into_iter().collect::<Result<Vec<_>>>() {
+            let outputs = match self.outputs_widget.state().into_iter().map(|i| i.clone()).collect::<Result<Vec<_>>>() {
                 Ok(outs) => outs,
                 Err(_) => {
                     show_error(ui, format!("Check outputs for errors"));

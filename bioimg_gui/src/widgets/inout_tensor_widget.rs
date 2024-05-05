@@ -3,11 +3,13 @@ use std::sync::Arc;
 
 use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
 use bioimg_runtime::npy_array::ArcNpyArray;
+use bioimg_runtime::NpyArray;
 
-use crate::result::{GuiError, Result};
+use crate::result::{GuiError, Result, VecResultExt};
 use bioimg_spec::rdf::model as modelrdf;
+use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
-use super::error_display::show_error;
+use super::error_display::{show_error, show_if_error};
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::preprocessing_widget::PreprocessingWidget;
 use super::staging_string::StagingString;
@@ -18,7 +20,6 @@ use super::{StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
 
 
-#[derive(Default)]
 pub struct InputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub is_optional: bool,
@@ -26,6 +27,22 @@ pub struct InputTensorWidget {
     pub axes_widget: StagingVec<InputAxisWidget>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
     pub preprocessing_widget: StagingVec<PreprocessingWidget>,
+
+    pub parsed: Result<InputSlot<Arc<NpyArray>>>,
+}
+
+impl Default for InputTensorWidget{
+    fn default() -> Self {
+        Self{
+            id_widget: Default::default(),
+            is_optional: Default::default(),
+            description_widget: Default::default(),
+            axes_widget: Default::default(),
+            test_tensor_widget: Default::default(),
+            preprocessing_widget: Default::default(),
+            parsed: Err(GuiError::new("empty".to_owned())),
+        }
+    }
 }
 
 impl ValueWidget for InputTensorWidget{
@@ -46,7 +63,7 @@ impl ItemWidgetConf for InputTensorWidget{
 }
 
 impl StatefulWidget for InputTensorWidget {
-    type Value<'p> = Result<InputSlot<ArcNpyArray>>;
+    type Value<'p> = &'p Result<InputSlot<ArcNpyArray>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         if let FileWidgetState::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
@@ -98,32 +115,53 @@ impl StatefulWidget for InputTensorWidget {
                 ui.strong("Preprocessing: ");
                 self.preprocessing_widget.draw_and_parse(ui, id.with("preproc".as_ptr()));
             });
+
+            self.parsed = || -> Result<InputSlot<Arc<NpyArray>>> {
+                let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+                    return Err(GuiError::new("Test tensor is missing".into()));
+                };
+                let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+                let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
+                let meta_msg = rdfinput::InputTensorMetadataMsg{
+                    id: self.id_widget.state()?,
+                    optional: self.is_optional,
+                    preprocessing: self.preprocessing_widget.state().collect_result()?,
+                    description: self.description_widget.state()?,
+                    axes: input_axis_group,
+                };
+                Ok(
+                    InputSlot{ tensor_meta: meta_msg.try_into()?, test_tensor: Arc::clone(gui_npy_array) }
+                )
+            }();
+
+            show_if_error(ui, &self.parsed);
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
-            return Err(GuiError::new("Test tensor is missing".into()));
-        };
-        let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
-        let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
-        Ok( InputSlot {
-            id: self.id_widget.state()?,
-            optional: self.is_optional,
-            preprocessing: vec![], //FIXME
-            description: self.description_widget.state()?,
-            axes: input_axis_group,
-            test_tensor: Arc::clone(gui_npy_array),
-        })
+        &self.parsed
     }
 }
 
-#[derive(Default)]
 pub struct OutputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<OutputAxisWidget>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
+
+    pub parsed: Result<OutputSlot<Arc<NpyArray>>>,
+}
+
+impl Default for OutputTensorWidget{
+    fn default() -> Self {
+        Self{
+            id_widget: Default::default(),
+            description_widget: Default::default(),
+            axes_widget: Default::default(),
+            test_tensor_widget: Default::default(),
+            parsed: Err(GuiError::new("empty".to_owned()))
+        }
+    }
 }
 
 impl ValueWidget for OutputTensorWidget{
@@ -144,7 +182,7 @@ impl ItemWidgetConf for OutputTensorWidget{
 }
 
 impl StatefulWidget for OutputTensorWidget {
-    type Value<'p> = Result<OutputSlot<ArcNpyArray>>;
+    type Value<'p> = &'p Result<OutputSlot<ArcNpyArray>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         if let FileWidgetState::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
@@ -188,20 +226,27 @@ impl StatefulWidget for OutputTensorWidget {
                 ui.strong("Axes: ");
                 self.axes_widget.draw_and_parse(ui, id.with("Axes"));
             });
+            self.parsed = || -> Result<OutputSlot<Arc<NpyArray>>> {
+                let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+                    return Err(GuiError::new("Test tensor is missing".into()));
+                };
+                let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+                let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
+                let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
+                    id: self.id_widget.state()?,
+                    description: self.description_widget.state()?,
+                    axes: axis_group,
+                };
+                Ok(
+                    OutputSlot{ tensor_meta: meta_msg.try_into()?, test_tensor: Arc::clone(gui_npy_array) }
+                )
+            }();
+
+            show_if_error(ui, &self.parsed);
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
-            return Err(GuiError::new("Test tensor is missing".into()));
-        };
-        let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
-        let input_axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
-        Ok( OutputSlot {
-            id: self.id_widget.state()?,
-            description: self.description_widget.state()?,
-            axes: input_axis_group,
-            test_tensor: Arc::clone(gui_npy_array),
-        })
+        &self.parsed
     }
 }

@@ -9,18 +9,30 @@ use super::{axes::input_axes::InputAxisGroup, preprocessing::{BinarizeDescr, Pre
 #[derive(thiserror::Error, Debug)]
 pub enum InputTensorParsingError{
     #[error("Axis reference to non-existing axis")]
-    ReferenceToNonExistingAxis,
+    PreprocessingReferencesNonExistingAxis,
 }
 
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(try_from = "InputTensorDescrMessage")]
-#[serde(into = "InputTensorDescrMessage")]
 pub struct InputTensorDescr {
+    #[serde(flatten)]
+    pub meta: InputTensorMetadata,
+    pub test_tensor: FileDescription,
+    pub sample_tensor: Option<FileReference>,
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(into = "InputTensorMetadataMsg")]
+#[serde(try_from = "InputTensorMetadataMsg")]
+pub struct InputTensorMetadata {
     /// Input tensor id. No duplicates are allowed across all inputs and outputs.
-    id: TensorId,
+    pub id: TensorId,
 
     /// indicates that this tensor is optional when doing inference
-    optional: bool,
+    pub optional: bool,
+
+    pub description: TensorTextDescription,
 
     /// Description of how this input should be preprocessed.
     ///
@@ -31,22 +43,35 @@ pub struct InputTensorDescr {
     ///   'ensure_dtype' step is added to ensure preprocessing steps are not unintentionally
     ///   changing the data type.
     preprocessing: Vec<PreprocessingDescr>,
-
-    description: TensorTextDescription,
     axes: InputAxisGroup,
-    test_tensor: FileDescription,
-    sample_tensor: Option<FileReference>,
 }
 
-impl TryFrom<InputTensorDescrMessage> for InputTensorDescr{
-    type Error = InputTensorParsingError;
-    fn try_from(message: InputTensorDescrMessage) -> Result<Self, Self::Error> {
+impl InputTensorMetadata{
+    pub fn axes(&self) -> &InputAxisGroup{ &self.axes }
+}
 
-        fn ensure_axis_exists(message: &InputTensorDescrMessage, preproc_axis_id: &AxisId) -> Result<(), InputTensorParsingError>{
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InputTensorMetadataMsg {
+    pub id: TensorId,
+    #[serde(default)]
+    pub optional: bool,
+    pub preprocessing: Vec<PreprocessingDescr>,
+    #[serde(default)]
+    pub description: TensorTextDescription,
+    pub axes: InputAxisGroup,
+}
+
+impl TryFrom<InputTensorMetadataMsg> for InputTensorMetadata{
+    type Error = InputTensorParsingError;
+    fn try_from(message: InputTensorMetadataMsg) -> Result<Self, Self::Error> {
+
+        fn ensure_axis_exists(message: &InputTensorMetadataMsg, preproc_axis_id: &AxisId) -> Result<(), InputTensorParsingError>{
             message.axes.iter()
                 .map(|ax| ax.id())
-                .find(|ax_id| ax_id == preproc_axis_id)
-                .ok_or(InputTensorParsingError::ReferenceToNonExistingAxis)
+                .find(|ax_id| {
+                    ax_id == preproc_axis_id
+                })
+                .ok_or(InputTensorParsingError::PreprocessingReferencesNonExistingAxis)
                 .map(|_| ())
         }
 
@@ -78,37 +103,19 @@ impl TryFrom<InputTensorDescrMessage> for InputTensorDescr{
             preprocessing: message.preprocessing,
             description: message.description,
             axes: message.axes,
-            test_tensor: message.test_tensor,
-            sample_tensor: message.sample_tensor,
         })
     }
 }
 
-impl From<InputTensorDescr> for InputTensorDescrMessage{
-    fn from(value: InputTensorDescr) -> Self {
+impl From<InputTensorMetadata> for InputTensorMetadataMsg{
+    fn from(value: InputTensorMetadata) -> Self {
         Self{
             id: value.id,
             optional: value.optional,
             preprocessing: value.preprocessing,
             description: value.description,
             axes: value.axes,
-            test_tensor: value.test_tensor,
-            sample_tensor: value.sample_tensor,
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct InputTensorDescrMessage {
-    pub id: TensorId,
-    #[serde(default)]
-    pub optional: bool,
-    pub preprocessing: Vec<PreprocessingDescr>,
-    #[serde(default)]
-    pub description: TensorTextDescription,
-    pub axes: InputAxisGroup,
-    pub test_tensor: FileDescription,
-    #[serde(default)]
-    pub sample_tensor: Option<FileReference>,
 }
 

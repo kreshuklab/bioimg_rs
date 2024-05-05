@@ -17,11 +17,7 @@ use super::axis_size_resolver::AxisSizeResolutionError;
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct InputSlot <DATA: Borrow<NpyArray>> {
-    pub id: TensorId,
-    pub optional: bool,
-    pub preprocessing: Vec<modelrdf::PreprocessingDescr>,
-    pub description: modelrdf::TensorTextDescription,
-    pub axes: modelrdf::InputAxisGroup,
+    pub tensor_meta: modelrdf::input_tensor::InputTensorMetadata,
     pub test_tensor: DATA,
 }
 
@@ -30,20 +26,16 @@ impl<DATA: Borrow<NpyArray>> InputSlot <DATA> {
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<modelrdf::InputTensorDescr, ModelPackingError> {
-        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.tensor_meta.id));
         zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
-        Ok(modelrdf::input_tensor::InputTensorDescrMessage{
-            id: self.id.clone(),
-            optional: self.optional,
-            preprocessing: self.preprocessing.clone(),
-            description: self.description.clone(),
-            axes: self.axes.clone(),
+        Ok(modelrdf::input_tensor::InputTensorDescr{
+            meta: self.tensor_meta.clone(),
             test_tensor: rdf::FileDescription{
                 source: test_tensor_zip_path.into(),
                 sha256: None,
             },
             sample_tensor: None, //FIXME
-        }.try_into()?)
+        })
     }
 }
 
@@ -56,9 +48,9 @@ pub trait VecInputSlotExt{
 impl<DATA: Borrow<NpyArray>> VecInputSlotExt for [InputSlot<DATA>]{
     fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &InputAxis)>{
         self.iter()
-            .map(|rt_tensor_descr|{
-                rt_tensor_descr.axes.iter().map(|axis|{
-                    let qual_id = QualifiedAxisId{tensor_id: rt_tensor_descr.id.clone(), axis_id: axis.id()};
+            .map(|slot|{
+                slot.tensor_meta.axes().iter().map(|axis|{
+                    let qual_id = QualifiedAxisId{tensor_id: slot.tensor_meta.id.clone(), axis_id: axis.id()};
                     (qual_id, axis)
                 })
             })
@@ -69,9 +61,7 @@ impl<DATA: Borrow<NpyArray>> VecInputSlotExt for [InputSlot<DATA>]{
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct OutputSlot<DATA: Borrow<NpyArray>> {
-    pub id: TensorId,
-    pub description: modelrdf::TensorTextDescription,
-    pub axes: modelrdf::OutputAxisGroup,
+    pub tensor_meta: modelrdf::output_tensor::OutputTensorMetadata,
     pub test_tensor: DATA,
 }
 
@@ -80,12 +70,10 @@ impl<DATA: Borrow<NpyArray>> OutputSlot<DATA> {
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<modelrdf::OutputTensorDescr, ModelPackingError> {
-        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.id));
+        let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.tensor_meta.id));
         zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
         Ok(modelrdf::OutputTensorDescr{
-            id: self.id.clone(),
-            description: self.description.clone(),
-            axes: self.axes.clone(),
+            metadata: self.tensor_meta.clone(),
             test_tensor: rdf::FileDescription{
                 source: test_tensor_zip_path.into(),
                 sha256: None,
@@ -104,9 +92,9 @@ pub trait VecOutputSlotExt{
 impl<DATA: Borrow<NpyArray>> VecOutputSlotExt for [OutputSlot<DATA>]{
     fn qual_id_axes(&self) -> impl Iterator<Item=(QualifiedAxisId, &OutputAxis)>{
         self.iter()
-            .map(|rt_tensor_descr|{
-                rt_tensor_descr.axes.iter().map(|axis|{
-                    let qual_id = QualifiedAxisId{tensor_id: rt_tensor_descr.id.clone(), axis_id: axis.id()};
+            .map(|slot|{
+                slot.tensor_meta.axes().iter().map(|axis|{
+                    let qual_id = QualifiedAxisId{tensor_id: slot.tensor_meta.id.clone(), axis_id: axis.id()};
                     (qual_id, axis)
                 })
             })
@@ -173,8 +161,8 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         {
             let capacity: usize = usize::from(inputs.len()) + usize::from(outputs.len());
             let mut seen_tensor_ids = HashSet::<&TensorId>::with_capacity(capacity);
-            inputs.iter().map(|tensor_descr| &tensor_descr.id)
-                .chain(outputs.iter().map(|tensor_descr| &tensor_descr.id))
+            inputs.iter().map(|slot| &slot.tensor_meta.id)
+                .chain(outputs.iter().map(|slot| &slot.tensor_meta.id))
                 .map(|tensor_id|{
                     if !seen_tensor_ids.insert(tensor_id){
                         Err(TensorValidationError::DuplicateTensorId(tensor_id.clone()))
@@ -195,17 +183,17 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
             for slot in $slots.iter(){
                 let test_tensor_shape = slot.test_tensor.borrow().shape();
                 let mut test_tensor_dims = test_tensor_shape.iter().enumerate();
-                for axis in slot.axes.iter(){
+                for axis in slot.tensor_meta.axes().iter(){
                     let Some((test_tensor_dim_index, test_tensor_dim_size)) = test_tensor_dims.next() else{
                         return Err(TensorValidationError::MismatchedNumDimensions {
                             test_tensor_shape: test_tensor_shape.into(),
-                            num_described_axes: slot.axes.len(),
+                            num_described_axes: slot.tensor_meta.axes().len(),
                         });
                     };
                     if axis.size().is_none(){ // batch i guess?
                         continue;
                     };
-                    let qual_id = QualifiedAxisId{tensor_id: slot.id.clone(), axis_id: axis.id()};
+                    let qual_id = QualifiedAxisId{tensor_id: slot.tensor_meta.id.clone(), axis_id: axis.id()};
                     let resolved = size_map.get(&qual_id).unwrap();
                     if !resolved.is_compatible_with_extent(*test_tensor_dim_size){
                         return Err(TensorValidationError::IncompatibleAxis {
