@@ -1,7 +1,7 @@
 use std::{fmt::Display, path::{Path, PathBuf}};
 
 use crate::result::{GuiError, Result};
-use super::{StatefulWidget, ValueWidget};
+use super::{error_display::show_error, StatefulWidget, ValueWidget};
 
 pub trait ParsedFile: Send + 'static {
     fn parse(path: PathBuf, ctx: egui::Context) -> Self;
@@ -124,7 +124,10 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
                         value.render(ui, id.with("parsed"));
                         FileWidgetState::Finished{path, value}
                     },
-                    FileWidgetState::Empty => FileWidgetState::Empty,
+                    FileWidgetState::Empty => {
+                        show_error(ui, "No file selected");
+                        FileWidgetState::Empty
+                    },
                 };
             });
         });
