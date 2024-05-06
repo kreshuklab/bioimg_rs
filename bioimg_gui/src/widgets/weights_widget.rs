@@ -5,12 +5,13 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
+    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
 };
 
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
     pub torchscript_weights_widget: StagingOpt<TorchscriptWeightsWidget>,
+    pub pytorch_state_dict_widget: StagingOpt<PytorchStateDictWidget>,
 
     parsed: Result<Arc<rt::ModelWeights>>
 }
@@ -20,6 +21,7 @@ impl Default for WeightsWidget{
         Self {
             keras_weights_widget: Default::default(),
             torchscript_weights_widget: Default::default(),
+            pytorch_state_dict_widget: Default::default(),
             parsed: Err(GuiError::new("empty".into()))
         }
     }
@@ -36,6 +38,10 @@ impl StatefulWidget for WeightsWidget{
                 self.torchscript_weights_widget.draw_and_parse(ui, id.with("tsweights"));
             });
             ui.horizontal(|ui|{
+                ui.strong("Pytorch state dict weights: ");
+                self.pytorch_state_dict_widget.draw_and_parse(ui, id.with("pytorch".as_ptr()));
+            });
+            ui.horizontal(|ui|{
                 ui.strong("Keras Weights: ");
                 self.keras_weights_widget.draw_and_parse(ui, id.with("keras"));
             });
@@ -44,7 +50,7 @@ impl StatefulWidget for WeightsWidget{
                 Ok(Arc::new(rt::ModelWeights::new(
                     self.keras_weights_widget.state().transpose()?,
                     None,
-                    None,
+                    self.pytorch_state_dict_widget.state().transpose()?,
                     None,
                     None,
                     self.torchscript_weights_widget.state().transpose()?,

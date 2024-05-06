@@ -133,10 +133,11 @@ pub struct PyTorchArchitectureFromLibraryDescr{
     /// examples: "MyNetworkClass", "get_my_model"
     pub callable: Identifier,
     /// key word arguments for the `callable`
-    pub kwargs: serde_yaml::Mapping,
+    pub kwargs: serde_json::Map<String, serde_json::Value>,
     /// Where to import the callable from, i.e. `from <import_from> import <callable>`
     pub import_from: String
 }
+
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum PytorchArchitectureDescr{
@@ -144,6 +145,17 @@ pub enum PytorchArchitectureDescr{
     FromFileDescr(PyTorchArchitectureFromFileDescr),
 }
 
+impl From<PyTorchArchitectureFromLibraryDescr> for PytorchArchitectureDescr{
+    fn from(value: PyTorchArchitectureFromLibraryDescr) -> Self {
+        Self::FromLibraryDescr(value)
+    }
+}
+
+impl From<PyTorchArchitectureFromFileDescr> for PytorchArchitectureDescr{
+    fn from(value: PyTorchArchitectureFromFileDescr) -> Self {
+        Self::FromFileDescr(value)
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct PytorchStateDictWeightsDescr{

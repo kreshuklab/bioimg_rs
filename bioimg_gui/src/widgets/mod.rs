@@ -21,6 +21,7 @@ pub mod axis_widget;
 pub mod url_widget;
 pub mod util;
 pub mod weights_widget;
+pub mod pytorch_statedict_weights_widget;
 pub mod attachments_widget;
 pub mod tags_widget;
 pub mod channel_name_widget;
@@ -34,6 +35,8 @@ pub mod clip_widget;
 pub mod scale_linear_widget;
 pub mod zero_mean_unit_variance_widget;
 pub mod scale_range_widget;
+pub mod json_editor_widget;
+pub mod conda_env_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

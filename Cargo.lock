@@ -167,6 +167,7 @@ dependencies = [
  "poll-promise",
  "rfd",
  "serde",
+ "serde_json",
  "strum",
  "thiserror",
  "url",

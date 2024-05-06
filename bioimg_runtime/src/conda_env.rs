@@ -4,9 +4,25 @@ use bioimg_spec::rdf;
 
 use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
+#[derive(thiserror::Error, Debug)]
+pub enum CondaEnvParsingError{
+    #[error("{0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Could not parse yaml contents: {0}")]
+    YamlParsingError(#[from] serde_yaml::Error),
+}
+
 #[derive(Clone)]
 pub struct CondaEnv{
-    pub raw: serde_yaml::Value,
+    pub raw: serde_yaml::Mapping,
+}
+
+impl CondaEnv{
+    pub fn try_load(reader: impl std::io::Read) -> Result<Self, CondaEnvParsingError>{
+        Ok(Self{
+            raw: serde_yaml::from_reader(reader)?
+        })
+    }
 }
 
 impl CondaEnv{

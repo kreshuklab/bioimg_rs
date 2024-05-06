@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::{fmt::Display, path::{Path, PathBuf}};
 
 use crate::result::{GuiError, Result};
 use super::{StatefulWidget, ValueWidget};
@@ -33,6 +33,21 @@ impl<V: Send + 'static> FileWidgetState<V>{
 
 pub struct FileWidget<PF: ParsedFile> {
     pub state: FileWidgetState<PF>,
+}
+
+impl<T, E> FileWidgetState<Result<T, E>>
+where
+    T: Send + 'static,
+    E: Send + 'static + Display,
+{
+    pub fn ok(&self) -> Result<&T, GuiError>{
+        match self{
+            Self::Empty => Err(GuiError::new("No file selected".to_owned())),
+            Self::AboutToLoad{ .. } | Self::Loading { .. } => Err(GuiError::new("File not loaded yet".to_owned())),
+            Self::Finished { value, .. } => value.as_ref().map_err(|err| GuiError::new(format!("{}", err)))
+        }
+    }
+    
 }
 
 impl<PF: ParsedFile> ValueWidget for FileWidget<PF>{
