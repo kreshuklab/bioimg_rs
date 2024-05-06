@@ -24,10 +24,12 @@ impl StatefulWidget for JsonObjectEditorWidget{
     type Value<'p> = &'p Result<serde_json::Map<String, serde_json::Value>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.code_editor_widget.draw_and_parse(ui, id.with("code".as_ptr()));
-        self.parsed = serde_json::from_str(&self.code_editor_widget.raw)
-            .map_err(|err| err.into());
-        show_if_error(ui, &self.parsed);
+        ui.vertical(|ui|{
+            self.code_editor_widget.draw_and_parse(ui, id.with("code".as_ptr()));
+            self.parsed = serde_json::from_str(&self.code_editor_widget.raw)
+                .map_err(|err| err.into());
+            show_if_error(ui, &self.parsed);
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
