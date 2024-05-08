@@ -47,7 +47,14 @@ where
             Self::Finished { value, .. } => value.as_ref().map_err(|err| GuiError::new(format!("{}", err)))
         }
     }
-    
+
+    pub fn ok_mut(&mut self) -> Result<&mut T, GuiError>{
+        match self{
+            Self::Empty => Err(GuiError::new("No file selected".to_owned())),
+            Self::AboutToLoad{ .. } | Self::Loading { .. } => Err(GuiError::new("File not loaded yet".to_owned())),
+            Self::Finished { value, .. } => value.as_mut().map_err(|err| GuiError::new(format!("{}", err)))
+        }
+    }
 }
 
 impl<PF: ParsedFile> ValueWidget for FileWidget<PF>{
