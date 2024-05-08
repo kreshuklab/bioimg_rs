@@ -18,14 +18,14 @@ impl<W: Write + Seek> ModelZipWriter<W> {
         F: FnOnce(&mut dyn Write) -> Result<Out, E>,
         E: Into<ModelPackingError>,
     {
-        let file_options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let file_options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
         let path: String = path.clone().into();
         self.0.start_file(path, file_options)?;
         f(&mut self.0).map_err(|e| e.into())
     }
 
     //FIXME: can we enforce the calling of this function with something like must_use ?
-    pub fn finish(mut self) -> Result<(), ModelPackingError> {
+    pub fn finish(self) -> Result<(), ModelPackingError> {
         self.0.finish()?;
         Ok(())
     }
