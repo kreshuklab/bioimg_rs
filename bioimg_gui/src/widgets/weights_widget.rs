@@ -1,11 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
-use bioimg_spec::rdf::Version;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
+    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
 };
 
 pub struct WeightsWidget{
