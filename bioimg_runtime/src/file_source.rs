@@ -8,7 +8,7 @@ use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
 pub enum FileSource{
     LocalFile{path: PathBuf},
-    FileInZipArchive{outer_path: PathBuf, inner_path: PathBuf},
+    FileInZipArchive{outer_path: PathBuf, inner_path: String},
 }
 
 impl FileSource{
@@ -16,12 +16,10 @@ impl FileSource{
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FsPath, ModelPackingError> {
-        let output_inner_path = rdf::FsPath::unique_suffixed(
-            &match self{
-                Self::LocalFile { path } => path,
-                Self::FileInZipArchive { inner_path, .. } => inner_path
-            }.to_string_lossy() //FXIME?
-        );
+        let output_inner_path = match self{
+            Self::LocalFile { path } => rdf::FsPath::unique_suffixed(&path.to_string_lossy()),
+            Self::FileInZipArchive { inner_path, .. } => rdf::FsPath::unique_suffixed(&inner_path),
+        };
         zip_file.write_file(&output_inner_path, |writer| {
             match self{
                 Self::LocalFile { path } => {
@@ -30,7 +28,7 @@ impl FileSource{
                 Self::FileInZipArchive { outer_path, inner_path } => {
                     let archive_file = std::fs::File::open(outer_path)?;
                     let mut archive = zip::ZipArchive::new(archive_file)?;
-                    let mut archived_file = archive.by_name(&inner_path.to_string_lossy())?;
+                    let mut archived_file = archive.by_name(inner_path.as_str())?;
                     std::io::copy(&mut archived_file, writer)
                 }
             }
