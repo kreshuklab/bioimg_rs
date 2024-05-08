@@ -10,6 +10,7 @@ pub mod zip_writer_ext;
 pub mod zoo_model;
 pub mod model_weights;
 pub mod conda_env;
+pub mod file_source;
 
 pub use cover_image::{CoverImage, CoverImageParsingError};
 pub use icon::{Icon, IconImage};
