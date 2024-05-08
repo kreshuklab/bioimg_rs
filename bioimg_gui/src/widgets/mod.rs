@@ -37,6 +37,7 @@ pub mod zero_mean_unit_variance_widget;
 pub mod scale_range_widget;
 pub mod json_editor_widget;
 pub mod conda_env_widget;
+pub mod version_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

@@ -1,9 +1,18 @@
 use crate::result::Result;
-use super::{code_editor_widget::CodeEditorWidget, error_display::show_if_error, StatefulWidget};
+use super::{code_editor_widget::CodeEditorWidget, error_display::show_if_error, StatefulWidget, ValueWidget};
 
 pub struct JsonObjectEditorWidget{
     pub code_editor_widget: CodeEditorWidget,
     pub parsed: Result<serde_json::Map<String, serde_json::Value>>
+}
+
+impl ValueWidget for JsonObjectEditorWidget{
+    type Value<'v> = serde_json::Map<String, serde_json::Value>;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.code_editor_widget.raw = serde_json::to_string(&value).unwrap();
+        self.parsed = Ok(value)
+    }
 }
 
 impl Default for JsonObjectEditorWidget{

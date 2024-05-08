@@ -5,7 +5,7 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget
+    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
 };
 
 pub struct WeightsWidget{
@@ -24,6 +24,18 @@ impl Default for WeightsWidget{
             pytorch_state_dict_widget: Default::default(),
             parsed: Err(GuiError::new("empty".into()))
         }
+    }
+}
+
+impl ValueWidget for WeightsWidget{
+    type Value<'v> = rt::ModelWeights;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        if let Some(keras_weights) = value.keras_hdf5(){
+            self.keras_weights_widget.set_value(Some(keras_weights.clone()))
+        }
+        // if let Some(pytorch_state_dict_weights) = value.pytorch_state_dict(){
+        //     self.pytorch_state_dict_widget.set_value(pytorch_state_dict_weights.clone())
+        // }
     }
 }
 
@@ -74,6 +86,15 @@ pub struct WeightsDescrBaseWidget{
     // pub parent_widget: Option<WeightsFormat>,
 }
 
+impl ValueWidget for WeightsDescrBaseWidget{
+    type Value<'v> = rt::WeightsBase;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.source_widget.set_value(value.source);
+        self.authors_widget.set_value(value.authors);
+    }
+}
+
 impl StatefulWidget for WeightsDescrBaseWidget{
     type Value<'p> = Result<rt::WeightsBase>;
 
@@ -107,7 +128,16 @@ impl StatefulWidget for WeightsDescrBaseWidget{
 #[derive(Default)]
 pub struct KerasHdf5WeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
-    pub tensorflow_version_widget: StagingString<Version>,
+    pub tensorflow_version_widget: VersionWidget,
+}
+
+impl ValueWidget for KerasHdf5WeightsWidget{
+    type Value<'v> = rt::KerasHdf5Weights;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.base_widget.set_value(value.weights);
+        self.tensorflow_version_widget.set_value(value.tensorflow_version);
+    }
 }
 
 impl StatefulWidget for KerasHdf5WeightsWidget{
@@ -136,7 +166,16 @@ impl StatefulWidget for KerasHdf5WeightsWidget{
 #[derive(Default)]
 pub struct TorchscriptWeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
-    pub pytorch_version_widget: StagingString<Version>,
+    pub pytorch_version_widget: VersionWidget,
+}
+
+impl ValueWidget for TorchscriptWeightsWidget{
+    type Value<'v> = rt::TorchscriptWeights;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.base_widget.set_value(value.weights);
+        self.pytorch_version_widget.set_value(value.pytorch_version);
+    }
 }
 
 impl StatefulWidget for TorchscriptWeightsWidget{

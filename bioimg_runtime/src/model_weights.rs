@@ -22,6 +22,28 @@ pub struct ModelWeights{
 }
 
 impl ModelWeights{
+    pub fn keras_hdf5(&self) -> Option<&KerasHdf5Weights>{
+        self.keras_hdf5.as_ref()
+    }
+    pub fn onnx(&self) -> Option<&OnnxWeights>{
+        self.onnx.as_ref()
+    }
+    pub fn pytorch_state_dict(&self) -> Option<&PytorchStateDictWeights>{
+        self.pytorch_state_dict.as_ref()
+    }
+    pub fn tensorflow_js(&self) -> Option<&TensorflowJsWeights>{
+        self.tensorflow_js.as_ref()
+    }
+    pub fn tensorflow_saved_model_bundle(&self) -> Option<&TensorflowSavedModelBundleWeights>{
+        self.tensorflow_saved_model_bundle.as_ref()
+    }
+    pub fn torchscript(&self) -> Option<&TorchscriptWeights>{
+        self.torchscript.as_ref()
+    }
+}
+
+
+impl ModelWeights{
     pub fn new(
         keras_hdf5: Option<KerasHdf5Weights>,
         onnx: Option<OnnxWeights>,

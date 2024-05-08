@@ -3,13 +3,31 @@ use bioimg_spec::rdf::model as modelrdf;
 use bioimg_runtime as rt;
 
 use crate::result::Result;
-use super::{file_widget::FileWidget, json_editor_widget::JsonObjectEditorWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, weights_widget::WeightsDescrBaseWidget, StatefulWidget};
+use super::{file_widget::FileWidget, json_editor_widget::JsonObjectEditorWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, weights_widget::WeightsDescrBaseWidget, StatefulWidget, ValueWidget};
 
 #[derive(Default)]
 pub struct PytorchArchWidget{
     pub callable_widget: StagingString<rdf::Identifier>,
     pub kwargs_widget: JsonObjectEditorWidget,
     pub import_from_widget: StagingString<String>,
+}
+
+impl ValueWidget for PytorchArchWidget{
+    type Value<'v> = modelrdf::weights::PytorchArchitectureDescr;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        match value{
+            modelrdf::PytorchArchitectureDescr::FromLibraryDescr(fromlib) => {
+                self.callable_widget.set_value(fromlib.callable);
+                self.kwargs_widget.set_value(fromlib.kwargs);
+                self.import_from_widget.set_value(fromlib.import_from);
+            },
+            modelrdf::PytorchArchitectureDescr::FromFileDescr(fromfile) => {
+                self.callable_widget.set_value(fromfile.callable);
+                self.kwargs_widget.set_value(fromfile.kwargs);
+            },
+        }
+    }
 }
 
 
