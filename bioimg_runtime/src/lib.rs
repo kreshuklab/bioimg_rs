@@ -18,3 +18,4 @@ pub use model_interface::{ModelInterface, TensorValidationError};
 pub use npy_array::NpyArray;
 pub use model_weights::{WeightsBase, KerasHdf5Weights, TorchscriptWeights, ModelWeights};
 pub use conda_env::CondaEnv;
+pub use file_source::FileSource;
