@@ -12,8 +12,12 @@ pub enum FileSourceState{
     PickingInner{outer: PathBuf, inner_options_widget: SearchAndPickWidget<String>}
 }
 
-impl ParsedFile for Result<FileSourceState>{
-    fn parse(path: PathBuf, _ctx: egui::Context) -> Self {
+trait ResultOfFileSourceStateExt{
+    fn parse_path(path: PathBuf) -> Self;
+}
+
+impl ResultOfFileSourceStateExt for Result<FileSourceState>{
+    fn parse_path(path: PathBuf) -> Self {
         if !path.exists(){
             return Err(GuiError::new("File does not exist".to_owned()))
         }
@@ -39,6 +43,12 @@ impl ParsedFile for Result<FileSourceState>{
             outer: path,
             inner_options_widget: SearchAndPickWidget::new(first_file.clone(), inner_options)
         })
+    }
+}
+
+impl ParsedFile for Result<FileSourceState>{
+    fn parse(path: PathBuf, _ctx: egui::Context) -> Self {
+        Self::parse_path(path)
     }
 
     fn render(&self, _ui: &mut egui::Ui, _id: egui::Id) {
