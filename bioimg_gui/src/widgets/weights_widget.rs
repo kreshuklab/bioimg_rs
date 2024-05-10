@@ -1,10 +1,10 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, error_display::show_error, file_widget::{FileWidget, FileWidgetState}, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
+    author_widget::StagingAuthor2, error_display::show_error, file_source_widget::FileSourceWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
 };
 
 pub struct WeightsWidget{
@@ -80,7 +80,7 @@ impl StatefulWidget for WeightsWidget{
 
 #[derive(Default)]
 pub struct WeightsDescrBaseWidget{
-    pub source_widget: FileWidget<Result<PathBuf>>,
+    pub source_widget: FileSourceWidget,
     pub authors_widget: StagingOpt<StagingVec<StagingAuthor2>>,
     // pub parent_widget: Option<WeightsFormat>,
 }
@@ -114,10 +114,7 @@ impl StatefulWidget for WeightsDescrBaseWidget{
         let authors  = self.authors_widget.state().map(|authors|{
             authors.collect_result()
         }).transpose()?;
-        let source = match self.source_widget.state(){
-            FileWidgetState::Finished { value: Ok(val), .. } => val.clone(),
-            _ => return Err(GuiError::new("Review cover images".into()))
-        };
+        let source = self.source_widget.state().map_err(|_| GuiError::new("Review cover images".into()))?;
         Ok(rt::WeightsBase{authors, source})
     }
 }

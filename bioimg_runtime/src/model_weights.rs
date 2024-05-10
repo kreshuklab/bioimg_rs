@@ -1,9 +1,9 @@
-use std::{io::{Seek, Write}, path::PathBuf};
+use std::io::{Seek, Write};
 
 use bioimg_spec::rdf;//::{self, author::Author2, model::weights::{ArchitectureDescr, OnnxOpsetVersion}, Version};
 use bioimg_spec::rdf::model as modelrdf;
 
-use crate::{conda_env::CondaEnv, file_reference::FileExt, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
+use crate::{conda_env::CondaEnv, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError, FileSource};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ModelWeightsError{
@@ -104,28 +104,17 @@ impl ModelWeights{
 
 #[derive(Clone)]
 pub struct WeightsBase{
-    pub source: PathBuf,
+    pub source: FileSource,
     pub authors: Option<Vec<rdf::Author2>>,
 }
 
 impl WeightsBase{
-    fn rdf_dump_suffixed(
+    fn rdf_dump(
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
-        suffix: &str,
     ) -> Result<modelrdf::WeightsDescrBase, ModelPackingError> {
         Ok(modelrdf::WeightsDescrBase{
-            source: self.source.rdf_dump_suffixed(zip_file, suffix)?,
-            authors: self.authors.clone(),
-            parent: None, //FIXME
-            sha256: None, //FIXME
-        })
-    }
-    fn rdf_dump(
-        &self, zip_file: &mut ModelZipWriter<impl Write + Seek>,
-    ) -> Result<modelrdf::WeightsDescrBase, ModelPackingError> {
-        Ok(modelrdf::WeightsDescrBase{
-            source: self.source.rdf_dump(zip_file)?,
+            source: self.source.rdf_dump_as_file_reference(zip_file)?,
             authors: self.authors.clone(),
             parent: None, //FIXME
             sha256: None, //FIXME
@@ -204,7 +193,7 @@ impl TensorflowJsWeights{
         &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::TensorflowJsWeightsDescr, ModelPackingError> {
         Ok(modelrdf::TensorflowJsWeightsDescr{
-            base: self.weights.rdf_dump_suffixed(zip_file, ".zip")?,
+            base: self.weights.rdf_dump(zip_file)?,
             tensorflow_version: self.tensorflow_version.clone(),
         })
     }
@@ -223,7 +212,7 @@ impl TensorflowSavedModelBundleWeights{
         &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::TensorflowSavedModelBundleWeightsDescr, ModelPackingError> {
         Ok(modelrdf::TensorflowSavedModelBundleWeightsDescr{
-            base: self.weights.rdf_dump_suffixed(zip_file, ".zip")?,
+            base: self.weights.rdf_dump(zip_file)?,
             tensorflow_version: self.tensorflow_version.clone(),
             dependencies: self.dependencies.as_ref().map(|env|{
                 env.rdf_dump(zip_file)
@@ -243,7 +232,7 @@ impl TorchscriptWeights {
         &self, zip_file: &mut ModelZipWriter<impl Write + Seek>
     ) -> Result<modelrdf::TorchscriptWeightsDescr, ModelPackingError> {
         Ok(modelrdf::TorchscriptWeightsDescr{
-            base: self.weights.rdf_dump_suffixed(zip_file, ".zip")?,
+            base: self.weights.rdf_dump(zip_file)?,
             pytorch_version: self.pytorch_version.clone(),
         })
     }

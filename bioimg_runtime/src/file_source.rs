@@ -6,6 +6,7 @@ use bioimg_spec::rdf;
 
 use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
+#[derive(Clone)]
 pub enum FileSource{
     LocalFile{path: PathBuf},
     FileInZipArchive{outer_path: PathBuf, inner_path: String},
@@ -16,10 +17,7 @@ impl FileSource{
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FsPath, ModelPackingError> {
-        let output_inner_path = match self{
-            Self::LocalFile { path } => rdf::FsPath::unique_suffixed(&path.to_string_lossy()),
-            Self::FileInZipArchive { inner_path, .. } => rdf::FsPath::unique_suffixed(&inner_path),
-        };
+        let output_inner_path = rdf::FsPath::unique();
         zip_file.write_file(&output_inner_path, |writer| {
             match self{
                 Self::LocalFile { path } => {
