@@ -12,7 +12,7 @@ use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
 
 use crate::{
-    file_reference::FileExt, model_weights::ModelWeights, npy_array::ArcNpyArray, zip_writer_ext::ModelZipWriter, CoverImage, Icon, ModelInterface
+    model_weights::ModelWeights, npy_array::ArcNpyArray, zip_writer_ext::ModelZipWriter, CoverImage, FileSource, Icon, ModelInterface
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -38,7 +38,7 @@ pub enum ModelPackingError {
 pub struct ZooModel {
     pub description: ResourceTextDescription,
     pub covers: Vec<CoverImage>,
-    pub attachments: Vec<PathBuf>,
+    pub attachments: Vec<FileSource>,
     pub cite: NonEmptyList<CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,
     pub git_repo: Option<HttpUrl>,
@@ -65,7 +65,7 @@ impl ZooModel {
             cov.dump(&mut writer)
         }).collect::<Result<Vec<_>, _>>()?;
         let attachments = self.attachments.iter().map(|file|{
-            file.rdf_dump(&mut writer)
+            file.rdf_dump_as_file_reference(&mut writer)
         }).collect::<Result<Vec<_>, _>>()?;
         let icon: Option<rdf::Icon> = match &self.icon{
             Some(icon) => Some(icon.dump(&mut writer)?),

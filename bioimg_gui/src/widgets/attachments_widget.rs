@@ -1,9 +1,6 @@
-use std::path::PathBuf;
+use super::{file_source_widget::FileSourceWidget, staging_vec::ItemWidgetConf};
 
-use super::{file_widget::FileWidget, staging_vec::ItemWidgetConf};
-use crate::result::Result;
-
-pub type AttachmentsWidget = FileWidget<Result<PathBuf>>;
+pub type AttachmentsWidget = FileSourceWidget;
 impl ItemWidgetConf for AttachmentsWidget{
     const ITEM_NAME: &'static str = "Attachment";
 }

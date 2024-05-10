@@ -223,13 +223,9 @@ impl eframe::App for BioimgGui {
                                     cover_img_res.map_err(|_| GuiError::new("Check cover images for errors".into()))
                                 }).collect::<Result<Vec<_>, _>>()?;
 
-                                let attachments_state = self.attachments_widget.state();
-                                let attachments = attachments_state.into_iter().map(|file_widget_state|{
-                                    match file_widget_state.loaded_value(){
-                                        Some(Ok(val)) => Ok(val.clone()),
-                                        _ => return Err(GuiError::new("Check model attachments for errors".into()))
-                                    }
-                                }).collect::<Result<Vec<_>, _>>()?;
+                                let attachments = self.attachments_widget.state()
+                                    .collect_result()
+                                    .map_err(|_| GuiError::new("Check model attachments for errors".into()))?;
 
                                 let cite = self.staging_citations.state().collect_result().map_err(|_| GuiError::new("Check cites for errors".into()))?;
                                 let non_empty_cites = NonEmptyList::try_from(cite)
