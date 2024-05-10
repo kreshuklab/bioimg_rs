@@ -12,7 +12,7 @@ pub enum FileSource{
 }
 
 impl FileSource{
-    pub fn dump(
+    fn rdf_dump(
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FsPath, ModelPackingError> {
@@ -36,11 +36,11 @@ impl FileSource{
         Ok(output_inner_path)
     }
 
-    pub fn dump_as_file_reference(
+    pub fn rdf_dump_as_file_reference(
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FileReference, ModelPackingError> {
-        let output_inner_path = self.dump(zip_file)?;
+        let output_inner_path = self.rdf_dump(zip_file)?;
         Ok(rdf::FileReference::Path(output_inner_path))
     }
 
@@ -48,7 +48,7 @@ impl FileSource{
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FileDescription, ModelPackingError> {
-        let file_reference = self.dump_as_file_reference(zip_file)?;
+        let file_reference = self.rdf_dump_as_file_reference(zip_file)?;
         Ok(rdf::FileDescription{source: file_reference, sha256: None})
     }
 }
