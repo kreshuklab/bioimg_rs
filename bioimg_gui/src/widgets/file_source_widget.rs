@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, search_and_pick_widget::SearchAndPickWidget, StatefulWidget};
+use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, search_and_pick_widget::SearchAndPickWidget, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
@@ -59,6 +59,26 @@ impl ParsedFile for Result<FileSourceState>{
 #[derive(Default)]
 pub struct FileSourceWidget{
     pub outer_file_widget: FileWidget<Result<FileSourceState>>,
+}
+
+impl ValueWidget for FileSourceWidget{
+    type Value<'v> = rt::FileSource;
+
+    fn set_value(&mut self, value: rt::FileSource){
+        let (outer_path, inner_path) = match value{
+            rt::FileSource::LocalFile { path } => (path, None),
+            rt::FileSource::FileInZipArchive { outer_path, inner_path } => (outer_path, Some(inner_path)),
+        };
+        let mut outer_result = Result::<FileSourceState>::parse_path(outer_path.clone());
+        if let Ok(FileSourceState::PickingInner { inner_options_widget, .. }) = &mut outer_result{
+            if let Some(inner_path) = inner_path {
+                if inner_options_widget.contains(&inner_path){
+                    inner_options_widget.value = inner_path
+                }
+            }
+        };
+        self.outer_file_widget.state = FileWidgetState::Finished { path: outer_path, value: outer_result};
+    }
 }
 
 impl StatefulWidget for FileSourceWidget{

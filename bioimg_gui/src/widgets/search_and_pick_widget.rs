@@ -15,6 +15,12 @@ pub struct SearchAndPickWidget<T> {
     pub entries: Vec<SearchableEntry<T>>,
 }
 
+impl<T: PartialEq> SearchAndPickWidget<T>{
+    pub fn contains(&self, value: &T) -> bool{
+        self.entries.iter().find(|entry| entry.value == *value).is_some()
+    }
+}
+
 impl<T: Display> SearchAndPickWidget<T>{
     pub fn new(value: T, entries: Vec<T>) -> Self{
         Self{
