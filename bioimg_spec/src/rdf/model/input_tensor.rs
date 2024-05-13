@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{file_reference::FileReference, FileDescription};
+use crate::rdf::FileDescription;
 
 use super::{axes::input_axes::InputAxisGroup, preprocessing::{BinarizeDescr, PreprocessingDescr, ScaleLinearDescr, ScaleRangeDescr, ZeroMeanUnitVariance}, AxisId, TensorId, TensorTextDescription};
 
@@ -18,7 +18,7 @@ pub struct InputTensorDescr {
     #[serde(flatten)]
     pub meta: InputTensorMetadata,
     pub test_tensor: FileDescription,
-    pub sample_tensor: Option<FileReference>,
+    pub sample_tensor: Option<FileDescription>,
 }
 
 
