@@ -1,18 +1,17 @@
 use std::{
-    io::{Seek, Write},
-    path::PathBuf,
+    io::{Read, Seek, Write}, path::{Path, PathBuf}, sync::Arc
 };
 
 use bioimg_spec::rdf::{
-    self, author::Author2, cite_entry::CiteEntry2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
+    self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
         ModelRdf, RdfTypeModel
-    }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, ResourceTextDescription, Version
+    }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, LicenseId, ResourceName, Version
 };
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
 
 use crate::{
-    model_weights::ModelWeights, npy_array::ArcNpyArray, zip_writer_ext::ModelZipWriter, CoverImage, FileSource, Icon, ModelInterface
+    cover_image::CoverImageLoadingError, icon::IconLoadingError, model_interface::{InputSlot, ModelInterfaceLoadingError, OutputSlot}, model_weights::{ModelWeights, ModelWeightsLoadingError}, npy_array::ArcNpyArray, zip_writer_ext::ModelZipWriter, CoverImage, FileSource, Icon, ModelInterface, NpyArray, TensorValidationError
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -31,17 +30,39 @@ pub enum ModelPackingError {
     RdfSerializationError(#[from] serde_json::Error),
     #[error("Could not write yaml file to zip: {0}")]
     SerdeYamlError(#[from] serde_yaml::Error),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ModelLoadingError{
+    #[error("Error reading file: {0}")]
+    IoErro(#[from] std::io::Error),
+    #[error("{0}")]
+    ZipError(#[from] zip::result::ZipError),
+    #[error("Could not parse model rdf as yaml: {0}")]
+    YamlParsingError(#[from] serde_yaml::Error),
+    #[error("Could not load a cover image: {0}")]
+    CoverImageLoadingError(#[from] CoverImageLoadingError),
+    #[error("Could not load an icon: {0}")]
+    IconLoadingError(#[from] IconLoadingError),
+    #[error("Url file reference not supported yet")]
+    UrlFileReferenceNotSupportedYet,
+    #[error("Error loading models from rdf: {0}")]
+    ModelWeightsLoadingError(#[from] ModelWeightsLoadingError),
+    #[error("Could not load model interface: {0}")]
+    ModelInterfaceLoadingError(#[from] ModelInterfaceLoadingError),
     #[error("Could not produce a valid Input tensor description: {0}")]
-    InputTensorParsingError(#[from] modelrdf::input_tensor::InputTensorParsingError)
+    InputTensorParsingError(#[from] modelrdf::input_tensor::InputTensorParsingError),
+    #[error("Invalid input/output configurtation: {0}")]
+    TensorValidationError(#[from] TensorValidationError),
 }
 
 pub struct ZooModel {
-    pub description: ResourceTextDescription,
+    pub description: rdf::ResourceTextDescription,
     pub covers: Vec<CoverImage>,
     pub attachments: Vec<FileSource>,
-    pub cite: NonEmptyList<CiteEntry2>,
+    pub cite: NonEmptyList<rdf::CiteEntry2>,
     // config: serde_json::Map<String, serde_json::Value>,
-    pub git_repo: Option<HttpUrl>,
+    pub git_repo: Option<rdf::HttpUrl>,
     pub icon: Option<Icon>,
     pub links: Vec<String>,
     pub maintainers: Vec<Maintainer>,
@@ -54,6 +75,69 @@ pub struct ZooModel {
     // training_data: DatasetDescrEnum, //FIXME
     pub weights: ModelWeights,
     pub interface: ModelInterface<ArcNpyArray>,
+}
+
+impl ZooModel{
+    pub fn try_load(path: &Path) -> Result<Self, ModelLoadingError>{
+        let model_file = std::fs::File::open(path)?;
+        let mut archive = zip::ZipArchive::new(model_file)?;
+        let rdf_yaml = archive.by_name("rdf.yaml")?;
+        let model_rdf: modelrdf::ModelRdf = serde_yaml::from_reader(rdf_yaml)?;
+
+        let covers: Vec<CoverImage> = model_rdf.covers.into_iter()
+            .map(|rdf_cover| CoverImage::try_load(rdf_cover, &mut archive))
+            .collect::<Result<_, _>>()?;
+
+        let attachments: Vec<FileSource> = model_rdf.attachments.into_iter()
+            .map(|att| match att{
+                rdf::FileReference::Url(_) => return Err(ModelLoadingError::UrlFileReferenceNotSupportedYet),
+                rdf::FileReference::Path(fs_path) => {
+                    Ok(FileSource::FileInZipArchive { outer_path: path.to_owned(), inner_path: fs_path.into() })
+                }
+            })
+            .collect::<Result<_, _>>()?;
+
+        let icon = model_rdf.icon.map(|icon| Icon::try_load(icon, &mut archive)).transpose()?;
+
+        let mut documentation = String::new();
+        match model_rdf.documentation{
+            rdf::FileReference::Url(_) => return Err(ModelLoadingError::UrlFileReferenceNotSupportedYet),
+            FileReference::Path(path) => {
+                let path_string: String = path.into();
+                archive.by_name(&path_string)?.read_to_string(&mut documentation)?;
+            },
+        }
+
+        let weights = ModelWeights::try_from_rdf(model_rdf.weights, path.to_owned(), &mut archive)?;
+
+        let input_slots: Vec<_> = model_rdf.inputs.into_inner().into_iter()
+            .map(|rdf| InputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path.to_owned()))
+            .collect::<Result<_, _>>()?;
+        let output_slots: Vec<_> = model_rdf.outputs.into_inner().into_iter()
+            .map(|rdf| OutputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path.to_owned()))
+            .collect::<Result<_, _>>()?;
+
+        let model_interface = ModelInterface::try_build(input_slots, output_slots)?;
+
+        Ok(Self{
+            description: model_rdf.description,
+            covers,
+            attachments,
+            cite: model_rdf.cite,
+            git_repo: model_rdf.git_repo,
+            icon,
+            links: model_rdf.links,
+            maintainers: model_rdf.maintainers,
+            tags: model_rdf.tags,
+            version: model_rdf.version,
+            authors: model_rdf.authors,
+            documentation,
+            license: model_rdf.license,
+            name: model_rdf.name,
+            weights,
+            interface: model_interface,
+        })
+    }
 }
 
 impl ZooModel {

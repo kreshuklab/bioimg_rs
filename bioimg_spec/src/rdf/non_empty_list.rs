@@ -46,6 +46,9 @@ impl<T> Borrow<[T]> for NonEmptyList<T> {
 }
 
 impl<T> NonEmptyList<T> {
+    pub fn into_inner(self) -> Vec<T>{
+        self.0
+    }
     pub fn map<F, Out>(&self, f: F) -> NonEmptyList<Out>
     where
         F: FnMut(&T) -> Out,

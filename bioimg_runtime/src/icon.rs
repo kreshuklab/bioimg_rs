@@ -1,10 +1,11 @@
-use std::io::{Seek, Write};
+use std::io::{Cursor, Read, Seek, Write};
 use std::sync::Arc;
 
 use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
 use image::DynamicImage;
 
+use crate::zip_archive_ext::{RdfFileReferenceExt, RdfFileReferenceReadError};
 use crate::zip_writer_ext::ModelZipWriter;
 use crate::zoo_model::ModelPackingError;
 
@@ -71,5 +72,35 @@ impl TryFrom<String> for Icon {
     type Error = IconParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Ok(Self::Text(rdf::EmojiIcon::try_from(value)?))
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum IconLoadingError{
+    #[error("{0}")]
+    IoErro(#[from] std::io::Error),
+    #[error("{0}")]
+    ZipError(#[from] zip::result::ZipError),
+    #[error("Could not parse cover imgae: {0}")]
+    ParsingError(#[from] IconParsingError),
+    #[error("Could not parse image: {0}")]
+    ImageParsingError(#[from] image::ImageError),
+    #[error(transparent)]
+    RdfFileReferenceReadError(#[from] RdfFileReferenceReadError)
+}
+
+impl Icon{
+    pub fn try_load<R: Read + Seek>(
+        rdf_icon: rdf::Icon,
+        archive: &mut zip::ZipArchive<R>
+    ) -> Result<Self, IconLoadingError>{
+        let file_ref = match rdf_icon{
+            rdf::Icon::Emoji(emoji_icon) => return Ok(Icon::Text(emoji_icon)),
+            rdf::Icon::FileRef(file_ref) => file_ref,
+        };
+        let mut image_bytes = Vec::<u8>::new();
+        file_ref.try_get_reader(archive)?.read_to_end(&mut image_bytes)?;
+        let image = image::io::Reader::new(Cursor::new(image_bytes)).with_guessed_format()?.decode()?;
+        Ok(Icon::try_from(Arc::new(image))?)
     }
 }

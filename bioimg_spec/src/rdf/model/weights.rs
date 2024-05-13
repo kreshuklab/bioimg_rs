@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::rdf::{author::Author2, file_description::{FileDescription, Sha256}, file_reference::EnvironmentFile, FileReference, Identifier, Version};
 
 #[derive(thiserror::Error, Debug)]
@@ -29,6 +31,19 @@ pub struct MaybeSomeWeightsDescr{
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[serde(try_from = "MaybeSomeWeightsDescr")]
 pub struct WeightsDescr(MaybeSomeWeightsDescr);
+
+impl WeightsDescr{
+    pub fn into_inner(self) -> MaybeSomeWeightsDescr{
+        self.0
+    }
+}
+
+impl Deref for WeightsDescr{
+    type Target = MaybeSomeWeightsDescr;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl TryFrom<MaybeSomeWeightsDescr> for WeightsDescr{
     type Error = ModelWeightsParsingError;
@@ -95,8 +110,6 @@ pub struct KerasHdf5WeightsDescr{
     pub base: WeightsDescrBase,
     pub tensorflow_version: Version,
 }
-
-
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct OnnxOpsetVersion(usize);

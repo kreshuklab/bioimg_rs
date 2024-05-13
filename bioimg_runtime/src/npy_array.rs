@@ -1,18 +1,16 @@
-use ndarray_npy::ReadNpyError;
-use ndarray_npy::WriteNpyExt;
+use ndarray_npy::{ReadNpyError, WriteNpyExt, ReadNpyExt};
 use std::{
+    io::{Read, Seek},
     fmt::Display,
-    path::{Path, PathBuf},
     sync::Arc,
 };
 
 #[derive(thiserror::Error, Debug)]
-pub struct UnsupportedNumpyElementType {
-    path: PathBuf,
-}
+pub struct UnsupportedNumpyElementType;
+
 impl Display for UnsupportedNumpyElementType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Can't interpret npy element type from {}", self.path.to_string_lossy())
+        write!(f, "Can't interpret npy element type")
     }
 }
 
@@ -24,9 +22,13 @@ macro_rules! impl_NpyArray_try_read {( $($element_type:ident),+ ) => { paste::pa
     )*}
 
     impl NpyArray {
-        pub fn try_read(npy_path: &Path) -> Result<Self, ReadNpyError> {
+        pub fn try_load(mut reader: impl Read) -> Result<Self, ReadNpyError> {
+            let mut data = vec![];
+            reader.read_to_end(&mut data)?; //FIXME: what if too big?
+            let mut cursor = std::io::Cursor::new(data);
             $(
-                match ndarray_npy::read_npy::<_, ndarray::ArrayD<$element_type>>(npy_path) {
+                cursor.rewind()?;
+                match ndarray::ArrayD::<$element_type>::read_npy(&mut cursor) {
                     Ok(arr) => return Ok(Self::[<Array $element_type:upper>](arr)),
                     Err(err) => match err {
                         ndarray_npy::ReadNpyError::WrongDescriptor(_) => (),
@@ -34,10 +36,7 @@ macro_rules! impl_NpyArray_try_read {( $($element_type:ident),+ ) => { paste::pa
                     },
                 };
             )+
-            return Err(ReadNpyError::ParseData(Box::new(UnsupportedNumpyElementType{
-                path: PathBuf::from(npy_path)
-            })))
-
+            return Err(ReadNpyError::ParseData(Box::new(UnsupportedNumpyElementType)))
         }
 
         pub fn write_npy<W: std::io::Write>(&self, writer: W) -> Result<(), ndarray_npy::WriteNpyError>{

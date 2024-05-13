@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{io::Read, path::PathBuf, sync::Arc};
 
 use bioimg_runtime::npy_array::NpyArray;
 
@@ -7,7 +7,9 @@ use crate::result::Result;
 
 impl ParsedFile for Result<Arc<NpyArray>> {
     fn parse(path: PathBuf, _ctx: egui::Context) -> Self {
-        Ok(Arc::new(NpyArray::try_read(&path)?))
+        let mut data = vec![];
+        std::fs::File::open(&path)?.read_to_end(&mut data)?;
+        Ok(Arc::new(NpyArray::try_load(&mut data.as_slice())?))
     }
 
     fn render(&self, ui: &mut egui::Ui, _id: egui::Id) {

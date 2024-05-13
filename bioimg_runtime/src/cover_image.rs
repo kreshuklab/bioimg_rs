@@ -1,9 +1,11 @@
-use std::{io::{Seek, Write}, ops::Deref, sync::Arc};
+use std::{io::{Cursor, Read, Seek, Write}, ops::Deref, sync::Arc};
 
 use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
+use zip::ZipArchive;
 
-use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
+use crate::zip_archive_ext::RdfFileReferenceExt;
+use crate::{zip_archive_ext::RdfFileReferenceReadError, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
 #[derive(Clone)]
 pub struct CoverImage(Arc<image::DynamicImage>);
@@ -58,4 +60,29 @@ impl TryFrom<Arc<image::DynamicImage>> for CoverImage{
         return Ok(Self(img));
     }
 }
+
+#[derive(thiserror::Error, Debug)]
+pub enum CoverImageLoadingError{
+    #[error("{0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Could not parse cover imgae: {0}")]
+    ParsingError(#[from] CoverImageParsingError),
+    #[error("Could not parse image: {0}")]
+    ImageParsingError(#[from] image::ImageError),
+    #[error(transparent)]
+    RdfFileReferenceReadError(#[from] RdfFileReferenceReadError)
+}
+
+impl CoverImage{
+    pub fn try_load<R: Read + Seek>(
+        rdf_cover: rdf::CoverImageSource,
+        archive: &mut ZipArchive<R>
+    ) -> Result<Self, CoverImageLoadingError>{
+        let mut image_bytes = Vec::<u8>::new();
+        rdf_cover.try_get_reader(archive)?.read_to_end(&mut image_bytes)?;
+        let image = image::io::Reader::new(Cursor::new(image_bytes)).with_guessed_format()?.decode()?;
+        Ok(CoverImage::try_from(Arc::new(image))?)
+    }
+}
+
 

@@ -11,6 +11,7 @@ pub mod zoo_model;
 pub mod model_weights;
 pub mod conda_env;
 pub mod file_source;
+pub mod zip_archive_ext;
 
 pub use cover_image::{CoverImage, CoverImageParsingError};
 pub use icon::{Icon, IconImage};

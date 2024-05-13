@@ -1,10 +1,18 @@
+use std::{borrow::Borrow, io::{Read, Seek, Write}, path::PathBuf};
 
-
-use std::{io::{Seek, Write}, path::PathBuf};
-
-use bioimg_spec::rdf;
+use bioimg_spec::rdf::{self, FileReference};
 
 use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
+
+#[derive(thiserror::Error, Debug)]
+pub enum FileSourceError{
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    ZipError(#[from] zip::result::ZipError),
+    #[error("Url not supported yet")]
+    UrlNotSupportedYet,
+}
 
 #[derive(Clone)]
 pub enum FileSource{
@@ -48,5 +56,37 @@ impl FileSource{
     ) -> Result<rdf::FileDescription, ModelPackingError> {
         let file_reference = self.rdf_dump_as_file_reference(zip_file)?;
         Ok(rdf::FileDescription{source: file_reference, sha256: None})
+    }
+}
+
+impl FileSource{
+    pub fn from_rdf_file_descr<T: Borrow<FileReference>>(
+        zip_path: PathBuf, file_reference: &rdf::FileDescription<T>
+    ) -> Result<Self, FileSourceError>{
+        Self::from_rdf_file_reference(zip_path, file_reference.source.borrow())
+    }
+
+
+    pub fn from_rdf_file_reference(
+        zip_path: PathBuf, file_reference: &rdf::FileReference
+    ) -> Result<Self, FileSourceError>{
+        Ok(Self::FileInZipArchive {
+            outer_path: zip_path,
+            inner_path: match file_reference{
+                rdf::FileReference::Url(_) => return Err(FileSourceError::UrlNotSupportedYet),
+                rdf::FileReference::Path(path) => path.into()
+            }
+        })
+    }
+
+    pub fn read_to_end(&self, buf: &mut Vec<u8>) -> Result<usize, FileSourceError>{
+        match self{
+            Self::LocalFile { path } => Ok(std::fs::File::open(path)?.read_to_end(buf)?),
+            Self::FileInZipArchive { outer_path, inner_path } => {
+                let mut archive = zip::ZipArchive::new(std::fs::File::open(outer_path)?)?;
+                let bytes_read = archive.by_name(&inner_path)?.read_to_end(buf)?;
+                Ok(bytes_read)
+            }
+        }
     }
 }

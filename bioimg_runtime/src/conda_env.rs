@@ -1,8 +1,9 @@
-use std::io::{Seek, Write};
+use std::io::{Read, Seek, Write};
 
 use bioimg_spec::rdf;
+use zip::ZipArchive;
 
-use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
+use crate::{zip_archive_ext::{RdfFileReferenceExt, RdfFileReferenceReadError}, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CondaEnvParsingError{
@@ -10,6 +11,14 @@ pub enum CondaEnvParsingError{
     IoError(#[from] std::io::Error),
     #[error("Could not parse yaml contents: {0}")]
     YamlParsingError(#[from] serde_yaml::Error),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum CondaEnvLoadingError{
+    #[error(transparent)]
+    ParsingError(#[from] CondaEnvParsingError),
+    #[error(transparent)]
+    RdfFileReferenceReadError(#[from] RdfFileReferenceReadError),
 }
 
 #[derive(Clone)]
@@ -22,6 +31,13 @@ impl CondaEnv{
         Ok(Self{
             raw: serde_yaml::from_reader(reader)?
         })
+    }
+
+    pub fn try_load_rdf<R: Read + Seek>(
+        rdf: rdf::FileDescription<rdf::EnvironmentFile>, zip_archive: &mut ZipArchive<R>
+    ) -> Result<Self, CondaEnvLoadingError>{
+        let reader = rdf.source.try_get_reader(zip_archive)?;
+        Ok(CondaEnv::try_load(reader)?)
     }
 }
 

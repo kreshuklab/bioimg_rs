@@ -1,18 +1,31 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::io::{Seek, Write};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use bioimg_spec::rdf;
+use ndarray_npy::ReadNpyError;
 
 use crate::axis_size_resolver::{ResolvedAxisSizeExt, SlotResolver};
+use crate::file_source::FileSourceError;
 use crate::npy_array::NpyArray;
 use crate::zip_writer_ext::ModelZipWriter;
 use crate::zoo_model::ModelPackingError;
+use crate::FileSource;
 use bioimg_spec::rdf::model::axis_size::QualifiedAxisId;
 use bioimg_spec::rdf::model::{AnyAxisSize, InputAxis, OutputAxis};
 use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 
 use super::axis_size_resolver::AxisSizeResolutionError;
+
+#[derive(thiserror::Error, Debug)]
+pub enum ModelInterfaceLoadingError{
+    #[error(transparent)]
+    FileSourceOpenError(#[from] FileSourceError),
+    #[error(transparent)]
+    ReadNpyError(#[from] ReadNpyError),
+}
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -21,13 +34,13 @@ pub struct InputSlot <DATA: Borrow<NpyArray>> {
     pub test_tensor: DATA,
 }
 
-impl<DATA: Borrow<NpyArray>> InputSlot <DATA> {
+impl InputSlot<Arc<NpyArray>> {
     pub fn dump(
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<modelrdf::InputTensorDescr, ModelPackingError> {
         let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.tensor_meta.id));
-        zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
+        zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.write_npy(writer))?;
         Ok(modelrdf::input_tensor::InputTensorDescr{
             meta: self.tensor_meta.clone(),
             test_tensor: rdf::FileDescription{
@@ -35,6 +48,20 @@ impl<DATA: Borrow<NpyArray>> InputSlot <DATA> {
                 sha256: None,
             },
             sample_tensor: None, //FIXME
+        })
+    }
+
+    pub fn try_from_rdf(
+        rdf: modelrdf::InputTensorDescr, zip_path: PathBuf
+    ) -> Result<Self, ModelInterfaceLoadingError>{
+        let mut test_tensor_raw_data = vec![];
+        FileSource::from_rdf_file_descr(zip_path, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
+        //FIXME: there's another copy inside try_load, i think
+        let test_tensor = NpyArray::try_load(&mut test_tensor_raw_data.as_slice())?;
+
+        Ok(Self{
+            tensor_meta: rdf.meta,
+            test_tensor: Arc::new(test_tensor),
         })
     }
 }
@@ -65,13 +92,13 @@ pub struct OutputSlot<DATA: Borrow<NpyArray>> {
     pub test_tensor: DATA,
 }
 
-impl<DATA: Borrow<NpyArray>> OutputSlot<DATA> {
+impl OutputSlot<Arc<NpyArray>> {
     pub fn dump(
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<modelrdf::OutputTensorDescr, ModelPackingError> {
         let test_tensor_zip_path = rdf::FsPath::unique_suffixed(&format!("_{}_test_tensor.npy", self.tensor_meta.id));
-        zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.borrow().write_npy(writer))?;
+        zip_file.write_file(&test_tensor_zip_path, |writer| self.test_tensor.write_npy(writer))?;
         Ok(modelrdf::OutputTensorDescr{
             metadata: self.tensor_meta.clone(),
             test_tensor: rdf::FileDescription{
@@ -79,6 +106,19 @@ impl<DATA: Borrow<NpyArray>> OutputSlot<DATA> {
                 sha256: None,
             },
             sample_tensor: None, //FIXME
+        })
+    }
+
+    pub fn try_from_rdf(
+        rdf: modelrdf::OutputTensorDescr, zip_path: PathBuf
+    ) -> Result<Self, ModelInterfaceLoadingError>{
+        let mut test_tensor_raw_data = vec![];
+        FileSource::from_rdf_file_descr(zip_path, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
+        //FIXME: there's another copy inside try_load, i think
+        let test_tensor = NpyArray::try_load(&mut test_tensor_raw_data.as_slice())?;
+        Ok(Self{
+            tensor_meta: rdf.metadata,
+            test_tensor: Arc::new(test_tensor),
         })
     }
 }
@@ -139,7 +179,7 @@ pub struct ModelInterface<DATA: Borrow<NpyArray>> {
     outputs: rdf::NonEmptyList<OutputSlot<DATA>>,
 }
 
-impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
+impl ModelInterface<Arc<NpyArray>> {
     pub fn dump(
         &self,
         zip_writer: &mut ModelZipWriter<impl Write + Seek>,
@@ -154,6 +194,9 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         let outputs = self.outputs.try_map(|out| out.dump(zip_writer))?;
         Ok((inputs, outputs))
     }
+}
+
+impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
     pub fn try_build(inputs: Vec<InputSlot<DATA>>, outputs: Vec<OutputSlot<DATA>>) -> Result<Self, TensorValidationError> {
         let inputs = rdf::NonEmptyList::try_from(inputs).map_err(|_| TensorValidationError::EmptyInputs)?;
         let outputs = rdf::NonEmptyList::try_from(outputs).map_err(|_| TensorValidationError::EmptyOutputs)?;

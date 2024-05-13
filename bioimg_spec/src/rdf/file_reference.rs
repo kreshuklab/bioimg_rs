@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Deref};
+use std::{fmt::Display, ops::Deref, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -102,6 +102,12 @@ impl TryFrom<String> for FsPath{
 
 impl From<FsPath> for String{
     fn from(value: FsPath) -> Self {
+        value.into()
+    }
+}
+
+impl From<&FsPath> for String{
+    fn from(value: &FsPath) -> Self {
         let mut out = String::with_capacity(
             value.components.iter().map(|comp| comp.0.len()).sum::<usize>() + value.components.len()
         );
@@ -112,6 +118,13 @@ impl From<FsPath> for String{
             out += &comp.0;
         }
         out
+    }
+}
+
+impl From<&FsPath> for PathBuf{
+    fn from(value: &FsPath) -> PathBuf {
+        let path_string: String = value.into();
+        PathBuf::from(path_string)
     }
 }
 
@@ -242,6 +255,13 @@ macro_rules! suffixed_file_ref {(
                 raw: value,
                 suffixes: Vec::from( [ $($suffix),+ ] )
             })
+        }
+    }
+
+    impl Deref for $name{
+        type Target = FileReference;
+        fn deref(&self) -> &Self::Target{
+            &self.0
         }
     }
 
