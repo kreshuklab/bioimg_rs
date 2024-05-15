@@ -4,6 +4,7 @@ pub mod clip;
 pub mod sigmoid;
 pub mod zero_mean_unit_variance;
 pub mod scale_range;
+pub mod ensure_dtype;
 
 pub use self::scale_linear::{ScaleLinearDescr, SimpleScaleLinearDescr, ScaleLinearAlongAxisDescr};
 pub use self::binarize::{BinarizeDescr, SimpleBinarizeDescr, BinarizeAlongAxisDescr};
@@ -11,6 +12,7 @@ pub use self::clip::ClipDescr;
 pub use self::sigmoid::Sigmoid;
 pub use self::zero_mean_unit_variance::ZeroMeanUnitVariance;
 pub use self::scale_range::{ScaleRangeDescr, ScaleRangePercentile};
+pub use self::ensure_dtype::EnsureDtype;
 
 use crate::util::SingleOrMultiple;
 
@@ -59,8 +61,10 @@ impl TryFrom<f32> for PreprocessingEpsilon{
 // //////////////////
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-#[serde(tag = "name", content = "kwargs")]
+#[serde(tag = "id", content = "kwargs")]
 pub enum PreprocessingDescr {
+    #[serde(rename = "ensure_dtype")]
+    EnsureDtype(EnsureDtype),
     #[serde(rename = "binarize")]
     Binarize(BinarizeDescr),
     #[serde(rename = "clip")]

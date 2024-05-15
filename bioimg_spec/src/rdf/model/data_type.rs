@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(
+    Default, Serialize, Deserialize, Eq, PartialEq, Debug, Copy, Clone, strum::VariantArray, strum::VariantNames, strum::Display
+)]
+
 pub enum DataType {
     #[serde(rename = "bool")]
     Bool,
     #[serde(rename = "float32")]
+    #[default]
     Float32,
     #[serde(rename = "float64")]
     Float64,

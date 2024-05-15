@@ -1,7 +1,8 @@
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
+use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::Result;
-use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget};
+use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, enum_widget::EnumWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget};
 
 #[derive(PartialEq, Eq, Default)]
 pub enum PreprocessingWidgetMode {
@@ -12,6 +13,7 @@ pub enum PreprocessingWidgetMode {
     Sigmoid,
     ZeroMeanUnitVariance,
     ScaleRange,
+    EnsureDtype,
 }
 
 #[derive(Default)]
@@ -23,6 +25,7 @@ pub struct PreprocessingWidget{
     // pub sigmoid sigmoid has no widget since it has no params
     pub zero_mean_unit_variance_widget: ZeroMeanUnitVarianceWidget,
     pub scale_range_widget: ScaleRangeWidget,
+    pub ensure_dtype_widget: EnumWidget<modelrdf::DataType>,
 }
 
 impl ItemWidgetConf for PreprocessingWidget{
@@ -62,6 +65,9 @@ impl StatefulWidget for PreprocessingWidget{
             PreprocessingWidgetMode::ScaleRange => {
                 self.scale_range_widget.draw_and_parse(ui, id.with("scale_range_widget".as_ptr()))
             },
+            PreprocessingWidgetMode::EnsureDtype => {
+                self.ensure_dtype_widget.draw_and_parse(ui, id.with("ensure_dtype".as_ptr()))
+            },
         }
     }
 
@@ -93,6 +99,11 @@ impl StatefulWidget for PreprocessingWidget{
                     self.scale_range_widget.state()?
                 )
             },
+            PreprocessingWidgetMode::EnsureDtype => {
+                modelrdfpreproc::PreprocessingDescr::EnsureDtype(modelrdfpreproc::EnsureDtype{
+                    dtype: self.ensure_dtype_widget.state()
+                })
+            }
         })
     }
 }

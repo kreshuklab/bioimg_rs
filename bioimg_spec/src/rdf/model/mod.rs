@@ -49,6 +49,7 @@ pub use weights::{
     TorchscriptWeightsDescr,
 };
 pub use preprocessing::PreprocessingDescr;
+pub use data_type::DataType;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[serde(try_from = "String")]
