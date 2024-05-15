@@ -30,6 +30,7 @@ pub struct InputTensorMetadata {
     pub id: TensorId,
 
     /// indicates that this tensor is optional when doing inference
+    #[serde(default)]
     pub optional: bool,
 
     pub description: TensorTextDescription,
