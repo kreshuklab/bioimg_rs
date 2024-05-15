@@ -36,6 +36,8 @@ pub enum ModelPackingError {
 pub enum ModelLoadingError{
     #[error("Error reading file: {0}")]
     IoErro(#[from] std::io::Error),
+    #[error("rdf.yaml file not found")]
+    RdfYamlNotFound,
     #[error("{0}")]
     ZipError(#[from] zip::result::ZipError),
     #[error("Could not parse model rdf as yaml: {0}")]
@@ -81,7 +83,14 @@ impl ZooModel{
     pub fn try_load(path: &Path) -> Result<Self, ModelLoadingError>{
         let model_file = std::fs::File::open(path)?;
         let mut archive = zip::ZipArchive::new(model_file)?;
-        let rdf_yaml = archive.by_name("rdf.yaml")?;
+        let rdf_yaml = 'rdf_yaml: {
+            for file_name in ["rdf.yaml", "bioimageio.yaml"]{
+                if archive.file_names().find(|fname| *fname == file_name).is_some(){
+                    break 'rdf_yaml archive.by_name(file_name)
+                }
+            }
+            return Err(ModelLoadingError::RdfYamlNotFound)
+        }?;
         let model_rdf: modelrdf::ModelRdf = serde_yaml::from_reader(rdf_yaml)?;
 
         let covers: Vec<CoverImage> = model_rdf.covers.into_iter()
