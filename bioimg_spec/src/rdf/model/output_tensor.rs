@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::rdf::{file_reference::FileReference, FileDescription};
+use crate::rdf::FileDescription;
 
 use super::{axes::output_axes::OutputAxisGroup, TensorId, TensorTextDescription};
 
@@ -13,7 +13,7 @@ pub struct OutputTensorDescr {
     pub metadata: OutputTensorMetadata,
     pub test_tensor: FileDescription,
     #[serde(default)]
-    pub sample_tensor: Option<FileReference>,
+    pub sample_tensor: Option<FileDescription>,
 }
 
 
