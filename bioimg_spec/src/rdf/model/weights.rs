@@ -153,8 +153,9 @@ pub struct PyTorchArchitectureFromLibraryDescr{
 
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Debug)]
+#[serde(untagged)]
 pub enum PytorchArchitectureDescr{
-    FromLibraryDescr(PyTorchArchitectureFromLibraryDescr),
+    FromLibraryDescr(PyTorchArchitectureFromLibraryDescr), // must come first because untagged
     FromFileDescr(PyTorchArchitectureFromFileDescr),
 }
 
