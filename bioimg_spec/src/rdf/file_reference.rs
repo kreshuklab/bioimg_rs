@@ -102,7 +102,7 @@ impl TryFrom<String> for FsPath{
 
 impl From<FsPath> for String{
     fn from(value: FsPath) -> Self {
-        value.into()
+        (&value).into()
     }
 }
 
