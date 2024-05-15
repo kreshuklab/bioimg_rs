@@ -113,6 +113,7 @@ pub struct ModelRdf {
     /// You may want to list linked files additionally under `attachments` to include them when packaging a resource.
     /// (Packaging a resource means downloading/copying important linked files and creating a ZIP archive that contains
     /// an altered rdf.yaml file with local references to the downloaded files.)
+    #[serde(default)]
     pub config: serde_yaml::Mapping,
 
     /// A URL to the Git repository where the resource is being developed
@@ -126,6 +127,7 @@ pub struct ModelRdf {
     ///     "ilastik/ilastik",
     ///     "deepimagej/deepimagej",
     ///     "zero/notebook_u-net_3d_zerocostdl4mic",
+    #[serde(default)]
     pub links: Vec<String>,
 
     /// Maintainers of this resource.
