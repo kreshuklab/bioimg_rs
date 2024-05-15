@@ -49,6 +49,12 @@ pub trait StrMarker: Copy + Clone + Default{
 pub struct LitStr<M: StrMarker>(#[serde(bound = "M: StrMarker")]PhantomData<M>);
 
 impl<M: StrMarker> LitStr<M>{
+    pub fn as_str(&self) -> &'static str{
+        M::NAME
+    }
+}
+
+impl<M: StrMarker> LitStr<M>{
     pub fn new() -> Self{ Self(PhantomData) }
 }
 
