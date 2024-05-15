@@ -24,7 +24,7 @@ pub mod dataset_descr;
 pub use axes::{
     AxisType, AxisId, AxisScale,
     BatchAxis, ChannelAxis, IndexAxis,
-    SpecialAxisId, Batch, Index, Channel, Space, Time,
+    Batch, Index, Channel, Space, Time,
     Halo,
 };
 pub use axes::input_axes::{InputAxis, InputAxisGroup, SpaceInputAxis, TimeInputAxis};

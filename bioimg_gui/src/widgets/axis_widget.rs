@@ -42,7 +42,7 @@ impl StatefulWidget for BatchAxisWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::BatchAxis{
-            id: modelrdf::SpecialAxisId::new(),
+            id: rdf::LitStr::new(),
             description: self.description_widget.state()?,
             size: self.staging_allow_auto_size.then_some(rdf::LiteralInt::<1>),
         })
@@ -145,7 +145,7 @@ impl StatefulWidget for ChannelAxisWidget{
         };
 
         Ok(modelrdf::ChannelAxis {
-            id: modelrdf::SpecialAxisId::new(),
+            id: rdf::LitStr::new(),
             description: self.description_widget.state()?,
             channel_names
         })
@@ -183,7 +183,7 @@ impl StatefulWidget for IndexAxisWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::IndexAxis {
-            id: modelrdf::SpecialAxisId::new(),
+            id: rdf::LitStr::new(),
             description: self.description_widget.state()?,
             size: self.size_widget.state()?
         })

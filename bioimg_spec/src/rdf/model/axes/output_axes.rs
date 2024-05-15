@@ -117,9 +117,9 @@ impl OutputAxis{
 
     pub fn id(&self) -> AxisId {
         match self {
-            Self::Batch(axis) => AxisId::from(&axis.id),
-            Self::Channel(axis) => AxisId::from(&axis.id),
-            Self::Index(axis) => AxisId::from(&axis.id),
+            Self::Batch(axis) => AxisId::try_from(axis.id.as_str().to_owned()).unwrap(),
+            Self::Channel(axis) => AxisId::try_from(axis.id.as_str().to_owned()).unwrap(),
+            Self::Index(axis) => AxisId::try_from(axis.id.as_str().to_owned()).unwrap(),
             Self::Time(axis) => axis.id.clone(),
             Self::Space(axis) => axis.id.clone(),
         }
