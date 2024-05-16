@@ -8,7 +8,8 @@ image = {version = "0.24.8", features = ["png"]}
 iso8601-timestamp = "0.2.17"
 ndarray = "0.15.6"
 ndarray-npy = "0.8.1"
-zip = "1.2.1"
+zip = {version = "1.2.1", default-features = false}
+ehttp = "0.5.0"
 
 
 # FIXME: this is from the egui example app

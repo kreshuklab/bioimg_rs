@@ -1,5 +1,5 @@
 [package]
-name = "vise_codegen"
+name = "bioimg_codegen"
 version = "0.0.0"
 authors = ["Tomaz Vieira <tom.fogaca@gmail.com>"]
 edition = "2021"
