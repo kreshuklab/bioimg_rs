@@ -28,7 +28,7 @@ impl StagingUrl{
 
 impl Default for StagingUrl {
     fn default() -> Self {
-        Self::new_with_raw(String::default())
+        Self::new_with_raw("https://".to_owned())
     }
 }
 
