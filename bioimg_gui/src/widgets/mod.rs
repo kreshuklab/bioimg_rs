@@ -40,6 +40,7 @@ pub mod conda_env_widget;
 pub mod version_widget;
 pub mod file_source_widget;
 pub mod search_and_pick_widget;
+pub mod popup_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

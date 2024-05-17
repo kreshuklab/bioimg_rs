@@ -1,12 +1,12 @@
 use std::fmt::Display;
 
-use super::{StatefulWidget, ValueWidget};
+use super::{popup_widget::FullScreenPopupWidget, StatefulWidget, ValueWidget};
 
 pub struct EnumWidget<E> {
     pub value: E,
     search: String,
-    popup_open: bool,
     lower_case_display_names: Vec<String>,
+    popup_widget: FullScreenPopupWidget,
 }
 
 impl<E> EnumWidget<E>{
@@ -15,9 +15,9 @@ impl<E> EnumWidget<E>{
         E: strum::VariantNames
     {
         Self {
-            value: value,
+            value,
             search: String::with_capacity(64),
-            popup_open: false,
+            popup_widget: Default::default(),
             lower_case_display_names: <E as strum::VariantNames>::VARIANTS.iter().map(|dn| dn.to_lowercase()).collect(),
         }
     }
@@ -48,55 +48,31 @@ where
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         if ui.button(&self.value.to_string()).clicked() {
-            self.popup_open = !self.popup_open;
+            self.popup_widget.is_open = !self.popup_widget.is_open;
         }
-        if !self.popup_open {
-            return;
-        }
-        egui::containers::Area::new(id.with("Enum Popup"))
-            .movable(false)
-            .order(egui::Order::Foreground)
-            .constrain(true)
-            .anchor(egui::Align2::LEFT_TOP, egui::Vec2::ZERO)
-            .show(ui.ctx(), |ui| {
-                if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-                    self.popup_open = false;
-                    self.search.clear();
-                    return;
-                }
-                egui::Frame::popup(&ui.ctx().style()).show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.heading("Pick one");
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                            if ui.button("🗙").clicked() {
-                                self.popup_open = false;
-                            }
-                        });
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("🔎 ");
-                        ui.text_edit_singleline(&mut self.search);
-                    });
-                    ui.separator();
-                    ui.add_space(10.0);
-
-                    let lower_search = self.search.to_lowercase();
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.lower_case_display_names
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, lower_variant_name)| lower_variant_name.contains(&lower_search))
-                            .for_each(|(idx, _)| {
-                                if ui.button(<E as strum::VariantNames>::VARIANTS[idx]).clicked() {
-                                    self.popup_open = false;
-                                    self.value = <E as strum::VariantArray>::VARIANTS[idx].clone();
-                                    self.search.clear();
-                                }
-                            });
-                    });
-                    ui.allocate_space(egui::Vec2{x: ui.available_width(), y: ui.available_height()})
-                });
+        self.popup_widget.draw(ui, id.with("pick variant".as_ptr()), "Pick One", |ui, _, is_open| {
+            ui.horizontal(|ui| {
+                ui.label("🔎 ");
+                ui.text_edit_singleline(&mut self.search);
             });
+            ui.separator();
+            ui.add_space(10.0);
+
+            let lower_search = self.search.to_lowercase();
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                self.lower_case_display_names
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, lower_variant_name)| lower_variant_name.contains(&lower_search))
+                    .for_each(|(idx, _)| {
+                        if ui.button(<E as strum::VariantNames>::VARIANTS[idx]).clicked() {
+                            *is_open = false;
+                            self.value = <E as strum::VariantArray>::VARIANTS[idx].clone();
+                            self.search.clear();
+                        }
+                    });
+            });
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
