@@ -1,7 +1,7 @@
 use bioimg_spec::rdf;
 use bioimg_runtime as rt;
 
-use super::{image_widget::ImageWidget, staging_string::StagingString, StatefulWidget};
+use super::{image_widget::ImageWidget, staging_string::StagingString, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
 
@@ -24,6 +24,23 @@ pub struct IconWidget {
     image_icon_widget: ImageWidget<rt::IconImage>,
     input_mode: InputMode,
 }
+
+// impl ValueWidget for IconWidget{
+//     type Value<'v> = rt::Icon;
+
+//     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+//         match value{
+//             rt::Icon::Image(img_icon) => {
+//                 self.input_mode = InputMode::File;
+//                 self.image_icon_widget.set_value(img_icon);
+//             },
+//             rt::Icon::Text(icon_text) => {
+//                 self.input_mode = InputMode::Emoji;
+//                 self.emoji_icon_widget.set_value(icon_text);
+//             }
+//         }
+//     }
+// }
 
 impl StatefulWidget for IconWidget {
     type Value<'p> = Result<rt::Icon>;

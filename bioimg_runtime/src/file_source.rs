@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, io::{Read, Seek, Write}, path::PathBuf};
 
-use bioimg_spec::rdf::{self, FileReference};
+use bioimg_spec::rdf::{self, FileReference, HttpUrl};
 
 use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
@@ -10,34 +10,43 @@ pub enum FileSourceError{
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     ZipError(#[from] zip::result::ZipError),
-    #[error("Url not supported yet")]
-    UrlNotSupportedYet,
+    #[error("Error downloading file: {0}")]
+    HttpError(#[from] ureq::Error)
 }
 
 #[derive(Clone)]
 pub enum FileSource{
     LocalFile{path: PathBuf},
     FileInZipArchive{outer_path: PathBuf, inner_path: String},
+    HttpUrl(HttpUrl),
 }
 
 impl FileSource{
+    //FIXME: add some cancellation token?
     fn rdf_dump(
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FsPath, ModelPackingError> {
         let output_inner_path = rdf::FsPath::unique();
-        zip_file.write_file(&output_inner_path, |writer| {
-            match self{
+        zip_file.write_file(&output_inner_path, |writer| -> Result<u64, ModelPackingError>{
+            let copied_bytes: u64 = match self{
                 Self::LocalFile { path } => {
-                    std::io::copy(&mut std::fs::File::open(path)?, writer)
+                    std::io::copy(&mut std::fs::File::open(path)?, writer)?
                 },
                 Self::FileInZipArchive { outer_path, inner_path } => {
                     let archive_file = std::fs::File::open(outer_path)?;
                     let mut archive = zip::ZipArchive::new(archive_file)?;
                     let mut archived_file = archive.by_name(inner_path.as_str())?;
-                    std::io::copy(&mut archived_file, writer)
+                    std::io::copy(&mut archived_file, writer)?
+                },
+                Self::HttpUrl(http_url) => {
+                    let mut response_reader = ureq::get(http_url.as_str())
+                        .call()?
+                        .into_reader();
+                    std::io::copy(&mut response_reader, writer)? //FIXME!! limit size or whatever
                 }
-            }
+            };
+            Ok(copied_bytes)
         })?;
         Ok(output_inner_path)
     }
@@ -70,11 +79,11 @@ impl FileSource{
     pub fn from_rdf_file_reference(
         zip_path: PathBuf, file_reference: &rdf::FileReference
     ) -> Result<Self, FileSourceError>{
-        Ok(Self::FileInZipArchive {
-            outer_path: zip_path,
-            inner_path: match file_reference{
-                rdf::FileReference::Url(_) => return Err(FileSourceError::UrlNotSupportedYet),
-                rdf::FileReference::Path(path) => path.into()
+        Ok(match file_reference{
+            rdf::FileReference::Url(url) => Self::HttpUrl(url.clone()),
+            rdf::FileReference::Path(path) => Self::FileInZipArchive {
+                outer_path: zip_path,
+                inner_path:  path.into()
             }
         })
     }
@@ -86,6 +95,12 @@ impl FileSource{
                 let mut archive = zip::ZipArchive::new(std::fs::File::open(outer_path)?)?;
                 let bytes_read = archive.by_name(&inner_path)?.read_to_end(buf)?;
                 Ok(bytes_read)
+            },
+            Self::HttpUrl(http_url) => {
+                let mut response_reader = ureq::get(http_url.as_str())
+                .call()?
+                .into_reader();
+                Ok(response_reader.read_to_end(buf)?)
             }
         }
     }

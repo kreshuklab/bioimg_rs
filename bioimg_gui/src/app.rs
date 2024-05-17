@@ -17,7 +17,9 @@ use crate::widgets::notice_widget::NoticeWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
+use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
+use crate::widgets::ValueWidget;
 use crate::widgets::{
     author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     icon_widget::IconWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
@@ -52,7 +54,7 @@ pub struct BioimgGui {
     //links
     pub staging_maintainers: StagingVec<StagingMaintainer>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
-    pub staging_version: StagingOpt<StagingString<rdf::Version>>,
+    pub staging_version: StagingOpt<VersionWidget>,
 
     pub staging_documentation: CodeEditorWidget,
     pub staging_license: EnumWidget<rdf::LicenseId>,
@@ -63,6 +65,33 @@ pub struct BioimgGui {
 
     pub packing_notice: NoticeWidget,
     model_packing_status: PackingStatus,
+}
+
+impl ValueWidget for BioimgGui{
+    type Value<'v> = rt::zoo_model::ZooModel;
+
+    fn set_value<'v>(&mut self, zoo_model: Self::Value<'v>) {
+        self.staging_name.set_value(zoo_model.name);
+        self.staging_description.set_value(zoo_model.description);
+        // self.cover_images.set_value(zoo_model.covers);
+        self.staging_authors.set_value(zoo_model.authors.into_inner());
+        self.attachments_widget.set_value(zoo_model.attachments);
+        self.staging_citations.set_value(zoo_model.cite.into_inner());
+        self.staging_git_repo.set_value(zoo_model.git_repo);
+        // self.icon_widget.set_value(zoo_model.icon);
+        self.staging_maintainers.set_value(zoo_model.maintainers);
+        self.staging_tags.set_value(zoo_model.tags);
+        self.staging_version.set_value(zoo_model.version);
+        self.staging_documentation.set_value(&zoo_model.documentation);
+        self.staging_license.set_value(zoo_model.license);
+
+        // model_interface_widget: Default::default(),
+
+        self.weights_widget.set_value(zoo_model.weights);
+
+        self.model_packing_status = PackingStatus::default();
+        self.packing_notice = NoticeWidget::new_hidden();
+    }
 }
 
 impl Default for BioimgGui {
@@ -98,6 +127,22 @@ impl eframe::App for BioimgGui {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Import Model").clicked() {
+                        if let Some(model_path) = rfd::FileDialog::new().pick_file() {
+                            match rt::zoo_model::ZooModel::try_load(&model_path){
+                                Err(err) => eprintln!("Could not import model {}: {err}", model_path.to_string_lossy()),
+                                Ok(zoo_model) => self.set_value(zoo_model)
+                            }
+                        }
+                    }
+                });
+                ui.add_space(16.0);
+                egui::widgets::global_dark_light_mode_buttons(ui);
+            });
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.style_mut().spacing.item_spacing = egui::Vec2 { x: 10.0, y: 10.0 };
             egui::ScrollArea::vertical().show(ui, |ui| {

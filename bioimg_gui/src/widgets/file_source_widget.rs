@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, search_and_pick_widget::SearchAndPickWidget, StatefulWidget, ValueWidget};
+use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
@@ -56,9 +56,18 @@ impl ParsedFile for Result<FileSourceState>{
     }
 }
 
+#[derive(Default, PartialEq, Eq)]
+pub enum FileSourceWidgetMode{
+    #[default]
+    Path,
+    Url,
+}
+
 #[derive(Default)]
 pub struct FileSourceWidget{
+    pub mode: FileSourceWidgetMode,
     pub outer_file_widget: FileWidget<Result<FileSourceState>>,
+    pub http_url_widget: StagingUrl,
 }
 
 impl ValueWidget for FileSourceWidget{
@@ -68,7 +77,13 @@ impl ValueWidget for FileSourceWidget{
         let (outer_path, inner_path) = match value{
             rt::FileSource::LocalFile { path } => (path, None),
             rt::FileSource::FileInZipArchive { outer_path, inner_path } => (outer_path, Some(inner_path)),
+            rt::FileSource::HttpUrl(url) => {
+                self.mode = FileSourceWidgetMode::Url;
+                self.http_url_widget.set_value(url);
+                return;
+            },
         };
+        self.mode = FileSourceWidgetMode::Path;
         let mut outer_result = Result::<FileSourceState>::parse_path(outer_path.clone());
         if let Ok(FileSourceState::PickingInner { inner_options_widget, .. }) = &mut outer_result{
             if let Some(inner_path) = inner_path {
@@ -86,30 +101,46 @@ impl StatefulWidget for FileSourceWidget{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
-            self.outer_file_widget.draw_and_parse(ui, id.with("outer".as_ptr()));
-            let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &mut self.outer_file_widget.state else {
-                return;
-            };
-            let FileSourceState::PickingInner { inner_options_widget, .. } = file_source_state else {
-                return;
-            };
             ui.horizontal(|ui|{
-                ui.strong("Path within zip: ");
-                inner_options_widget.draw_and_parse(ui, id.with("inner".as_ptr()));
+                ui.radio_value(&mut self.mode, FileSourceWidgetMode::Path, "Path");
+                ui.radio_value(&mut self.mode, FileSourceWidgetMode::Url, "Url");
             });
+            match self.mode{
+                FileSourceWidgetMode::Path => {
+                    self.outer_file_widget.draw_and_parse(ui, id.with("outer".as_ptr()));
+                    let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &mut self.outer_file_widget.state else {
+                        return;
+                    };
+                    let FileSourceState::PickingInner { inner_options_widget, .. } = file_source_state else {
+                        return;
+                    };
+                    ui.horizontal(|ui|{
+                        ui.strong("Path within zip: ");
+                        inner_options_widget.draw_and_parse(ui, id.with("inner".as_ptr()));
+                    });
+                },
+                FileSourceWidgetMode::Url => {
+                    self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
+                },
+            }
         });
     }
 
     fn state(&self) -> Result<rt::FileSource>{
-        let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &self.outer_file_widget.state else {
-            return Err(GuiError::new("Not finished".to_owned()));
-        };
-        match file_source_state{
-            FileSourceState::PickedEmptyZip { .. } => Err(GuiError::new("Empty zip".to_owned())),
-            FileSourceState::PickedNormalFile { path } => Ok(rt::FileSource::LocalFile { path: path.clone() }),
-            FileSourceState::PickingInner { outer, inner_options_widget } => {
-                Ok(rt::FileSource::FileInZipArchive { outer_path: outer.clone(), inner_path: inner_options_widget.value.clone() })
+        return match self.mode{
+            FileSourceWidgetMode::Path => {
+                let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &self.outer_file_widget.state else {
+                    return Err(GuiError::new("Not finished".to_owned()));
+                };
+                match file_source_state{
+                    FileSourceState::PickedEmptyZip { .. } => Err(GuiError::new("Empty zip".to_owned())),
+                    FileSourceState::PickedNormalFile { path } => Ok(rt::FileSource::LocalFile { path: path.clone() }),
+                    FileSourceState::PickingInner { outer, inner_options_widget } => {
+                        Ok(rt::FileSource::FileInZipArchive { outer_path: outer.clone(), inner_path: inner_options_widget.value.clone() })
+                    }
+                }
             }
+            FileSourceWidgetMode::Url => Ok(rt::FileSource::HttpUrl(self.http_url_widget.state()?)),
         }
     }
 }

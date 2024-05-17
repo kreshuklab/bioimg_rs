@@ -30,6 +30,8 @@ pub enum ModelPackingError {
     RdfSerializationError(#[from] serde_json::Error),
     #[error("Could not write yaml file to zip: {0}")]
     SerdeYamlError(#[from] serde_yaml::Error),
+    #[error("{0}")]
+    HttpError(#[from] ureq::Error),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -82,6 +84,7 @@ pub struct ZooModel {
 impl ZooModel{
     pub fn try_load(path: &Path) -> Result<Self, ModelLoadingError>{
         let model_file = std::fs::File::open(path)?;
+
         let mut archive = zip::ZipArchive::new(model_file)?;
         let rdf_yaml = 'rdf_yaml: {
             for file_name in ["rdf.yaml", "bioimageio.yaml"]{
@@ -105,7 +108,6 @@ impl ZooModel{
                 }
             })
             .collect::<Result<_, _>>()?;
-
         let icon = model_rdf.icon.map(|icon| Icon::try_load(icon, &mut archive)).transpose()?;
 
         let mut documentation = String::new();
@@ -116,7 +118,6 @@ impl ZooModel{
                 archive.by_name(&path_string)?.read_to_string(&mut documentation)?;
             },
         }
-
         let weights = ModelWeights::try_from_rdf(model_rdf.weights, path.to_owned(), &mut archive)?;
 
         let input_slots: Vec<_> = model_rdf.inputs.into_inner().into_iter()
