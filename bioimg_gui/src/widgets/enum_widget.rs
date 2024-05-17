@@ -67,9 +67,11 @@ where
                 egui::Frame::popup(&ui.ctx().style()).show(ui, |ui| {
                     ui.horizontal(|ui| {
                         ui.heading("Pick one");
-                        if ui.button("🗙").clicked() {
-                            self.popup_open = false;
-                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                            if ui.button("🗙").clicked() {
+                                self.popup_open = false;
+                            }
+                        });
                     });
                     ui.horizontal(|ui| {
                         ui.label("🔎 ");
