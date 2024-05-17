@@ -57,6 +57,7 @@ where
             .movable(false)
             .order(egui::Order::Foreground)
             .constrain(true)
+            .anchor(egui::Align2::LEFT_TOP, egui::Vec2::ZERO)
             .show(ui.ctx(), |ui| {
                 if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     self.popup_open = false;
@@ -90,7 +91,8 @@ where
                                     self.search.clear();
                                 }
                             });
-                    })
+                    });
+                    ui.allocate_space(egui::Vec2{x: ui.available_width(), y: ui.available_height()})
                 });
             });
     }
