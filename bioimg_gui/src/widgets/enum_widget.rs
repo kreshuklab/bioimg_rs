@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{popup_widget::FullScreenPopupWidget, StatefulWidget, ValueWidget};
+use super::{popup_widget::{FullScreenPopupWidget, PopupResult}, StatefulWidget, ValueWidget};
 
 pub struct EnumWidget<E> {
     pub value: E,
@@ -50,7 +50,7 @@ where
         if ui.button(&self.value.to_string()).clicked() {
             self.popup_widget.is_open = !self.popup_widget.is_open;
         }
-        self.popup_widget.draw(ui, id.with("pick variant".as_ptr()), "Pick One", |ui, _, is_open| {
+        let new_value = self.popup_widget.draw(ui, id.with("pick variant".as_ptr()), "Pick One", |ui, _| {
             ui.horizontal(|ui| {
                 ui.label("🔎 ");
                 ui.text_edit_singleline(&mut self.search);
@@ -59,6 +59,7 @@ where
             ui.add_space(10.0);
 
             let lower_search = self.search.to_lowercase();
+            let mut out: PopupResult<E> = PopupResult::Continued;
             egui::ScrollArea::vertical().show(ui, |ui| {
                 self.lower_case_display_names
                     .iter()
@@ -66,13 +67,20 @@ where
                     .filter(|(_, lower_variant_name)| lower_variant_name.contains(&lower_search))
                     .for_each(|(idx, _)| {
                         if ui.button(<E as strum::VariantNames>::VARIANTS[idx]).clicked() {
-                            *is_open = false;
-                            self.value = <E as strum::VariantArray>::VARIANTS[idx].clone();
-                            self.search.clear();
+                            out = PopupResult::Finished(<E as strum::VariantArray>::VARIANTS[idx].clone());
                         }
                     });
             });
+            out
         });
+        match new_value{
+            PopupResult::Finished(value) => {
+                self.search.clear();
+                self.value = value;
+            },
+            PopupResult::Closed => self.search.clear(),
+            PopupResult::Continued => (),
+        }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
