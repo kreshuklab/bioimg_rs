@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
@@ -77,7 +78,7 @@ impl ValueWidget for BioimgGui{
         self.staging_authors.set_value(zoo_model.authors.into_inner());
         self.attachments_widget.set_value(zoo_model.attachments);
         self.staging_citations.set_value(zoo_model.cite.into_inner());
-        self.staging_git_repo.set_value(zoo_model.git_repo);
+        self.staging_git_repo.set_value(zoo_model.git_repo.map(|val| Arc::new(val)));
         // self.icon_widget.set_value(zoo_model.icon);
         self.staging_maintainers.set_value(zoo_model.maintainers);
         self.staging_tags.set_value(zoo_model.tags);
@@ -289,7 +290,10 @@ impl eframe::App for BioimgGui {
                                     covers,
                                     attachments,
                                     cite: non_empty_cites,
-                                    git_repo: self.staging_git_repo.state().transpose().map_err(|_| GuiError::new("Check git repo field for errors".into()))?,
+                                    git_repo: self.staging_git_repo.state()
+                                        .transpose()
+                                        .map_err(|_| GuiError::new("Check git repo field for errors".into()))?
+                                        .map(|val| val.as_ref().clone()),
                                     icon: self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors".into()))?,
                                     links: Vec::<String>::new(),// FIXME: grab from widget,
                                     maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors".into()))?,

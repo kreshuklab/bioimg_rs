@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bioimg_spec::rdf::HttpUrl;
 
 use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
@@ -5,13 +7,14 @@ use crate::result::{GuiError, Result};
 
 pub struct StagingUrl {
     pub raw: String,
-    parsed: Result<HttpUrl>,
+    parsed: Result<Arc<HttpUrl>>,
 }
 
 impl ValueWidget for StagingUrl{
-    type Value<'a> = HttpUrl;
+    type Value<'a> = Arc<HttpUrl>;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
-        self.raw = value.clone().into();
+        self.raw.clear();
+        self.raw += value.as_str();
         self.parsed = Ok(value)
     }
 }
@@ -21,7 +24,9 @@ impl StagingUrl{
         let raw = raw.into();
         Self {
             raw: raw.clone(),
-            parsed: HttpUrl::try_from(raw.clone()).map_err(|err| GuiError::new(err.to_string())),
+            parsed: HttpUrl::try_from(raw.clone())
+                .map(|val| Arc::new(val))
+                .map_err(|err| GuiError::new(err.to_string())),
         }
     }
 }
@@ -33,11 +38,18 @@ impl Default for StagingUrl {
 }
 
 impl StatefulWidget for StagingUrl {
-    type Value<'p> = Result<HttpUrl>;
+    type Value<'p> = Result<Arc<HttpUrl>>;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.add(egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }));
-        self.parsed = HttpUrl::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()));
+        if let Ok(parsed) = &self.parsed{
+            if parsed.as_str() == self.raw.as_str(){
+                return
+            }
+        }
+        self.parsed = HttpUrl::try_from(self.raw.clone())
+            .map(|val| Arc::new(val))
+            .map_err(|err| GuiError::new(err.to_string()));
         show_if_error(ui, &self.parsed);
     }
 

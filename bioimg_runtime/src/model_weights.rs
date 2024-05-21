@@ -1,4 +1,4 @@
-use std::{io::{Read, Seek, Write}, path::PathBuf};
+use std::{io::{Read, Seek, Write}, path::Path};
 
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
@@ -105,28 +105,28 @@ impl ModelWeights{
 
     pub fn try_from_rdf<R: Read + Seek>(
         weights_rdf: modelrdf::WeightsDescr,
-        zip_file_path: PathBuf,
+        zip_file_path: &Path,
         zip_archive: &mut ZipArchive<R>,
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = weights_rdf.into_inner();
         Ok(Self{
             keras_hdf5: weights.keras_hdf5
-                .map(|rdf| KerasHdf5Weights::try_from_rdf(rdf, zip_file_path.clone()))
+                .map(|rdf| KerasHdf5Weights::try_from_rdf(rdf, zip_file_path))
                 .transpose()?,
             onnx: weights.onnx
-                .map(|rdf| OnnxWeights::try_from_rdf(rdf, zip_file_path.clone()))
+                .map(|rdf| OnnxWeights::try_from_rdf(rdf, zip_file_path))
                 .transpose()?,
             pytorch_state_dict: weights.pytorch_state_dict
-                .map(|rdf| PytorchStateDictWeights::try_from_rdf(rdf, zip_file_path.clone(), zip_archive))
+                .map(|rdf| PytorchStateDictWeights::try_from_rdf(rdf, zip_file_path, zip_archive))
                 .transpose()?,
             tensorflow_js: weights.tensorflow_js
-                .map(|rdf| TensorflowJsWeights::try_from_rdf(rdf, zip_file_path.clone()))
+                .map(|rdf| TensorflowJsWeights::try_from_rdf(rdf, zip_file_path))
                 .transpose()?,
             tensorflow_saved_model_bundle: weights.tensorflow_saved_model_bundle
-                .map(|rdf| TensorflowSavedModelBundleWeights::try_from_rdf(rdf, zip_file_path.clone(), zip_archive))
+                .map(|rdf| TensorflowSavedModelBundleWeights::try_from_rdf(rdf, zip_file_path, zip_archive))
                 .transpose()?,
             torchscript: weights.torchscript
-                .map(|rdf| TorchscriptWeights::try_from_rdf(rdf, zip_file_path.clone()))
+                .map(|rdf| TorchscriptWeights::try_from_rdf(rdf, zip_file_path))
                 .transpose()?,
         })
     }
@@ -162,7 +162,7 @@ impl WeightsBase{
 
     fn try_from_rdf(
         rdf_weights_base: modelrdf::WeightsDescrBase,
-        zip_file_path: PathBuf,
+        zip_file_path: &Path,
     ) -> Result<Self, ModelWeightsLoadingError>{
         Ok(Self{
             authors: rdf_weights_base.authors,
@@ -188,7 +188,7 @@ impl KerasHdf5Weights{
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::KerasHdf5WeightsDescr, zip_file_path: PathBuf
+        rdf: modelrdf::KerasHdf5WeightsDescr, zip_file_path: &Path
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
         Ok(Self{
@@ -216,7 +216,7 @@ impl OnnxWeights{
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::OnnxWeightsDescr, zip_file_path: PathBuf
+        rdf: modelrdf::OnnxWeightsDescr, zip_file_path: &Path
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
         Ok(Self{
@@ -250,7 +250,7 @@ impl PytorchStateDictWeights{
 
     pub fn try_from_rdf<R: Read + Seek>(
         rdf: modelrdf::PytorchStateDictWeightsDescr,
-        zip_file_path: PathBuf,
+        zip_file_path: &Path,
         zip_archive: &mut ZipArchive<R>,
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
@@ -284,7 +284,7 @@ impl TensorflowJsWeights{
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::TensorflowJsWeightsDescr, zip_file_path: PathBuf
+        rdf: modelrdf::TensorflowJsWeightsDescr, zip_file_path: &Path
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
         Ok(Self{
@@ -317,7 +317,7 @@ impl TensorflowSavedModelBundleWeights{
 
     pub fn try_from_rdf<R: Read + Seek>(
         rdf: modelrdf::TensorflowSavedModelBundleWeightsDescr,
-        zip_file_path: PathBuf,
+        zip_file_path: &Path,
         zip_archive: &mut ZipArchive<R>,
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
@@ -349,7 +349,7 @@ impl TorchscriptWeights {
 
     pub fn try_from_rdf(
         rdf: modelrdf::TorchscriptWeightsDescr,
-        zip_file_path: PathBuf,
+        zip_file_path: &Path,
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
         Ok(Self{

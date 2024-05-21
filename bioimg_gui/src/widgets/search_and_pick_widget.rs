@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{borrow::Borrow, fmt::Display};
 
 use super::{StatefulWidget, ValueWidget};
 
@@ -15,9 +15,15 @@ pub struct SearchAndPickWidget<T> {
     pub entries: Vec<SearchableEntry<T>>,
 }
 
-impl<T: PartialEq> SearchAndPickWidget<T>{
-    pub fn contains(&self, value: &T) -> bool{
-        self.entries.iter().find(|entry| entry.value == *value).is_some()
+impl<T> SearchAndPickWidget<T>
+{
+    pub fn contains<U, B>(&self, value: U) -> bool
+    where
+        T: Borrow<B>,
+        U: Borrow<B>,
+        B: PartialEq + ?Sized,
+    {
+        self.entries.iter().find(|entry| entry.value.borrow() == value.borrow()).is_some()
     }
 }
 

@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::io::{Seek, Write};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 
 use bioimg_spec::rdf;
@@ -52,7 +52,7 @@ impl InputSlot<Arc<NpyArray>> {
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::InputTensorDescr, zip_path: PathBuf
+        rdf: modelrdf::InputTensorDescr, zip_path: &Path
     ) -> Result<Self, ModelInterfaceLoadingError>{
         let mut test_tensor_raw_data = vec![];
         FileSource::from_rdf_file_descr(zip_path, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
@@ -110,7 +110,7 @@ impl OutputSlot<Arc<NpyArray>> {
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::OutputTensorDescr, zip_path: PathBuf
+        rdf: modelrdf::OutputTensorDescr, zip_path: &Path
     ) -> Result<Self, ModelInterfaceLoadingError>{
         let mut test_tensor_raw_data = vec![];
         FileSource::from_rdf_file_descr(zip_path, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;

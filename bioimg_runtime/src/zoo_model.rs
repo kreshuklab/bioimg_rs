@@ -104,7 +104,7 @@ impl ZooModel{
             .map(|att| match att{
                 rdf::FileReference::Url(_) => return Err(ModelLoadingError::UrlFileReferenceNotSupportedYet),
                 rdf::FileReference::Path(fs_path) => {
-                    Ok(FileSource::FileInZipArchive { outer_path: path.to_owned(), inner_path: fs_path.into() })
+                    Ok(FileSource::FileInZipArchive { outer_path: Arc::from(path), inner_path: Arc::from(String::from(fs_path).as_str()) })
                 }
             })
             .collect::<Result<_, _>>()?;
@@ -118,13 +118,13 @@ impl ZooModel{
                 archive.by_name(&path_string)?.read_to_string(&mut documentation)?;
             },
         }
-        let weights = ModelWeights::try_from_rdf(model_rdf.weights, path.to_owned(), &mut archive)?;
+        let weights = ModelWeights::try_from_rdf(model_rdf.weights, path, &mut archive)?;
 
         let input_slots: Vec<_> = model_rdf.inputs.into_inner().into_iter()
-            .map(|rdf| InputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path.to_owned()))
+            .map(|rdf| InputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path))
             .collect::<Result<_, _>>()?;
         let output_slots: Vec<_> = model_rdf.outputs.into_inner().into_iter()
-            .map(|rdf| OutputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path.to_owned()))
+            .map(|rdf| OutputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path))
             .collect::<Result<_, _>>()?;
 
         let model_interface = ModelInterface::try_build(input_slots, output_slots)?;

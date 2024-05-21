@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, io::{Read, Seek, Write}, path::PathBuf};
+use std::{borrow::Borrow, io::{Read, Seek, Write}, path::{Path, PathBuf}, sync::Arc};
 
 use bioimg_spec::rdf::{self, FileReference, HttpUrl};
 
@@ -16,9 +16,9 @@ pub enum FileSourceError{
 
 #[derive(Clone)]
 pub enum FileSource{
-    LocalFile{path: PathBuf},
-    FileInZipArchive{outer_path: PathBuf, inner_path: String},
-    HttpUrl(HttpUrl),
+    LocalFile{path: Arc<Path>},
+    FileInZipArchive{outer_path: Arc<Path>, inner_path: Arc<str>},
+    HttpUrl(Arc<HttpUrl>),
 }
 
 impl FileSource{
@@ -36,7 +36,7 @@ impl FileSource{
                 Self::FileInZipArchive { outer_path, inner_path } => {
                     let archive_file = std::fs::File::open(outer_path)?;
                     let mut archive = zip::ZipArchive::new(archive_file)?;
-                    let mut archived_file = archive.by_name(inner_path.as_str())?;
+                    let mut archived_file = archive.by_name(inner_path.as_ref())?;
                     std::io::copy(&mut archived_file, writer)?
                 },
                 Self::HttpUrl(http_url) => {
@@ -70,20 +70,20 @@ impl FileSource{
 
 impl FileSource{
     pub fn from_rdf_file_descr<T: Borrow<FileReference>>(
-        zip_path: PathBuf, file_reference: &rdf::FileDescription<T>
+        zip_path: &Path, file_reference: &rdf::FileDescription<T>
     ) -> Result<Self, FileSourceError>{
         Self::from_rdf_file_reference(zip_path, file_reference.source.borrow())
     }
 
 
     pub fn from_rdf_file_reference(
-        zip_path: PathBuf, file_reference: &rdf::FileReference
+        zip_path: &Path, file_reference: &rdf::FileReference
     ) -> Result<Self, FileSourceError>{
         Ok(match file_reference{
-            rdf::FileReference::Url(url) => Self::HttpUrl(url.clone()),
+            rdf::FileReference::Url(url) => Self::HttpUrl(Arc::new(url.clone())),
             rdf::FileReference::Path(path) => Self::FileInZipArchive {
-                outer_path: zip_path,
-                inner_path:  path.into()
+                outer_path: Arc::from(zip_path),
+                inner_path:  Arc::from(String::from(path).as_str())
             }
         })
     }

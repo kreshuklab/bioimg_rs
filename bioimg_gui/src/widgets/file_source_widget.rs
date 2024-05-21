@@ -1,31 +1,31 @@
-use std::path::PathBuf;
+use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, StatefulWidget, ValueWidget};
+use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::{FullScreenPopupWidget, PopupResult}, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
-    PickedNormalFile{path: PathBuf},
-    PickedEmptyZip{path: PathBuf},
-    PickingInner{outer: PathBuf, inner_options_widget: SearchAndPickWidget<String>}
+    PickedNormalFile{path: Arc<Path>},
+    PickedEmptyZip{path: Arc<Path>},
+    PickingInner{outer: Arc<Path>, inner_options_widget: SearchAndPickWidget<String>}
 }
 
 trait ResultOfFileSourceStateExt{
-    fn parse_path(path: PathBuf) -> Self;
+    fn parse_path(path: &Arc<Path>) -> Self;
 }
 
 impl ResultOfFileSourceStateExt for Result<FileSourceState>{
-    fn parse_path(path: PathBuf) -> Self {
+    fn parse_path(path: &Arc<Path>) -> Self {
         if !path.exists(){
             return Err(GuiError::new("File does not exist".to_owned()))
         }
         let Some(extension) = path.extension() else {
-            return Ok(FileSourceState::PickedNormalFile { path });
+            return Ok(FileSourceState::PickedNormalFile { path: path.clone() });
         };
         if extension != "zip"{
-            return Ok(FileSourceState::PickedNormalFile { path });
+            return Ok(FileSourceState::PickedNormalFile { path: path.clone() });
         }
         let mut inner_options = || -> Result<Vec<String>> {
             let archive_file = std::fs::File::open(&path)?;
@@ -37,10 +37,10 @@ impl ResultOfFileSourceStateExt for Result<FileSourceState>{
         }()?;
         inner_options.sort();
         let Some(first_file) = inner_options.first() else {
-            return Ok(FileSourceState::PickedEmptyZip { path });
+            return Ok(FileSourceState::PickedEmptyZip { path: path.clone() });
         };
         Ok(FileSourceState::PickingInner {
-            outer: path,
+            outer: path.clone(),
             inner_options_widget: SearchAndPickWidget::new(first_file.clone(), inner_options)
         })
     }
@@ -48,7 +48,7 @@ impl ResultOfFileSourceStateExt for Result<FileSourceState>{
 
 impl ParsedFile for Result<FileSourceState>{
     fn parse(path: PathBuf, _ctx: egui::Context) -> Self {
-        Self::parse_path(path)
+        Self::parse_path(&Arc::from(path.as_ref()))
     }
 
     fn render(&self, _ui: &mut egui::Ui, _id: egui::Id) {
@@ -84,11 +84,11 @@ impl ValueWidget for FileSourceWidget{
             },
         };
         self.mode = FileSourceWidgetMode::Path;
-        let mut outer_result = Result::<FileSourceState>::parse_path(outer_path.clone());
+        let mut outer_result = Result::<FileSourceState>::parse_path(&outer_path);
         if let Ok(FileSourceState::PickingInner { inner_options_widget, .. }) = &mut outer_result{
             if let Some(inner_path) = inner_path {
-                if inner_options_widget.contains(&inner_path){
-                    inner_options_widget.value = inner_path
+                if inner_options_widget.contains::<&str, str>(&inner_path){
+                    inner_options_widget.value = inner_path.as_ref().to_owned() //FIXME: set inside a method
                 }
             }
         };
@@ -136,11 +136,86 @@ impl StatefulWidget for FileSourceWidget{
                     FileSourceState::PickedEmptyZip { .. } => Err(GuiError::new("Empty zip".to_owned())),
                     FileSourceState::PickedNormalFile { path } => Ok(rt::FileSource::LocalFile { path: path.clone() }),
                     FileSourceState::PickingInner { outer, inner_options_widget } => {
-                        Ok(rt::FileSource::FileInZipArchive { outer_path: outer.clone(), inner_path: inner_options_widget.value.clone() })
+                        Ok(rt::FileSource::FileInZipArchive {
+                            outer_path: outer.clone(),
+                            inner_path: Arc::from(inner_options_widget.value.as_ref()),
+                        })
                     }
                 }
             }
             FileSourceWidgetMode::Url => Ok(rt::FileSource::HttpUrl(self.http_url_widget.state()?)),
+        }
+    }
+}
+
+pub trait FileSourcePopupConfig{
+    const BUTTON_TEXT: &'static str = "Open...";
+    const TITLE: &'static str = "Choose a file";
+}
+
+pub struct DefaultFileSourcePopupConfig;
+impl FileSourcePopupConfig for DefaultFileSourcePopupConfig{}
+
+#[derive(Default)]
+pub enum FileSourceWidgetPopupButton<C: FileSourcePopupConfig = DefaultFileSourcePopupConfig>{
+    #[default]
+    Empty,
+    Picking{file_source_widget: FileSourceWidget, popup_widget: FullScreenPopupWidget},
+    Ready{file_source: rt::FileSource, marker: PhantomData<C>},
+}
+
+impl<C: FileSourcePopupConfig> StatefulWidget for FileSourceWidgetPopupButton<C>{
+    type Value<'p> = Result<rt::FileSource> where C: 'p;
+    
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+        *self = match std::mem::take(self){
+            Self::Ready { file_source, .. } => Self::Ready { file_source, marker: PhantomData },
+            Self::Empty => {
+                if ui.button(C::BUTTON_TEXT).clicked(){
+                    Self::Picking { file_source_widget: Default::default(), popup_widget: Default::default() }
+                } else {
+                    Self::Empty
+                }
+            },
+            Self::Picking { mut file_source_widget, mut popup_widget } => {
+                let file_source_result: PopupResult<rt::FileSource> = popup_widget.draw(ui, id.with("pop".as_ptr()), C::TITLE, |ui, id|{
+                    let mut out = PopupResult::Continued;
+                    ui.vertical(|ui|{
+                        file_source_widget.draw_and_parse(ui, id);
+                        let state = file_source_widget.state();
+                        ui.horizontal(|ui|{
+                            match state {
+                                Ok(file_source) => if ui.button("Ok").clicked(){
+                                    out = PopupResult::Finished(file_source);
+                                },
+                                Err(_) => {
+                                    ui.add_enabled_ui(false, |ui| ui.button("Ok"));
+                                }
+                            };
+                            if ui.button("Cancel").clicked(){
+                                 out = PopupResult::Closed
+                            }
+                        });
+                    });
+                    out
+                });
+                match file_source_result{
+                    PopupResult::Continued => Self::Picking { file_source_widget, popup_widget },
+                    PopupResult::Closed => {
+                        Self::Empty
+                    },
+                    PopupResult::Finished(file_source) => Self::Ready { file_source, marker: PhantomData }
+                }
+            },
+        };
+    }
+
+    fn state<'p>(&'p self) -> Self::Value<'p> {
+        match self {
+            Self::Ready { file_source, .. } => {
+                Ok(file_source.clone())
+            },
+            _ => Err(GuiError::new("not ready".to_owned()))
         }
     }
 }

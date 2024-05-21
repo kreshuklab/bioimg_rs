@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::{Path, PathBuf}};
+use std::{fmt::Display, path::{Path, PathBuf}, sync::Arc};
 
 use crate::result::{GuiError, Result};
 use super::{error_display::show_error, StatefulWidget, ValueWidget};
@@ -10,13 +10,13 @@ pub trait ParsedFile: Send + 'static {
 
 pub enum FileWidgetState<V: Send + 'static> {
     Empty,
-    AboutToLoad{ path: PathBuf },
+    AboutToLoad{ path: Arc<Path> },
     Loading {
-        path: PathBuf,
+        path: Arc<Path>,
         promise: poll_promise::Promise<V>,
     },
     Finished {
-        path: PathBuf,
+        path: Arc<Path>,
         value: V,
     },
 }
@@ -84,7 +84,7 @@ impl<PF: ParsedFile> Default for FileWidget<PF> {
 
 impl<T: ParsedFile> FileWidget<T>{
     pub fn set_path(&mut self, path: PathBuf){
-        self.state = FileWidgetState::AboutToLoad { path };
+        self.state = FileWidgetState::AboutToLoad { path: Arc::from(path.as_ref()) }; //FIXME: don't use pathbuf?
     }
 }
 
@@ -111,7 +111,7 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
                             path: path.clone(),
                             promise: poll_promise::Promise::spawn_thread(
                                 "loading file",
-                                move || { PF::parse(path, ctx) }
+                                move || { PF::parse(path.as_ref().to_owned(), ctx) } //FIXME: maybe don't use to_owned?
                             )
                         }
                     },

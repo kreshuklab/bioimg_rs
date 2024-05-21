@@ -52,7 +52,7 @@ impl ValueWidget for InputTensorWidget{
         self.description_widget.set_value(value.1);
         self.axes_widget.set_value(value.2);
         self.test_tensor_widget.state = FileWidgetState::Finished {
-            path: PathBuf::from("__dummy__"),
+            path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
             value: Ok(value.3)
         }
     }
@@ -171,7 +171,7 @@ impl ValueWidget for OutputTensorWidget{
         self.description_widget.set_value(value.1);
         self.axes_widget.set_value(value.2);
         self.test_tensor_widget.state = FileWidgetState::Finished {
-            path: PathBuf::from("__dummy__"),
+            path: Arc::from(PathBuf::from("__dummy__").as_ref()),
             value: Ok(value.3)
         }
     }

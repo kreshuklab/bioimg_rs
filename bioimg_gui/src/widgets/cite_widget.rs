@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::result::Result;
 use bioimg_spec::rdf::{
     bounded_string::{BoundedString, BoundedStringParsingError},
@@ -31,7 +33,7 @@ impl ValueWidget for StagingCiteEntry2{
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
         self.staging_text.set_value(value.text);
         self.staging_doi.set_value(value.doi);
-        self.staging_url.set_value(value.url);
+        self.staging_url.set_value(value.url.map(|val| Arc::new(val)));
     }
 }
 
@@ -73,7 +75,9 @@ impl StatefulWidget for StagingCiteEntry2 {
         Ok(CiteEntry2 {
             text: self.staging_text.state().to_owned()?,
             doi: self.staging_doi.state().to_owned().transpose()?,
-            url: self.staging_url.state().to_owned().transpose()?,
+            url: self.staging_url.state()
+                .transpose()?
+                .map(|val| val.as_ref().clone())
         })
     }
 }
