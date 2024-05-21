@@ -1,7 +1,7 @@
 use bioimg_spec::rdf;
 use bioimg_runtime as rt;
 
-use super::{image_widget::ImageWidget, staging_string::StagingString, StatefulWidget, ValueWidget};
+use super::{image_widget::ImageWidget, staging_string::StagingString, StatefulWidget};
 use crate::result::Result;
 
 

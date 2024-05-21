@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, io::{Read, Seek, Write}, path::{Path, PathBuf}, sync::Arc};
+use std::{borrow::Borrow, io::{Read, Seek, Write}, path::Path, sync::Arc};
 
 use bioimg_spec::rdf::{self, FileReference, HttpUrl};
 
