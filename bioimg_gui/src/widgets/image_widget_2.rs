@@ -3,7 +3,7 @@ use std::{error::Error, io::Cursor, sync::Arc};
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, util::DynamicImageExt, StatefulWidget};
+use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, util::DynamicImageExt, StatefulWidget, ValueWidget};
 
 pub struct GuiImage{
     source: Option<rt::FileSource>,
@@ -63,6 +63,14 @@ enum LoadingState{
 pub struct ImageWidget2{
     pub picker_button: FileSourceWidgetPopupButton,
     loading_state: LoadingState,
+}
+
+impl ValueWidget for ImageWidget2{
+    type Value<'v> = rt::FileSource;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.picker_button.set_value(value);
+    }
 }
 
 impl StatefulWidget for ImageWidget2{

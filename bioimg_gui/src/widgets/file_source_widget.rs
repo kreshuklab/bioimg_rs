@@ -164,6 +164,14 @@ pub enum FileSourceWidgetPopupButton<C: FileSourcePopupConfig = DefaultFileSourc
     Ready{file_source: rt::FileSource, marker: PhantomData<C>},
 }
 
+impl<C: FileSourcePopupConfig> ValueWidget for FileSourceWidgetPopupButton<C>{
+    type Value<'v> = rt::FileSource;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        *self = Self::Ready { file_source: value, marker: PhantomData }
+    }
+}
+
 impl<C: FileSourcePopupConfig> StatefulWidget for FileSourceWidgetPopupButton<C>{
     type Value<'p> = Result<rt::FileSource> where C: 'p;
     
