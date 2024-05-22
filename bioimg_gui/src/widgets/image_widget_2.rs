@@ -47,8 +47,27 @@ enum LoadingState{
     #[default]
     Empty,
     Loading{source: rt::FileSource, promise: pp::Promise<Result<(ArcDynImg, Texture)>>},
-    Ready{img: ArcDynImg, texture: Texture},
-    Failed(GuiError),
+    Ready{source: rt::FileSource, img: ArcDynImg, texture: Texture},
+    Forced{img: ArcDynImg, texture: Option<Texture>},
+    Failed{source: rt::FileSource, err: GuiError},
+}
+
+impl LoadingState{
+    pub fn loading(file_source: rt::FileSource, context: egui::Context) -> Self{
+        LoadingState::Loading {
+            promise: {
+                let file_source = file_source.clone();
+                pp::Promise::spawn_thread(file_source.to_string(), move ||{
+                    let mut img_data = Vec::<u8>::new();
+                    file_source.read_to_end(&mut img_data)?;
+                    let img = image::io::Reader::new(Cursor::new(img_data)).with_guessed_format()?.decode()?;
+                    let texture = Texture::load(&img, context);
+                    Ok((Arc::new(img), texture))
+                })
+            },
+            source: file_source,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -72,44 +91,48 @@ impl StatefulWidget for ImageWidget2{
         ui.horizontal(|ui|{
             self.picker_button.draw_and_parse(ui, id.with("file source".as_ptr()));
             let file_source_res = self.picker_button.state();
-            let Ok(file_source) = file_source_res else {
-                self.loading_state = LoadingState::Empty;
-                return;
-            };
-            self.loading_state = match std::mem::take(&mut self.loading_state){
-                LoadingState::Empty => {
+            self.loading_state = match (std::mem::take(&mut self.loading_state), file_source_res){
+                (LoadingState::Empty, Err(_)) => LoadingState::Empty,
+                (LoadingState::Empty, Ok(file_source)) => {
                     ui.ctx().request_repaint();
-                    LoadingState::Loading {
-                        promise: {
-                            let file_source = file_source.clone();
-                            let context = ui.ctx().clone();
-                            pp::Promise::spawn_thread(file_source.to_string(), move ||{
-                                let mut img_data = Vec::<u8>::new();
-                                file_source.read_to_end(&mut img_data)?;
-                                let img = image::io::Reader::new(Cursor::new(img_data)).with_guessed_format()?.decode()?;
-                                let texture = Texture::load(&img, context);
-                                Ok((Arc::new(img), texture))
-                            })
-                        },
-                        source: file_source,
-                    }
+                    LoadingState::loading(file_source, ui.ctx().clone())
                 },
-                LoadingState::Loading { source, promise } => {
+                (LoadingState::Loading{..}, Err(_)) => LoadingState::Empty,
+                (LoadingState::Loading { source, promise }, Ok(new_source)) => 'loading_ok: {
                     ui.ctx().request_repaint();
+                    if source != new_source{
+                        break 'loading_ok LoadingState::Empty;
+                    }
                     match promise.try_take(){
                         Err(promise) => LoadingState::Loading { source, promise },
-                        Ok(Err(err)) => LoadingState::Failed(err),
-                        Ok(Ok((img, texture))) => LoadingState::Ready{img, texture},
+                        Ok(Err(err)) => LoadingState::Failed{source, err},
+                        Ok(Ok((img, texture))) => LoadingState::Ready{source, img, texture},
                     }
                 },
-                LoadingState::Failed(err) => {
-                    show_error(ui, &err);
-                    LoadingState::Failed(err)
+                (LoadingState::Failed{..}, Err(_)) => LoadingState::Empty,
+                (LoadingState::Failed{source, err}, Ok(new_source)) => {
+                    if source == new_source{
+                        show_error(ui, &err);
+                        LoadingState::Failed { source, err }
+                    }else{
+                        LoadingState::Empty
+                    }
                 },
-                LoadingState::Ready{img, texture} => {
+                (LoadingState::Ready{..}, Err(_)) => LoadingState::Empty,
+                (LoadingState::Ready{source, img, texture}, Ok(new_source)) => {
+                    if new_source == source{
+                        texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
+                        LoadingState::Ready{source, img, texture}
+                    }else{
+                        LoadingState::Empty
+                    }
+                },
+                (LoadingState::Forced { img, texture }, Err(_)) => {
+                    let texture = texture.unwrap_or_else(|| Texture::load(&img, ui.ctx().clone()));
                     texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
-                    LoadingState::Ready{img, texture}
+                    LoadingState::Forced { img,  texture: Some(texture) }
                 },
+                (LoadingState::Forced{..}, Ok(_)) => LoadingState::Empty,
             }
         });
     }
@@ -117,8 +140,9 @@ impl StatefulWidget for ImageWidget2{
     fn state(&self) -> Result<ArcDynImg>{
         match &self.loading_state{
             LoadingState::Empty | LoadingState::Loading { .. } => Err(GuiError::new("Empty".to_owned())),
-            LoadingState::Failed(err) => Err(err.clone()),
-            LoadingState::Ready{img, ..} => Ok(img.clone())
+            LoadingState::Failed { err, .. } => Err(err.clone()),
+            LoadingState::Ready { img, .. } => Ok(img.clone()),
+            LoadingState::Forced { img, .. } => Ok(img.clone()),
         }
     }
 }
