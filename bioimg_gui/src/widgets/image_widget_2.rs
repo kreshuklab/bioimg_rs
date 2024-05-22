@@ -3,7 +3,7 @@ use std::{error::Error, io::Cursor, sync::Arc};
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, util::DynamicImageExt, StatefulWidget, ValueWidget};
+use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, staging_vec::ItemWidgetConf, util::DynamicImageExt, StatefulWidget, ValueWidget};
 
 pub struct GuiImage{
     source: Option<rt::FileSource>,
@@ -130,6 +130,15 @@ impl StatefulWidget for ImageWidget2{
 pub struct SpecialImageWidget<I>{
     image_widget: ImageWidget2,
     parsed: Result<I>,
+}
+
+impl<I> Default for SpecialImageWidget<I>{
+    fn default() -> Self {
+        Self{
+            image_widget: Default::default(),
+            parsed: Err(GuiError::new("empty".to_owned())),
+        }
+    }
 }
 
 impl<I> StatefulWidget for SpecialImageWidget<I>

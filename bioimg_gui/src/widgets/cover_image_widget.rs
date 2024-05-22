@@ -1,10 +1,9 @@
-use bioimg_runtime as rt;
+use super::staging_vec::ItemWidgetConf;
 
-use super::{image_widget::ImageWidget, staging_vec::ItemWidgetConf};
-
+pub struct CoverImageItemConf;
 
 //FIXME: maybe this should just be a marker type instead?
-impl ItemWidgetConf for ImageWidget<rt::CoverImage>{
+impl ItemWidgetConf for CoverImageItemConf{
     const ITEM_NAME: &'static str = "Cover Image";
     const MIN_NUM_ITEMS: usize = 1;
 }

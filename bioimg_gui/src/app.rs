@@ -10,9 +10,10 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
+use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
-use crate::widgets::image_widget::ImageWidget;
+use crate::widgets::image_widget_2::SpecialImageWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::notice_widget::NoticeWidget;
 use crate::widgets::staging_opt::StagingOpt;
@@ -44,7 +45,7 @@ impl Default for PackingStatus {
 pub struct BioimgGui {
     pub staging_name: StagingString<ResourceName>,
     pub staging_description: StagingString<BoundedString<1, 1023>>,
-    pub cover_images: StagingVec<ImageWidget<rt::CoverImage>>,
+    pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     // id?
     pub staging_authors: StagingVec<StagingAuthor2>,
     pub attachments_widget: StagingVec<AttachmentsWidget>,
@@ -265,9 +266,13 @@ impl eframe::App for BioimgGui {
                                     .map(|interf| interf.clone())
                                     .map_err(|_| GuiError::new("Check model interface for errors".into()))?;
 
-                                let covers: Vec<_> = self.cover_images.state().into_iter().map(|cover_img_res|{
-                                    cover_img_res.map_err(|_| GuiError::new("Check cover images for errors".into()))
-                                }).collect::<Result<Vec<_>, _>>()?;
+                                let covers: Vec<_> = self.cover_images.state().into_iter()
+                                    .map(|cover_img_res|{
+                                        cover_img_res
+                                            .map(|val| val.clone())
+                                            .map_err(|_| GuiError::new("Check cover images for errors".into()))
+                                    })
+                                    .collect::<Result<Vec<_>, _>>()?;
 
                                 let attachments = self.attachments_widget.state()
                                     .collect_result()
