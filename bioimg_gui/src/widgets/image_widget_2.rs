@@ -1,4 +1,4 @@
-use std::{io::Cursor, path::Path, sync::Arc};
+use std::{error::Error, io::Cursor, sync::Arc};
 
 use bioimg_runtime as rt;
 
@@ -61,15 +61,17 @@ enum LoadingState{
 
 #[derive(Default)]
 pub struct ImageWidget2{
-    pub file_source_widget: FileSourceWidgetPopupButton,
+    pub picker_button: FileSourceWidgetPopupButton,
     loading_state: LoadingState,
 }
 
-impl ImageWidget2{
-    pub fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        ui.vertical(|ui|{
-            self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
-            let file_source_res = self.file_source_widget.state();
+impl StatefulWidget for ImageWidget2{
+    type Value<'p> = Result<Arc<image::DynamicImage>>;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+        ui.horizontal(|ui|{
+            self.picker_button.draw_and_parse(ui, id.with("file source".as_ptr()));
+            let file_source_res = self.picker_button.state();
             let Ok(file_source) = file_source_res else {
                 self.loading_state = LoadingState::Empty;
                 return;
@@ -107,4 +109,40 @@ impl ImageWidget2{
             }
         });
     }
+
+    fn state(&self) -> Result<Arc<image::DynamicImage>>{
+        match &self.loading_state{
+            LoadingState::Empty | LoadingState::Loading { .. } => Err(GuiError::new("Empty".to_owned())),
+            LoadingState::Failed(err) => Err(err.clone()),
+            LoadingState::Ready(gui_img) => Ok(gui_img.image())
+        }
+    }
+}
+
+pub struct SpecialImageWidget<I>{
+    image_widget: ImageWidget2,
+    parsed: Result<I>,
+}
+
+impl<I> StatefulWidget for SpecialImageWidget<I>
+where
+    I : TryFrom<Arc<image::DynamicImage>>,
+    <I as TryFrom<Arc<image::DynamicImage>>>::Error: Error,
+{
+    type Value<'p> = Result<&'p I> where I: 'p;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+        ui.horizontal(|ui|{
+            self.image_widget.draw_and_parse(ui, id.with("img widget".as_ptr()));
+            let Ok(gui_img) = self.image_widget.state() else {
+                return;
+            };
+            //FIXME: is it always ok to do this every frame?
+            self.parsed = I::try_from(gui_img).map_err(|err| GuiError::from(err))
+        });
+    }
+
+    fn state<'p>(&'p self) -> Result<&'p I>{
+        self.parsed.as_ref().map_err(|err| err.clone())
+    } 
 }
