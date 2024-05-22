@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, io::{Read, Seek, Write}, path::Path, sync::Arc};
+use std::{borrow::Borrow, fmt::Display, io::{Read, Seek, Write}, path::Path, sync::Arc};
 
 use bioimg_spec::rdf::{self, FileReference, HttpUrl};
 
@@ -14,11 +14,21 @@ pub enum FileSourceError{
     HttpError(#[from] ureq::Error)
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum FileSource{
     LocalFile{path: Arc<Path>},
     FileInZipArchive{outer_path: Arc<Path>, inner_path: Arc<str>},
     HttpUrl(Arc<HttpUrl>),
+}
+
+impl Display for FileSource{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::LocalFile { path } => write!(f, "{}", path.to_string_lossy()),
+            Self::FileInZipArchive { outer_path, inner_path } => write!(f, "{}/{}", outer_path.to_string_lossy(), inner_path),
+            Self::HttpUrl(http_url) => write!(f, "{}", http_url.as_str()),
+        }
+    }
 }
 
 impl FileSource{

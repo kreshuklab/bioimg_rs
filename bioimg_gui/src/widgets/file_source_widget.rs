@@ -2,8 +2,8 @@ use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 
 use bioimg_runtime as rt;
 
-use crate::result::{GuiError, Result};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::{FullScreenPopupWidget, PopupResult}, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, StatefulWidget, ValueWidget};
+use crate::{result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
+use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
@@ -160,7 +160,7 @@ impl FileSourcePopupConfig for DefaultFileSourcePopupConfig{}
 pub enum FileSourceWidgetPopupButton<C: FileSourcePopupConfig = DefaultFileSourcePopupConfig>{
     #[default]
     Empty,
-    Picking{file_source_widget: FileSourceWidget, popup_widget: FullScreenPopupWidget},
+    Picking{file_source_widget: FileSourceWidget},
     Ready{file_source: rt::FileSource, marker: PhantomData<C>},
 }
 
@@ -168,46 +168,53 @@ impl<C: FileSourcePopupConfig> StatefulWidget for FileSourceWidgetPopupButton<C>
     type Value<'p> = Result<rt::FileSource> where C: 'p;
     
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        *self = match std::mem::take(self){
-            Self::Ready { file_source, .. } => Self::Ready { file_source, marker: PhantomData },
-            Self::Empty => {
-                if ui.button(C::BUTTON_TEXT).clicked(){
-                    Self::Picking { file_source_widget: Default::default(), popup_widget: Default::default() }
-                } else {
-                    Self::Empty
-                }
-            },
-            Self::Picking { mut file_source_widget, mut popup_widget } => {
-                let file_source_result: PopupResult<rt::FileSource> = popup_widget.draw(ui, id.with("pop".as_ptr()), C::TITLE, |ui, id|{
-                    let mut out = PopupResult::Continued;
-                    ui.vertical(|ui|{
-                        file_source_widget.draw_and_parse(ui, id);
-                        let state = file_source_widget.state();
-                        ui.horizontal(|ui|{
-                            match state {
-                                Ok(file_source) => if ui.button("Ok").clicked(){
-                                    out = PopupResult::Finished(file_source);
-                                },
-                                Err(_) => {
-                                    ui.add_enabled_ui(false, |ui| ui.button("Ok"));
+        ui.horizontal(|ui|{
+            let open_button_clicked = ui.button(C::BUTTON_TEXT).clicked();
+            *self = match (std::mem::take(self), open_button_clicked) {
+                (Self::Empty, false) => Self::Empty,
+                (Self::Ready { file_source, marker }, false) => {
+                    ui.weak(&file_source.to_string());
+                    Self::Ready { file_source, marker }
+                },
+                (Self::Picking { mut file_source_widget }, _) => {
+                    let file_source_result: PopupResult<rt::FileSource> = draw_fullscreen_popup(ui, id.with("pop".as_ptr()), C::TITLE, |ui, id|{
+                        let mut out = PopupResult::Continued;
+                        ui.vertical(|ui|{
+                            file_source_widget.draw_and_parse(ui, id);
+                            let state = file_source_widget.state();
+                            ui.add_space(10.0);
+                            ui.horizontal(|ui|{
+                                match state {
+                                    Ok(file_source) => if ui.button("Ok").clicked(){
+                                        out = PopupResult::Finished(file_source);
+                                    },
+                                    Err(_) => {
+                                        ui.add_enabled_ui(false, |ui| ui.button("Ok"));
+                                    }
+                                };
+                                if ui.button("Cancel").clicked(){
+                                     out = PopupResult::Closed
                                 }
-                            };
-                            if ui.button("Cancel").clicked(){
-                                 out = PopupResult::Closed
-                            }
+                            });
                         });
+                        out
                     });
-                    out
-                });
-                match file_source_result{
-                    PopupResult::Continued => Self::Picking { file_source_widget, popup_widget },
-                    PopupResult::Closed => {
-                        Self::Empty
-                    },
-                    PopupResult::Finished(file_source) => Self::Ready { file_source, marker: PhantomData }
-                }
-            },
-        };
+                    match file_source_result{
+                        PopupResult::Continued => Self::Picking { file_source_widget },
+                        PopupResult::Closed => Self::Empty,
+                        PopupResult::Finished(file_source) => Self::Ready { file_source, marker: PhantomData },
+                    }
+                },
+                (Self::Empty, true) => Self::Picking{ file_source_widget: Default::default() },
+                (Self::Ready{ file_source, .. }, true) => Self::Picking{
+                    file_source_widget: {
+                        let mut widget = FileSourceWidget::default();
+                        widget.set_value(file_source);
+                        widget
+                    }
+                },
+            };
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
