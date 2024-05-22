@@ -206,6 +206,7 @@ dependencies = [
  "strum",
  "thiserror",
  "url",
+ "uuid",
  "wasm-bindgen-futures",
  "zip 1.2.1",
 ]
