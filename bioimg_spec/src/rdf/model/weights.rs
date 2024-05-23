@@ -2,10 +2,10 @@ use std::ops::Deref;
 
 use crate::rdf::{author::Author2, file_description::{FileDescription, Sha256}, file_reference::EnvironmentFile, FileReference, Identifier, Version};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum ModelWeightsParsingError{
     #[error("Bad or unsupported Onnx opset version: {0}. Must be >= 7")]
-    BadOnnxOpsetVersion(usize),
+    BadOnnxOpsetVersion(u32),
     #[error("No model weights found")]
     NoWeightsFound,
     #[error("Dependencies must be a .yml or .yaml file")]
@@ -112,15 +112,21 @@ pub struct KerasHdf5WeightsDescr{
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct OnnxOpsetVersion(usize);
-impl TryFrom<usize> for OnnxOpsetVersion{
+pub struct OnnxOpsetVersion(u32);
+impl TryFrom<u32> for OnnxOpsetVersion{
     type Error = ModelWeightsParsingError;
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value < 7{
             Err(ModelWeightsParsingError::BadOnnxOpsetVersion(value))
         } else {
             Ok(Self(value))
         }
+    }
+}
+
+impl From<OnnxOpsetVersion> for u32{
+    fn from(value: OnnxOpsetVersion) -> Self {
+        value.0
     }
 }
 

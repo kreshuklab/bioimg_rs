@@ -21,6 +21,7 @@ pub mod axis_widget;
 pub mod url_widget;
 pub mod util;
 pub mod weights_widget;
+pub mod onnx_weights_widget;
 pub mod pytorch_statedict_weights_widget;
 pub mod attachments_widget;
 pub mod tags_widget;

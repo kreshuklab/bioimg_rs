@@ -4,13 +4,14 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, error_display::show_error, file_source_widget::FileSourceWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
+    author_widget::StagingAuthor2, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
 };
 
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
     pub torchscript_weights_widget: StagingOpt<TorchscriptWeightsWidget>,
     pub pytorch_state_dict_widget: StagingOpt<PytorchStateDictWidget>,
+    pub onnx_eights_widget: StagingOpt<OnnxWeightsWidget>,
 
     parsed: Result<Arc<rt::ModelWeights>>
 }
@@ -21,6 +22,7 @@ impl Default for WeightsWidget{
             keras_weights_widget: Default::default(),
             torchscript_weights_widget: Default::default(),
             pytorch_state_dict_widget: Default::default(),
+            onnx_eights_widget: Default::default(),
             parsed: Err(GuiError::new("empty".into()))
         }
     }
@@ -32,6 +34,7 @@ impl ValueWidget for WeightsWidget{
         self.keras_weights_widget.set_value(value.keras_hdf5().cloned());
         self.torchscript_weights_widget.set_value(value.torchscript().cloned());
         self.pytorch_state_dict_widget.set_value(value.pytorch_state_dict().cloned());
+        self.onnx_eights_widget.set_value(value.onnx().cloned());
     }
 }
 
@@ -43,7 +46,7 @@ impl StatefulWidget for WeightsWidget{
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Torchscript weights: ");
-                self.torchscript_weights_widget.draw_and_parse(ui, id.with("tsweights"));
+                self.torchscript_weights_widget.draw_and_parse(ui, id.with("tsweights".as_ptr()));
             });
             ui.horizontal(|ui|{
                 ui.strong("Pytorch state dict weights: ");
@@ -51,13 +54,17 @@ impl StatefulWidget for WeightsWidget{
             });
             ui.horizontal(|ui|{
                 ui.strong("Keras Weights: ");
-                self.keras_weights_widget.draw_and_parse(ui, id.with("keras"));
+                self.keras_weights_widget.draw_and_parse(ui, id.with("keras".as_ptr()));
+            });
+            ui.horizontal(|ui|{
+                ui.strong("Onnx Weights: ");
+                self.onnx_eights_widget.draw_and_parse(ui, id.with("onnx".as_ptr()));
             });
 
             self.parsed = (|| {
                 Ok(Arc::new(rt::ModelWeights::new(
                     self.keras_weights_widget.state().transpose()?,
-                    None,
+                    self.onnx_eights_widget.state().transpose()?,
                     self.pytorch_state_dict_widget.state().transpose()?,
                     None,
                     None,
