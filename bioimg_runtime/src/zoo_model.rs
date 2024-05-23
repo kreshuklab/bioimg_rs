@@ -5,7 +5,7 @@ use std::{
 use bioimg_spec::rdf::{
     self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
         ModelRdf, RdfTypeModel
-    }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, LicenseId, ResourceName, Version
+    }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
 };
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
@@ -32,6 +32,8 @@ pub enum ModelPackingError {
     SerdeYamlError(#[from] serde_yaml::Error),
     #[error("{0}")]
     HttpError(#[from] ureq::Error),
+    #[error("Unexpected status ({status})when requesting {url}")]
+    UnexpectedHttpStatus{status: u16, url: HttpUrl},
 }
 
 #[derive(thiserror::Error, Debug)]

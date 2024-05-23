@@ -50,9 +50,15 @@ impl FileSource{
                     std::io::copy(&mut archived_file, writer)?
                 },
                 Self::HttpUrl(http_url) => {
-                    let mut response_reader = ureq::get(http_url.as_str())
-                        .call()?
-                        .into_reader();
+                    let response = ureq::get(http_url.as_str()).call()?;
+                    eprintln!("Requesting {http_url} returned result {}", response.status());
+                    if response.status() / 100 != 2{
+                        return Err(ModelPackingError::UnexpectedHttpStatus {
+                            status: response.status(),
+                            url: http_url.as_ref().clone(),
+                        })
+                    }
+                    let mut response_reader = response.into_reader();
                     std::io::copy(&mut response_reader, writer)? //FIXME!! limit size or whatever
                 }
             };
