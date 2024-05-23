@@ -75,7 +75,11 @@ impl ValueWidget for BioimgGui{
     fn set_value<'v>(&mut self, zoo_model: Self::Value<'v>) {
         self.staging_name.set_value(zoo_model.name);
         self.staging_description.set_value(zoo_model.description);
-        // self.cover_images.set_value(zoo_model.covers);
+        self.cover_images.set_value(
+            zoo_model.covers.into_iter()
+                .map(|cover| (None, Some(cover)))
+                .collect()
+        );
         self.staging_authors.set_value(zoo_model.authors.into_inner());
         self.attachments_widget.set_value(zoo_model.attachments);
         self.staging_citations.set_value(zoo_model.cite.into_inner());

@@ -1,4 +1,4 @@
-use std::{io::{Cursor, Read, Seek, Write}, ops::Deref, sync::Arc};
+use std::{borrow::Borrow, io::{Cursor, Read, Seek, Write}, ops::Deref, sync::Arc};
 
 use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
@@ -30,6 +30,12 @@ impl CoverImage {
             Ok(self.0.write_with_encoder(encoder)?)
         })?;
         Ok(rdf::CoverImageSource::try_from(rdf::FileReference::Path(test_tensor_zip_path)).unwrap())
+    }
+}
+
+impl Borrow<Arc<image::DynamicImage>> for CoverImage{
+    fn borrow(&self) -> &Arc<image::DynamicImage> {
+        &self.0
     }
 }
 

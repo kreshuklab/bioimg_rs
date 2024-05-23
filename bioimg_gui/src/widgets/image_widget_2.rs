@@ -1,4 +1,4 @@
-use std::{error::Error, io::Cursor, sync::Arc};
+use std::{borrow::Borrow, error::Error, io::Cursor, sync::Arc};
 
 use poll_promise as pp;
 use bioimg_runtime as rt;
@@ -77,10 +77,23 @@ pub struct ImageWidget2{
 }
 
 impl ValueWidget for ImageWidget2{
-    type Value<'v> = rt::FileSource;
+    type Value<'v> = (Option<rt::FileSource>, Option<ArcDynImg>);
 
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.picker_button.set_value(value);
+        match value{
+            (None, Some(img)) => {
+                self.picker_button = Default::default();
+                self.loading_state = LoadingState::Forced { img, texture: None};
+            },
+            (None, None) => {
+                self.picker_button = Default::default();
+                self.loading_state = LoadingState::Empty;
+            },
+            (Some(file_source), _) => {
+                self.picker_button.set_value(file_source);
+                self.loading_state = LoadingState::Empty;
+            }
+        }
     }
 }
 
@@ -150,6 +163,18 @@ impl StatefulWidget for ImageWidget2{
 pub struct SpecialImageWidget<I>{
     image_widget: ImageWidget2,
     parsed: Result<I>,
+}
+
+impl<I> ValueWidget for SpecialImageWidget<I>
+where
+    I: Borrow<ArcDynImg>
+{
+    type Value<'v> = (Option<rt::FileSource>, Option<I>);
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.image_widget.set_value(
+            (value.0, value.1.map(|val| val.borrow().clone()))
+        )
+    }
 }
 
 impl<I> Default for SpecialImageWidget<I>{
