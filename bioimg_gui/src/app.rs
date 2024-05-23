@@ -92,7 +92,7 @@ impl ValueWidget for BioimgGui{
         self.staging_documentation.set_value(&zoo_model.documentation);
         self.staging_license.set_value(zoo_model.license);
 
-        // model_interface_widget: Default::default(),
+        self.model_interface_widget.set_value(zoo_model.interface);
 
         self.weights_widget.set_value(zoo_model.weights);
 

@@ -1,4 +1,5 @@
 use super::error_display::show_error;
+use super::ValueWidget;
 use super::{
     error_display::show_if_error,
     inout_tensor_widget::{InputTensorWidget, OutputTensorWidget},
@@ -14,6 +15,13 @@ pub struct ModelInterfaceWidget {
     pub inputs_widget: StagingVec<InputTensorWidget>,
     pub outputs_widget: StagingVec<OutputTensorWidget>,
     pub parsed: Result<specrt::ModelInterface<ArcNpyArray>>,
+}
+
+impl ModelInterfaceWidget{
+    pub fn set_value(&mut self, value: specrt::ModelInterface<ArcNpyArray>){
+        self.inputs_widget.set_value(value.inputs().clone().into_inner());
+        self.outputs_widget.set_value(value.outputs().clone().into_inner());
+    }
 }
 
 impl Default for ModelInterfaceWidget {

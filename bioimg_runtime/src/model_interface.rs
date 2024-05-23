@@ -197,6 +197,12 @@ impl ModelInterface<Arc<NpyArray>> {
 }
 
 impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
+    pub fn inputs(&self) -> &rdf::NonEmptyList<InputSlot<DATA>>{
+        &self.inputs
+    }
+    pub fn outputs(&self) -> &rdf::NonEmptyList<OutputSlot<DATA>>{
+        &self.outputs
+    }
     pub fn try_build(inputs: Vec<InputSlot<DATA>>, outputs: Vec<OutputSlot<DATA>>) -> Result<Self, TensorValidationError> {
         let inputs = rdf::NonEmptyList::try_from(inputs).map_err(|_| TensorValidationError::EmptyInputs)?;
         let outputs = rdf::NonEmptyList::try_from(outputs).map_err(|_| TensorValidationError::EmptyOutputs)?;

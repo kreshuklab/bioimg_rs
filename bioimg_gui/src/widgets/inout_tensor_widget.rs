@@ -46,14 +46,14 @@ impl Default for InputTensorWidget{
 }
 
 impl ValueWidget for InputTensorWidget{
-    type Value<'v> = (modelrdf::TensorId, modelrdf::TensorTextDescription, Vec<modelrdf::InputAxis>, ArcNpyArray);
+    type Value<'v> = InputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.id_widget.set_value(value.0);
-        self.description_widget.set_value(value.1);
-        self.axes_widget.set_value(value.2);
+        self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
+        self.id_widget.set_value(value.tensor_meta.id);
+        self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget.state = FileWidgetState::Finished {
             path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
-            value: Ok(value.3)
+            value: Ok(value.test_tensor)
         }
     }
 }
@@ -152,6 +152,7 @@ pub struct OutputTensorWidget {
     pub parsed: Result<OutputSlot<Arc<NpyArray>>>,
 }
 
+
 impl Default for OutputTensorWidget{
     fn default() -> Self {
         Self{
@@ -165,14 +166,14 @@ impl Default for OutputTensorWidget{
 }
 
 impl ValueWidget for OutputTensorWidget{
-    type Value<'v> = (modelrdf::TensorId, modelrdf::TensorTextDescription, Vec<modelrdf::OutputAxis>, ArcNpyArray);
+    type Value<'v> = OutputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.id_widget.set_value(value.0);
-        self.description_widget.set_value(value.1);
-        self.axes_widget.set_value(value.2);
+        self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
+        self.id_widget.set_value(value.tensor_meta.id);
+        self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget.state = FileWidgetState::Finished {
-            path: Arc::from(PathBuf::from("__dummy__").as_ref()),
-            value: Ok(value.3)
+            path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
+            value: Ok(value.test_tensor)
         }
     }
 }
