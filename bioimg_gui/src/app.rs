@@ -13,6 +13,7 @@ use crate::widgets::attachments_widget::AttachmentsWidget;
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::enum_widget::EnumWidget;
+use crate::widgets::icon_widget::IconWidgetValue;
 use crate::widgets::image_widget_2::SpecialImageWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::notice_widget::NoticeWidget;
@@ -84,7 +85,7 @@ impl ValueWidget for BioimgGui{
         self.attachments_widget.set_value(zoo_model.attachments);
         self.staging_citations.set_value(zoo_model.cite.into_inner());
         self.staging_git_repo.set_value(zoo_model.git_repo.map(|val| Arc::new(val)));
-        // self.icon_widget.set_value(zoo_model.icon);
+        self.icon_widget.set_value(zoo_model.icon.map(IconWidgetValue::from));
         self.staging_maintainers.set_value(zoo_model.maintainers);
         self.staging_tags.set_value(zoo_model.tags);
         self.staging_version.set_value(zoo_model.version);

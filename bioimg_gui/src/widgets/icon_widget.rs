@@ -1,7 +1,7 @@
 use bioimg_spec::rdf;
 use bioimg_runtime as rt;
 
-use super::{image_widget_2::SpecialImageWidget, staging_string::StagingString, StatefulWidget};
+use super::{image_widget_2::SpecialImageWidget, staging_string::StagingString, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
 
@@ -25,22 +25,37 @@ pub struct IconWidget {
     input_mode: InputMode,
 }
 
-// impl ValueWidget for IconWidget{
-//     type Value<'v> = rt::Icon;
 
-//     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-//         match value{
-//             rt::Icon::Image(img_icon) => {
-//                 self.input_mode = InputMode::File;
-//                 self.image_icon_widget.set_value(img_icon);
-//             },
-//             rt::Icon::Text(icon_text) => {
-//                 self.input_mode = InputMode::Emoji;
-//                 self.emoji_icon_widget.set_value(icon_text);
-//             }
-//         }
-//     }
-// }
+pub enum IconWidgetValue{
+    Emoji(rdf::icon::EmojiIcon),
+    Image{source: Option<rt::FileSource>, image: Option<rt::IconImage>},
+}
+
+impl From<rt::Icon> for IconWidgetValue{
+    fn from(icon: rt::Icon) -> Self {
+        match icon {
+            rt::Icon::Image(icon_img) => IconWidgetValue::Image{source: None, image: Some(icon_img)},
+            rt::Icon::Text(icon_text) => IconWidgetValue::Emoji(icon_text),
+        }
+    }
+}
+
+impl ValueWidget for IconWidget{
+    type Value<'v> = IconWidgetValue;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        match value{
+            IconWidgetValue::Image{source, image} => {
+                self.input_mode = InputMode::File;
+                self.image_icon_widget.set_value((source, image));
+            },
+            IconWidgetValue::Emoji(icon_text) => {
+                self.input_mode = InputMode::Emoji;
+                self.emoji_icon_widget.set_value(icon_text);
+            }
+        }
+    }
+}
 
 impl StatefulWidget for IconWidget {
     type Value<'p> = Result<rt::Icon>;

@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use super::file_reference::FileReference;
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -23,6 +25,12 @@ pub enum EmojiParsingError {
 #[serde(try_from = "String")]
 #[serde(into = "String")]
 pub struct EmojiIcon(String);
+
+impl Borrow<str> for EmojiIcon{
+    fn borrow(&self) -> &str {
+        self.0.borrow()
+    }
+}
 
 impl TryFrom<String> for EmojiIcon {
     type Error = IconParsingError;
