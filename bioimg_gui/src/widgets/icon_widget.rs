@@ -1,7 +1,7 @@
 use bioimg_spec::rdf;
 use bioimg_runtime as rt;
 
-use super::{image_widget::ImageWidget, staging_string::StagingString, StatefulWidget};
+use super::{image_widget_2::SpecialImageWidget, staging_string::StagingString, StatefulWidget};
 use crate::result::Result;
 
 
@@ -21,7 +21,7 @@ impl Default for InputMode {
 #[derive(Default)]
 pub struct IconWidget {
     emoji_icon_widget: StagingString<rdf::EmojiIcon>,
-    image_icon_widget: ImageWidget<rt::IconImage>,
+    image_icon_widget: SpecialImageWidget<rt::IconImage>,
     input_mode: InputMode,
 }
 
@@ -65,7 +65,7 @@ impl StatefulWidget for IconWidget {
             InputMode::Emoji => Ok(rt::Icon::Text(self.emoji_icon_widget.state()?)),
             InputMode::File => {
                 Ok(rt::Icon::Image(
-                    self.image_icon_widget.state()?
+                    self.image_icon_widget.state()?.clone()
                 ))
             }
         }

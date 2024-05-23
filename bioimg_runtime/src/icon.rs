@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::io::{Cursor, Read, Seek, Write};
 use std::sync::Arc;
 
@@ -19,6 +20,12 @@ pub enum IconParsingError {
 
 #[derive(Clone)]
 pub struct IconImage(Arc<DynamicImage>);
+
+impl Borrow<Arc<image::DynamicImage>> for IconImage{
+    fn borrow(&self) -> &Arc<image::DynamicImage> {
+        &self.0
+    }
+}
 
 impl TryFrom<Arc<DynamicImage>> for IconImage {
     type Error = IconParsingError;
