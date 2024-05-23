@@ -29,12 +29,9 @@ impl Default for WeightsWidget{
 impl ValueWidget for WeightsWidget{
     type Value<'v> = rt::ModelWeights;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        if let Some(keras_weights) = value.keras_hdf5(){
-            self.keras_weights_widget.set_value(Some(keras_weights.clone()))
-        }
-        // if let Some(pytorch_state_dict_weights) = value.pytorch_state_dict(){
-        //     self.pytorch_state_dict_widget.set_value(pytorch_state_dict_weights.clone())
-        // }
+        self.keras_weights_widget.set_value(value.keras_hdf5().cloned());
+        self.torchscript_weights_widget.set_value(value.torchscript().cloned());
+        self.pytorch_state_dict_widget.set_value(value.pytorch_state_dict().cloned());
     }
 }
 

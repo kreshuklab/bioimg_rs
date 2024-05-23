@@ -1,9 +1,11 @@
+use std::{path::PathBuf, sync::Arc};
+
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_runtime as rt;
 
 use crate::result::Result;
-use super::{file_widget::FileWidget, json_editor_widget::JsonObjectEditorWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, weights_widget::WeightsDescrBaseWidget, StatefulWidget, ValueWidget};
+use super::{file_widget::{FileWidget, FileWidgetState}, json_editor_widget::JsonObjectEditorWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, version_widget::VersionWidget, weights_widget::WeightsDescrBaseWidget, StatefulWidget, ValueWidget};
 
 #[derive(Default)]
 pub struct PytorchArchWidget{
@@ -78,8 +80,26 @@ impl StatefulWidget for PytorchArchWidget{
 pub struct PytorchStateDictWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub architecture_widget: PytorchArchWidget,
-    pub version_widget: StagingString<rdf::Version>,
+    pub version_widget: VersionWidget,
     pub dependencies_widget: StagingOpt<FileWidget<Result<rt::CondaEnv>>>,
+}
+
+impl ValueWidget for PytorchStateDictWidget{
+    type Value<'v> = rt::model_weights::PytorchStateDictWeights;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.base_widget.set_value(value.weights);
+        self.architecture_widget.set_value(value.architecture);
+        self.version_widget.set_value(value.pytorch_version);
+        self.dependencies_widget.0 = value.dependencies.map(|deps|{
+            let mut widget = FileWidget::default();
+            widget.state = FileWidgetState::Finished {
+                path: Arc::from(PathBuf::from("None").as_ref()), //FIXME
+                value: Ok(deps)
+            };
+            widget
+        })
+    }
 }
 
 impl StatefulWidget for PytorchStateDictWidget{
