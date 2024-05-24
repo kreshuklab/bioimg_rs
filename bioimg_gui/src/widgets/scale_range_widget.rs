@@ -6,12 +6,21 @@ use bioimg_spec::rdf::model::{preprocessing as modelrdfpreproc, TensorId};
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::staging_vec::ItemWidgetConf;
+use super::ValueWidget;
 use super::{staging_num::StagingNum, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
 
 pub struct PercentilesWidget{
     pub min_widget: StagingNum<f32, f32>,
     pub max_widget: StagingNum<f32, f32>,
     pub parsed: Result<modelrdfpreproc::ScaleRangePercentile>,
+}
+
+impl ValueWidget for PercentilesWidget{
+    type Value<'v> = modelrdfpreproc::scale_range::ScaleRangePercentile;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.min_widget.set_value(value.min());
+        self.max_widget.set_value(value.max());
+    }
 }
 
 impl Default for PercentilesWidget{
@@ -60,6 +69,16 @@ pub struct ScaleRangeWidget{
     pub percentiles_widget: PercentilesWidget,
     pub epsilon_widget: StagingNum<f32, PreprocessingEpsilon>,
     pub reference_tensor: StagingOpt<StagingString<TensorId>>,
+}
+
+impl ValueWidget for ScaleRangeWidget{
+    type Value<'v> = modelrdfpreproc::ScaleRangeDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.axes_widget.set_value(value.axes);
+        self.percentiles_widget.set_value(value.percentiles);
+        self.epsilon_widget.set_value(value.eps);
+        self.reference_tensor.set_value(value.reference_tensor);
+    }
 }
 
 impl StatefulWidget for ScaleRangeWidget{

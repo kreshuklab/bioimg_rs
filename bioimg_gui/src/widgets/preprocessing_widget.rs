@@ -2,7 +2,7 @@ use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::Result;
-use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, enum_widget::EnumWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget};
+use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, enum_widget::EnumWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default)]
 pub enum PreprocessingWidgetMode {
@@ -26,6 +26,44 @@ pub struct PreprocessingWidget{
     pub zero_mean_unit_variance_widget: ZeroMeanUnitVarianceWidget,
     pub scale_range_widget: ScaleRangeWidget,
     pub ensure_dtype_widget: EnumWidget<modelrdf::DataType>,
+}
+
+impl ValueWidget for PreprocessingWidget{
+    type Value<'v> = modelrdfpreproc::PreprocessingDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        match value{
+            modelrdf::PreprocessingDescr::Binarize(binarize) => {
+                self.mode = PreprocessingWidgetMode::Binarize;
+                self.binarize_widget.set_value(binarize)
+            },
+            modelrdf::PreprocessingDescr::Clip(clip) => {
+                self.mode = PreprocessingWidgetMode::Clip;
+                self.clip_widget.set_value(clip)
+            },
+            modelrdf::PreprocessingDescr::ScaleLinear(scale_linear) => {
+                self.mode = PreprocessingWidgetMode::ScaleLinear;
+                self.scale_linear_widget.set_value(scale_linear);
+            },
+            modelrdf::PreprocessingDescr::Sigmoid(_) => {
+                self.mode = PreprocessingWidgetMode::Sigmoid;
+            },
+            modelrdf::PreprocessingDescr::ZeroMeanUnitVariance(val) => {
+                self.mode = PreprocessingWidgetMode::ZeroMeanUnitVariance;
+                self.zero_mean_unit_variance_widget.set_value(val);
+            },
+            modelrdf::PreprocessingDescr::ScaleRange(val) => {
+                self.mode = PreprocessingWidgetMode::ScaleRange;
+                self.scale_range_widget.set_value(val);
+            },
+            modelrdf::PreprocessingDescr::EnsureDtype(val) => {
+                self.mode = PreprocessingWidgetMode::EnsureDtype;
+                self.ensure_dtype_widget.set_value(val.dtype);
+            },
+            modelrdf::PreprocessingDescr::FixedZeroMeanUnitVariance(val) => {
+                unimplemented!("plz implement me =D")
+            }
+        }
+    }
 }
 
 impl ItemWidgetConf for PreprocessingWidget{

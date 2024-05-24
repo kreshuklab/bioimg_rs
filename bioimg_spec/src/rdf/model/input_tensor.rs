@@ -49,6 +49,7 @@ pub struct InputTensorMetadata {
 
 impl InputTensorMetadata{
     pub fn axes(&self) -> &InputAxisGroup{ &self.axes }
+    pub fn preprocessing(&self) -> &Vec<PreprocessingDescr>{ &self.preprocessing }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

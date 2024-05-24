@@ -1,9 +1,10 @@
 use bioimg_spec::rdf::{model as modelrdf, NonEmptyList};
-use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
+use bioimg_spec::rdf::model::preprocessing as preproc;
 
 use crate::result::{GuiError, Result, VecResultExt};
 
 use super::error_display::show_if_error;
+use super::ValueWidget;
 use super::{staging_num::StagingNum, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
 
 #[derive(PartialEq, Eq, Copy, Clone, Default)]
@@ -18,8 +19,15 @@ pub struct SimpleBinarizeWidget{
     pub threshold_widget: StagingNum<f32, f32>,
 }
 
+impl ValueWidget for SimpleBinarizeWidget{
+    type Value<'v> = preproc::SimpleBinarizeDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.threshold_widget.set_value(value.threshold)
+    }
+}
+
 impl StatefulWidget for SimpleBinarizeWidget{
-    type Value<'p> = Result<modelrdfpreproc::SimpleBinarizeDescr>;
+    type Value<'p> = Result<preproc::SimpleBinarizeDescr>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.horizontal(|ui|{
@@ -29,7 +37,7 @@ impl StatefulWidget for SimpleBinarizeWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(modelrdfpreproc::SimpleBinarizeDescr{threshold: self.threshold_widget.state()?})
+        Ok(preproc::SimpleBinarizeDescr{threshold: self.threshold_widget.state()?})
     }
 }
 
@@ -43,7 +51,15 @@ impl ItemWidgetConf for ThresholdsItemWidgetConf{
 pub struct BinarizeAlongAxisWidget{
     pub thresholds_widget: StagingVec<StagingNum<f32, f32>, ThresholdsItemWidgetConf>,
     pub axis_id_widget: StagingString<modelrdf::axes::NonBatchAxisId>,
-    pub parsed: Result<modelrdfpreproc::BinarizeAlongAxisDescr>,
+    pub parsed: Result<preproc::BinarizeAlongAxisDescr>,
+}
+
+impl ValueWidget for BinarizeAlongAxisWidget{
+    type Value<'v> = preproc::BinarizeAlongAxisDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.thresholds_widget.set_value(value.threshold.into_inner());
+        self.axis_id_widget.set_value(value.axis);
+    }
 }
 
 impl Default for BinarizeAlongAxisWidget{
@@ -68,12 +84,12 @@ impl StatefulWidget for BinarizeAlongAxisWidget{
             ui.strong("Axis Id: ");
             self.axis_id_widget.draw_and_parse(ui, id.with("id"))
         });
-        self.parsed = || -> Result<modelrdfpreproc::BinarizeAlongAxisDescr> {
+        self.parsed = || -> Result<preproc::BinarizeAlongAxisDescr> {
             let thresholds: NonEmptyList<f32> = self.thresholds_widget.state()
                 .collect_result()?
                 .try_into()
                 .map_err(|_| GuiError::new("Could not make a non-empty list".into()))?;
-            Ok(modelrdfpreproc::BinarizeAlongAxisDescr{
+            Ok(preproc::BinarizeAlongAxisDescr{
                 axis: self.axis_id_widget.state()?,
                 threshold: thresholds
             })
@@ -91,6 +107,23 @@ pub struct BinarizePreprocessingWidget{
     pub mode: BinarizeMode,
     pub simple_binarize_widget: SimpleBinarizeWidget,
     pub binarize_along_axis_wiget: BinarizeAlongAxisWidget,
+}
+
+impl ValueWidget for BinarizePreprocessingWidget{
+    type Value<'v> = preproc::BinarizeDescr;
+
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        match value{
+            preproc::BinarizeDescr::Simple(val) => {
+                self.mode = BinarizeMode::Simple;
+                self.simple_binarize_widget.set_value(val)
+            },
+            preproc::BinarizeDescr::AlongAxis(val) => {
+                self.mode = BinarizeMode::AlongAxis;
+                self.binarize_along_axis_wiget.set_value(val);
+            }
+        }
+    }
 }
 
 impl StatefulWidget for BinarizePreprocessingWidget{

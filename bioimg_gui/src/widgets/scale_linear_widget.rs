@@ -2,7 +2,7 @@ use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 
 use crate::result::{GuiError, Result, VecResultExt};
-use super::{error_display::show_if_error, staging_num::StagingNum, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
+use super::{error_display::show_if_error, staging_num::StagingNum, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default)]
 pub enum ScaleLinearMode{
@@ -14,6 +14,14 @@ pub enum ScaleLinearMode{
 pub struct SimpleScaleLinearWidget{
     pub gain_widget: StagingNum<f32, f32>,
     pub offset_widget: StagingNum<f32, f32>,
+}
+
+impl ValueWidget for SimpleScaleLinearWidget{
+    type Value<'v> = modelrdfpreproc::SimpleScaleLinearDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.gain_widget.set_value(value.gain);
+        self.offset_widget.set_value(value.offset);
+    }
 }
 
 impl Default for SimpleScaleLinearWidget{
@@ -57,6 +65,18 @@ pub struct ScaleLinearAlongAxisWidget{
     pub axis_widget: StagingString<modelrdf::axes::NonBatchAxisId>,
     pub gain_offsets_widget: StagingVec<SimpleScaleLinearWidget, GainOffsetItemConfig>,
     pub parsed: Result<modelrdfpreproc::ScaleLinearAlongAxisDescr>,
+}
+
+impl ValueWidget for ScaleLinearAlongAxisWidget{
+    type Value<'v> = modelrdfpreproc::ScaleLinearAlongAxisDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.axis_widget.set_value(value.axis);
+        self.gain_offsets_widget.set_value(
+            value.gain_offsets.into_inner().into_iter()
+                .map(|(gain, offset)| modelrdfpreproc::SimpleScaleLinearDescr{gain, offset})
+                .collect()
+        );
+    }
 }
 
 impl Default for ScaleLinearAlongAxisWidget{
@@ -110,6 +130,22 @@ pub struct ScaleLinearWidget{
     pub mode: ScaleLinearMode,
     pub simple_widget: SimpleScaleLinearWidget,
     pub along_axis_widget: ScaleLinearAlongAxisWidget,
+}
+
+impl ValueWidget for ScaleLinearWidget{
+    type Value<'v> = modelrdfpreproc::ScaleLinearDescr;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        match value{
+            modelrdfpreproc::ScaleLinearDescr::Simple(simple) => {
+                self.mode = ScaleLinearMode::Simple;
+                self.simple_widget.set_value(simple)
+            },
+            modelrdfpreproc::ScaleLinearDescr::AlongAxis(val) => {
+                self.mode = ScaleLinearMode::AlongAxis;
+                self.along_axis_widget.set_value(val)
+            },
+        }
+    }
 }
 
 impl StatefulWidget for ScaleLinearWidget{

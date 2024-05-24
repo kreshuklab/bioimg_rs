@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::show_if_error, StatefulWidget};
+use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 
 pub struct StagingNum<Raw, Parsed> {
     pub raw: Raw,
@@ -21,6 +21,17 @@ where
             raw: raw.clone(),
             parsed: Parsed::try_from(raw).map_err(|err| GuiError::new(err.to_string())),
         }
+    }
+}
+
+impl<Raw, Parsed> ValueWidget for StagingNum<Raw, Parsed>
+where
+    Parsed: Clone + Into<Raw>
+{
+    type Value<'v> = Parsed;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.raw = value.clone().into();
+        self.parsed = Ok(value);
     }
 }
 

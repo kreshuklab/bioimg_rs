@@ -13,6 +13,7 @@ pub mod data_type;
 pub mod input_tensor;
 pub mod output_tensor;
 pub mod preprocessing;
+pub mod postprocessing;
 pub mod space_unit;
 pub mod tensor_data_descr;
 pub mod tensor_id;

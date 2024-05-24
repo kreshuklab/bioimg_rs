@@ -36,6 +36,14 @@ pub struct ScaleRangePercentile{
     /// accepting percentiles specified in the range 0.0 to 1.0.
     max_percentile: f32,
 }
+impl ScaleRangePercentile{
+    pub fn min(&self) -> f32{
+        self.min_percentile
+    }
+    pub fn max(&self) -> f32{
+        self.max_percentile
+    }
+}
 
 impl ScaleRangePercentile{
     pub fn try_from_min_max(min: f32, max: f32) -> Result<Self, ScaleRangeParsingError>{

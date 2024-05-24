@@ -49,6 +49,7 @@ impl ValueWidget for InputTensorWidget{
     type Value<'v> = InputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
+        self.preprocessing_widget.set_value(value.tensor_meta.preprocessing().clone()); //FIXME: clone
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget.state = FileWidgetState::Finished {

@@ -10,9 +10,9 @@ pub use self::scale_linear::{ScaleLinearDescr, SimpleScaleLinearDescr, ScaleLine
 pub use self::binarize::{BinarizeDescr, SimpleBinarizeDescr, BinarizeAlongAxisDescr};
 pub use self::clip::ClipDescr;
 pub use self::sigmoid::Sigmoid;
-pub use self::zero_mean_unit_variance::ZeroMeanUnitVariance;
 pub use self::scale_range::{ScaleRangeDescr, ScaleRangePercentile};
 pub use self::ensure_dtype::EnsureDtype;
+pub use self::zero_mean_unit_variance::{FixedZeroMeanUnitVariance, ZeroMeanUnitVariance};
 
 use crate::util::SingleOrMultiple;
 
@@ -58,21 +58,29 @@ impl TryFrom<f32> for PreprocessingEpsilon{
     }
 }
 
+impl From<PreprocessingEpsilon> for f32{
+    fn from(value: PreprocessingEpsilon) -> Self {
+        value.0
+    }
+}
+
 // //////////////////
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 #[serde(tag = "id", content = "kwargs")]
 pub enum PreprocessingDescr {
-    #[serde(rename = "ensure_dtype")]
-    EnsureDtype(EnsureDtype),
     #[serde(rename = "binarize")]
     Binarize(BinarizeDescr),
     #[serde(rename = "clip")]
     Clip(ClipDescr),
+    #[serde(rename = "ensure_dtype")]
+    EnsureDtype(EnsureDtype),
     #[serde(rename = "scale_linear")]
     ScaleLinear(ScaleLinearDescr),
     #[serde(rename = "sigmoid")]
     Sigmoid(Sigmoid),
+    #[serde(rename = "fixed_zero_mean_unit_variance")]
+    FixedZeroMeanUnitVariance(FixedZeroMeanUnitVariance),
     #[serde(rename = "zero_mean_unit_variance")]
     ZeroMeanUnitVariance(ZeroMeanUnitVariance),
     #[serde(rename = "scale_range")]

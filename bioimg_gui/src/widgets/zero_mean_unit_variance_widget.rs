@@ -3,6 +3,7 @@ use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::staging_vec::ItemWidgetConf;
+use super::ValueWidget;
 use super::{staging_num::StagingNum, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
 
 pub struct ZeroMeanAxesItemConfig;
@@ -14,6 +15,15 @@ impl ItemWidgetConf for ZeroMeanAxesItemConfig{
 pub struct ZeroMeanUnitVarianceWidget{
     pub axes_widget: StagingOpt<StagingVec< StagingString<modelrdf::AxisId>, ZeroMeanAxesItemConfig >>,
     pub epsilon_widget: StagingNum<f32, f32>,
+}
+
+
+impl ValueWidget for ZeroMeanUnitVarianceWidget{
+    type Value<'v> = modelrdfpreproc::ZeroMeanUnitVariance;
+    fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        self.axes_widget.set_value(value.axes.map(|val| val.into_inner()));
+        self.epsilon_widget.set_value(value.eps);
+    }
 }
 
 impl Default for ZeroMeanUnitVarianceWidget{
