@@ -19,7 +19,7 @@ pub struct ZeroMeanUnitVarianceWidget{
 
 
 impl ValueWidget for ZeroMeanUnitVarianceWidget{
-    type Value<'v> = modelrdfpreproc::ZeroMeanUnitVariance;
+    type Value<'v> = modelrdfpreproc::Zmuv;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.axes_widget.set_value(value.axes.map(|val| val.into_inner()));
         self.epsilon_widget.set_value(value.eps);
@@ -36,7 +36,7 @@ impl Default for ZeroMeanUnitVarianceWidget{
 }
 
 impl StatefulWidget for ZeroMeanUnitVarianceWidget{
-    type Value<'p> = Result<modelrdfpreproc::ZeroMeanUnitVariance>;
+    type Value<'p> = Result<modelrdfpreproc::Zmuv>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
@@ -52,7 +52,7 @@ impl StatefulWidget for ZeroMeanUnitVarianceWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(modelrdfpreproc::ZeroMeanUnitVariance{
+        Ok(modelrdfpreproc::Zmuv{
             axes: match self.axes_widget.state(){
                 None => None,
                 Some(vals) => {

@@ -1,7 +1,7 @@
 use crate::rdf::{model::{axes::NonBatchAxisId, AxisId}, non_empty_list::NonEmptyList};
 
-#[derive(thiserror::Error, Debug)]
-pub enum ZeroMeanUnitvarianceParsingError{
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum ZmuvParsingError{
     #[error("Standard deviation must be greater or equal to 1e-6. Provided {0}")]
     BadStandardDeviation(f32),
     #[error("std and mean must have the same lengths")]
@@ -11,10 +11,10 @@ pub enum ZeroMeanUnitvarianceParsingError{
 }
 
 #[derive(Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize, Debug)]
-pub struct ZeroMeanUnitVarianceStdDeviation(f32);
+pub struct ZmuvStdDeviation(f32);
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct ZeroMeanUnitVariance {
+pub struct Zmuv {
     /// The subset of axes to normalize jointly, i.e. axes to reduce to compute mean/std.
     /// For example to normalize 'batch', 'x' and 'y' jointly in a tensor ('batch', 'channel', 'y', 'x')
     /// resulting in a tensor of equal shape normalized per channel, specify `axes=('batch', 'x', 'y')`.
@@ -33,62 +33,68 @@ const fn _default_eps() -> f32 {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[serde(untagged)]
-pub enum FixedZeroMeanUnitVariance{
-    Simple(SimpleFixedZeroMeanUnitVariance),
-    AlongAxis(FixedZeroMeanUnitVarianceAlongAxis)
+pub enum FixedZmuv{
+    Simple(SimpleFixedZmuv),
+    AlongAxis(FixedZmuvAlongAxis)
 }
 
-impl TryFrom<f32> for ZeroMeanUnitVarianceStdDeviation{
-    type Error = ZeroMeanUnitvarianceParsingError;
+impl TryFrom<f32> for ZmuvStdDeviation{
+    type Error = ZmuvParsingError;
     fn try_from(value: f32) -> Result<Self, Self::Error> {
         if value < 1e-6{
-            return Err(ZeroMeanUnitvarianceParsingError::BadStandardDeviation(value))
+            return Err(ZmuvParsingError::BadStandardDeviation(value))
         }
         Ok(Self(value))
+    }
+}
+
+impl From<ZmuvStdDeviation> for f32{
+    fn from(value: ZmuvStdDeviation) -> Self {
+        value.0
     }
 }
 
 ///Normalize with fixed, precomputed values for mean and variance.
 ///See `zero_mean_unit_variance` for data dependent normalization.
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
-pub struct SimpleFixedZeroMeanUnitVariance{
+pub struct SimpleFixedZmuv{
     ///The mean value to normalize with.
-    mean: f32,
+    pub mean: f32,
     ///The standard deviation value to normalize with.
-    std: ZeroMeanUnitVarianceStdDeviation,
+    pub std: ZmuvStdDeviation,
 }
 
 
 // Normalize with fixed, precomputed values for mean and variance.
 // See `zero_mean_unit_variance` for data dependent normalization.
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-#[serde(try_from = "FixedZeroMeanUnitVarianceAlongAxisMsg")]
-#[serde(into = "FixedZeroMeanUnitVarianceAlongAxisMsg")]
-pub struct FixedZeroMeanUnitVarianceAlongAxis{
-    pub mean_and_std: NonEmptyList<SimpleFixedZeroMeanUnitVariance>,
+#[serde(try_from = "FixedZmuvAlongAxisMsg")]
+#[serde(into = "FixedZmuvAlongAxisMsg")]
+pub struct FixedZmuvAlongAxis{
+    pub mean_and_std: NonEmptyList<SimpleFixedZmuv>,
     pub axis: NonBatchAxisId,
 }
 
-impl TryFrom<FixedZeroMeanUnitVarianceAlongAxisMsg> for FixedZeroMeanUnitVarianceAlongAxis{
-    type Error = ZeroMeanUnitvarianceParsingError;
-    fn try_from(value: FixedZeroMeanUnitVarianceAlongAxisMsg) -> Result<Self, Self::Error> {
+impl TryFrom<FixedZmuvAlongAxisMsg> for FixedZmuvAlongAxis{
+    type Error = ZmuvParsingError;
+    fn try_from(value: FixedZmuvAlongAxisMsg) -> Result<Self, Self::Error> {
         if value.mean.len() != value.std.len(){
-            return Err(ZeroMeanUnitvarianceParsingError::MismatchedStdAndMean)
+            return Err(ZmuvParsingError::MismatchedStdAndMean)
         }
         return Ok(Self{
             mean_and_std: value.mean.into_inner().into_iter()
                 .zip(value.std.into_inner().into_iter())
-                .map(|(mean, std)| SimpleFixedZeroMeanUnitVariance{mean, std})
+                .map(|(mean, std)| SimpleFixedZmuv{mean, std})
                 .collect::<Vec<_>>()
                 .try_into()
-                .map_err(|_| ZeroMeanUnitvarianceParsingError::EmptyList)?,
+                .map_err(|_| ZmuvParsingError::EmptyList)?,
             axis: value.axis,
         })
     }
 }
 
-impl From<FixedZeroMeanUnitVarianceAlongAxis> for FixedZeroMeanUnitVarianceAlongAxisMsg{
-    fn from(value: FixedZeroMeanUnitVarianceAlongAxis) -> Self {
+impl From<FixedZmuvAlongAxis> for FixedZmuvAlongAxisMsg{
+    fn from(value: FixedZmuvAlongAxis) -> Self {
         Self{
             mean: value.mean_and_std.map(|mean_and_std| mean_and_std.mean),
             std: value.mean_and_std.map(|mean_and_std| mean_and_std.std),
@@ -98,12 +104,12 @@ impl From<FixedZeroMeanUnitVarianceAlongAxis> for FixedZeroMeanUnitVarianceAlong
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
-struct FixedZeroMeanUnitVarianceAlongAxisMsg{
+struct FixedZmuvAlongAxisMsg{
     /// The mean value(s) to normalize with.
     mean: NonEmptyList<f32>,
     /// The standard deviation value(s) to normalize with.
     /// Size must match `mean` values.
-    std: NonEmptyList<ZeroMeanUnitVarianceStdDeviation>,
+    std: NonEmptyList<ZmuvStdDeviation>,
     /// The axis of the mean/std values to normalize each entry along that dimension
     /// separately.
     axis: NonBatchAxisId,

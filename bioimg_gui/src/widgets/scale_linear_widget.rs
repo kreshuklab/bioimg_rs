@@ -11,6 +11,16 @@ pub enum ScaleLinearMode{
     AlongAxis,
 }
 
+
+impl ScaleLinearMode{
+    fn display_str(&self) -> &'static str{
+        match self{
+            Self::Simple => "Simple",
+            Self::AlongAxis => "Along Axis",
+        }
+    }
+}
+
 pub struct SimpleScaleLinearWidget{
     pub gain_widget: StagingNum<f32, f32>,
     pub offset_widget: StagingNum<f32, f32>,
@@ -155,8 +165,12 @@ impl StatefulWidget for ScaleLinearWidget{
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Mode: ");
-                ui.radio_value(&mut self.mode, ScaleLinearMode::Simple, "Simple");
-                ui.radio_value(&mut self.mode, ScaleLinearMode::AlongAxis, "Along Axis");
+                egui::ComboBox::from_id_source(id.with("mode".as_ptr()))
+                    .selected_text(self.mode.display_str())
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.mode, ScaleLinearMode::Simple, ScaleLinearMode::Simple.display_str());
+                        ui.selectable_value(&mut self.mode, ScaleLinearMode::AlongAxis, ScaleLinearMode::AlongAxis.display_str());
+                    });
             });
             match self.mode{
                 ScaleLinearMode::Simple => self.simple_widget.draw_and_parse(ui, id.with("simple".as_ptr())),

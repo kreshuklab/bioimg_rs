@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::rdf::FileDescription;
 
-use super::{axes::input_axes::InputAxisGroup, preprocessing::{BinarizeDescr, PreprocessingDescr, ScaleLinearDescr, ScaleRangeDescr, ZeroMeanUnitVariance}, AxisId, TensorId, TensorTextDescription};
+use super::{axes::input_axes::InputAxisGroup, preprocessing::{BinarizeDescr, PreprocessingDescr, ScaleLinearDescr, ScaleRangeDescr, Zmuv}, AxisId, TensorId, TensorTextDescription};
 
 #[derive(thiserror::Error, Debug)]
 pub enum InputTensorParsingError{
@@ -85,7 +85,7 @@ impl TryFrom<InputTensorMetadataMsg> for InputTensorMetadata{
                 PreprocessingDescr::ScaleLinear(ScaleLinearDescr::AlongAxis(descr)) => {
                     ensure_axis_exists(&message, descr.axis.borrow())?;
                 },
-                PreprocessingDescr::ZeroMeanUnitVariance(ZeroMeanUnitVariance{axes: Some(axes), ..}) => {
+                PreprocessingDescr::ZeroMeanUnitVariance(Zmuv{axes: Some(axes), ..}) => {
                     for preproc_axis_id in axes.iter(){
                         ensure_axis_exists(&message, preproc_axis_id)?;
                     }

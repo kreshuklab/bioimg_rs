@@ -12,7 +12,8 @@ pub use self::clip::ClipDescr;
 pub use self::sigmoid::Sigmoid;
 pub use self::scale_range::{ScaleRangeDescr, ScaleRangePercentile};
 pub use self::ensure_dtype::EnsureDtype;
-pub use self::zero_mean_unit_variance::{FixedZeroMeanUnitVariance, ZeroMeanUnitVariance};
+pub use self::zero_mean_unit_variance::Zmuv;
+pub use self::zero_mean_unit_variance::{SimpleFixedZmuv, FixedZmuvAlongAxis, FixedZmuv};
 
 use crate::util::SingleOrMultiple;
 
@@ -80,9 +81,9 @@ pub enum PreprocessingDescr {
     #[serde(rename = "sigmoid")]
     Sigmoid(Sigmoid),
     #[serde(rename = "fixed_zero_mean_unit_variance")]
-    FixedZeroMeanUnitVariance(FixedZeroMeanUnitVariance),
+    FixedZeroMeanUnitVariance(FixedZmuv),
     #[serde(rename = "zero_mean_unit_variance")]
-    ZeroMeanUnitVariance(ZeroMeanUnitVariance),
+    ZeroMeanUnitVariance(Zmuv),
     #[serde(rename = "scale_range")]
     ScaleRange(ScaleRangeDescr),
 }

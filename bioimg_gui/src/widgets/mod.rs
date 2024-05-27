@@ -43,6 +43,7 @@ pub mod file_source_widget;
 pub mod search_and_pick_widget;
 pub mod popup_widget;
 pub mod image_widget_2;
+pub mod fixed_zero_mean_unit_variance_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

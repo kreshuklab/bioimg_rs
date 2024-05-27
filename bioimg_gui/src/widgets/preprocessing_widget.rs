@@ -1,24 +1,48 @@
+use std::fmt::Display;
+
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::Result;
-use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, enum_widget::EnumWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget, ValueWidget};
+use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, enum_widget::EnumWidget, fixed_zero_mean_unit_variance_widget::FixedZmuvWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget, ValueWidget};
 
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Clone, strum::VariantArray, strum::AsRefStr, strum::VariantNames, strum::Display)]
 pub enum PreprocessingWidgetMode {
     #[default]
     Binarize,
     Clip,
+    #[strum(serialize="Scale Linear")]
     ScaleLinear,
     Sigmoid,
+    #[strum(serialize="Zero-Mean, Unit-Variance")]
     ZeroMeanUnitVariance,
+    #[strum(serialize="Scale Range")]
     ScaleRange,
+    #[strum(serialize="Ensure Data Typpe")]
     EnsureDtype,
+    #[strum(serialize="Fixed Zero-Mean, Unit-Variance")]
+    FixedZmuv,
+}
+
+impl PreprocessingWidgetMode{
+    fn display_str(&self) -> &'static str{
+        match self{
+            Self::Binarize =>  "Binarize",
+            Self::Clip =>  "Clip",
+            Self::ScaleLinear =>  "ScaleLinear",
+            Self::Sigmoid =>  "Sigmoid",
+            Self::ZeroMeanUnitVariance =>  "ZeroMeanUnitVariance",
+            Self::ScaleRange =>  "ScaleRange",
+            Self::EnsureDtype =>  "EnsureDtype",
+            Self::FixedZmuv =>  "FixedZmuv",
+        }
+    }
 }
 
 #[derive(Default)]
 pub struct PreprocessingWidget{
     pub mode: PreprocessingWidgetMode,
+    pub mode_widget: EnumWidget<PreprocessingWidgetMode>,
     pub binarize_widget: BinarizePreprocessingWidget,
     pub clip_widget: ClipWidget,
     pub scale_linear_widget: ScaleLinearWidget,
@@ -26,6 +50,7 @@ pub struct PreprocessingWidget{
     pub zero_mean_unit_variance_widget: ZeroMeanUnitVarianceWidget,
     pub scale_range_widget: ScaleRangeWidget,
     pub ensure_dtype_widget: EnumWidget<modelrdf::DataType>,
+    pub fixed_zmuv_widget: FixedZmuvWidget,
 }
 
 impl ValueWidget for PreprocessingWidget{
@@ -60,7 +85,7 @@ impl ValueWidget for PreprocessingWidget{
                 self.ensure_dtype_widget.set_value(val.dtype);
             },
             modelrdf::PreprocessingDescr::FixedZeroMeanUnitVariance(val) => {
-                unimplemented!("plz implement me =D")
+                self.fixed_zmuv_widget.set_value(val);
             }
         }
     }
@@ -74,39 +99,39 @@ impl StatefulWidget for PreprocessingWidget{
     type Value<'p> = Result<modelrdfpreproc::PreprocessingDescr>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        ui.horizontal(|ui|{
-            ui.strong("Preprocessing Type: ");
-            ui.radio_value(&mut self.mode, PreprocessingWidgetMode::Binarize, "Binarize");
-            ui.radio_value(&mut self.mode, PreprocessingWidgetMode::Clip, "Clip");
-            ui.radio_value(&mut self.mode, PreprocessingWidgetMode::ScaleLinear, "Scale Linear");
-            ui.radio_value(&mut self.mode, PreprocessingWidgetMode::Sigmoid, "Sigmoid");
-            ui.radio_value(&mut self.mode, PreprocessingWidgetMode::ZeroMeanUnitVariance, "Zero-mean Unit-variance");
-            ui.radio_value(&mut self.mode, PreprocessingWidgetMode::ScaleRange, "Scale Range");
+        ui.vertical(|ui|{
+            ui.horizontal(|ui|{
+                ui.label("Preprocessing Type: ");
+                self.mode_widget.draw_and_parse(ui, id.with("preproc type".as_ptr()));
+            });
+            match self.mode{
+                PreprocessingWidgetMode::Binarize => {
+                    self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()))
+                },
+                PreprocessingWidgetMode::Clip => {
+                    self.clip_widget.draw_and_parse(ui, id.with("clip_widget".as_ptr()))
+                },
+                PreprocessingWidgetMode::ScaleLinear => {
+                    self.scale_linear_widget.draw_and_parse(ui, id.with("scale_linear_widget".as_ptr()))
+                },
+                PreprocessingWidgetMode::Sigmoid => {
+                    ()
+                },
+                PreprocessingWidgetMode::ZeroMeanUnitVariance => {
+                    self.zero_mean_unit_variance_widget.draw_and_parse(ui, id.with("zero_mean_unit_variance_widget".as_ptr()))
+                },
+                PreprocessingWidgetMode::ScaleRange => {
+                    self.scale_range_widget.draw_and_parse(ui, id.with("scale_range_widget".as_ptr()))
+                },
+                PreprocessingWidgetMode::EnsureDtype => {
+                    ui.strong("Data Type: ");
+                    self.ensure_dtype_widget.draw_and_parse(ui, id.with("ensure_dtype".as_ptr()))
+                },
+                PreprocessingWidgetMode::FixedZmuv => {
+                    self.fixed_zmuv_widget.draw_and_parse(ui, id.with("fixed_zmuv".as_ptr()) )
+                }
+            }
         });
-
-        match self.mode{
-            PreprocessingWidgetMode::Binarize => {
-                self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()))
-            },
-            PreprocessingWidgetMode::Clip => {
-                self.clip_widget.draw_and_parse(ui, id.with("clip_widget".as_ptr()))
-            },
-            PreprocessingWidgetMode::ScaleLinear => {
-                self.scale_linear_widget.draw_and_parse(ui, id.with("scale_linear_widget".as_ptr()))
-            },
-            PreprocessingWidgetMode::Sigmoid => {
-                ()
-            },
-            PreprocessingWidgetMode::ZeroMeanUnitVariance => {
-                self.zero_mean_unit_variance_widget.draw_and_parse(ui, id.with("zero_mean_unit_variance_widget".as_ptr()))
-            },
-            PreprocessingWidgetMode::ScaleRange => {
-                self.scale_range_widget.draw_and_parse(ui, id.with("scale_range_widget".as_ptr()))
-            },
-            PreprocessingWidgetMode::EnsureDtype => {
-                self.ensure_dtype_widget.draw_and_parse(ui, id.with("ensure_dtype".as_ptr()))
-            },
-        }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
@@ -141,6 +166,11 @@ impl StatefulWidget for PreprocessingWidget{
                 modelrdfpreproc::PreprocessingDescr::EnsureDtype(modelrdfpreproc::EnsureDtype{
                     dtype: self.ensure_dtype_widget.state()
                 })
+            },
+            PreprocessingWidgetMode::FixedZmuv => {
+                modelrdfpreproc::PreprocessingDescr::FixedZeroMeanUnitVariance(
+                    self.fixed_zmuv_widget.state()?
+                )
             }
         })
     }
