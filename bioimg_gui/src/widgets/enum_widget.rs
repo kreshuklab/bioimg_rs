@@ -6,7 +6,7 @@ pub struct EnumWidget<E> {
     pub value: E,
     search: String,
     lower_case_display_names: Vec<String>,
-    popup_is_open: bool,
+    first_frame: bool,
 }
 
 impl<E> EnumWidget<E>{
@@ -17,7 +17,7 @@ impl<E> EnumWidget<E>{
         Self {
             value,
             search: String::with_capacity(64),
-            popup_is_open: false,
+            first_frame: true,
             lower_case_display_names: <E as strum::VariantNames>::VARIANTS.iter().map(|dn| dn.to_lowercase()).collect(),
         }
     }
@@ -47,47 +47,83 @@ where
     type Value<'p> = E where E: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        if ui.button(&self.value.to_string()).clicked() {
-            self.popup_is_open = !self.popup_is_open;
+        let popup_id = id;
+        let button_response = ui.button(&self.value.to_string());
+        let button_min = button_response.rect.min;
+        let button_max = button_response.rect.max;
+        if button_response.clicked() {
+            ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+            if ui.memory(|mem| mem.is_popup_open(popup_id)){
+                self.first_frame = true;
+            }
         }
-        if !self.popup_is_open{
+        if !ui.memory(|mem| mem.is_popup_open(popup_id)){
             return;
         }
-        let new_value = draw_fullscreen_popup(ui, id.with("pick variant".as_ptr()), "Pick One", |ui, _| {
-            ui.horizontal(|ui| {
-                ui.label("🔎 ");
-                ui.text_edit_singleline(&mut self.search);
-            });
-            ui.separator();
-            ui.add_space(10.0);
+        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+            ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+            return
+        }
 
-            let lower_search = self.search.to_lowercase();
-            let mut out: PopupResult<E> = PopupResult::Continued;
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                self.lower_case_display_names
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, lower_variant_name)| lower_variant_name.contains(&lower_search))
-                    .for_each(|(idx, _)| {
-                        if ui.button(<E as strum::VariantNames>::VARIANTS[idx]).clicked() {
-                            out = PopupResult::Finished(<E as strum::VariantArray>::VARIANTS[idx].clone());
+        let mut area = egui::containers::Area::new(popup_id)
+            .movable(false)
+            .order(egui::Order::Foreground)
+            .constrain(true)
+            .movable(false);
+
+        let vert_space_above_button = button_min.y;
+        let vert_space_under_button = ui.ctx().screen_rect().max.y - button_max.y;
+
+        if vert_space_under_button > vert_space_above_button {
+            area = area.fixed_pos(egui::Pos2{ x: button_min.x, y: button_max.y });
+        } else {
+            area = area.anchor(
+                egui::Align2::LEFT_BOTTOM,
+                egui::Vec2{
+                    x: button_response.rect.min.x,
+                    y: - (ui.ctx().screen_rect().max.y - button_response.rect.min.y),
+                },
+            );
+        };
+        let area_resp = area.show(ui.ctx(), |ui| egui::Frame::popup(&ui.ctx().style())
+            .shadow(egui::epaint::Shadow::NONE)
+            .rounding(egui::Rounding::default())
+            .outer_margin(0.0)
+            .show(ui, |ui| {
+                ui.vertical(|ui|{
+                    ui.horizontal(|ui| {
+                        ui.label("🔎 ");
+                        let search_resp = ui.text_edit_singleline(&mut self.search);
+                        if self.first_frame{
+                            search_resp.request_focus();
                         }
                     });
-            });
-            out
-        });
-        match new_value{
-            PopupResult::Finished(value) => {
-                self.search.clear();
-                self.popup_is_open = false;
-                self.value = value;
-            },
-            PopupResult::Closed => {
-                self.search.clear();
-                self.popup_is_open = false;
-            },
-            PopupResult::Continued => (),
+                    // ui.separator();
+                    ui.add_space(10.0);
+
+                    let lower_search = self.search.to_lowercase();
+                    let scroll_area = egui::ScrollArea::vertical().max_height(100.0).scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible);
+                    scroll_area.show(ui, |ui| {
+                        self.lower_case_display_names
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, lower_variant_name)| lower_variant_name.contains(&lower_search))
+                            .for_each(|(idx, _)| {
+                                if ui.button(<E as strum::VariantNames>::VARIANTS[idx]).clicked() {
+                                    self.value = <E as strum::VariantArray>::VARIANTS[idx].clone();
+                                    ui.memory_mut(|mem| mem.toggle_popup(popup_id))
+                                }
+                            });
+                    });
+                });
+            }));
+        if !self.first_frame && area_resp.response.clicked_elsewhere(){
+            ui.ctx().memory_mut(|mem| mem.close_popup());
         }
+        if !ui.ctx().memory(|mem| mem.is_popup_open(popup_id)){
+            self.first_frame = true;
+        }
+        self.first_frame = false;
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
