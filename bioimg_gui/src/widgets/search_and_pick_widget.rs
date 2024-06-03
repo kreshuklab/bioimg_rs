@@ -112,17 +112,27 @@ where
                     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
                     .max_height(vert_space_above_button.max(vert_space_under_button) - header_height);
                 scroll_area.show(ui, |ui| {
-                    self.entries
+                    let mut value_on_enter: T = self.value.clone();
+                    let num_visible_entries = self.entries
                         .iter()
                         .filter(|entry| entry.lowercase_display.contains(&lower_search))
-                        .for_each(|entry| {
+                        .inspect(|entry| {
+                            value_on_enter = entry.value.clone();
                             if ui.button(&entry.display).clicked() {
                                 self.value = entry.value.clone();
                                 ui.memory_mut(|mem| mem.toggle_popup(popup_id));
                                 self.search.clear();
                             }
-                        });
+                        })
+                        .count();
+
+                        if num_visible_entries == 1 && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                            self.value = value_on_enter;
+                            ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                            self.search.clear();
+                        }
                 });
+                
             });        
         });
     }
