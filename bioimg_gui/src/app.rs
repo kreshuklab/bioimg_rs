@@ -17,6 +17,7 @@ use crate::widgets::icon_widget::IconWidgetValue;
 use crate::widgets::image_widget_2::SpecialImageWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::notice_widget::NoticeWidget;
+use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
@@ -60,7 +61,7 @@ pub struct BioimgGui {
     pub staging_version: StagingOpt<VersionWidget>,
 
     pub staging_documentation: CodeEditorWidget,
-    pub staging_license: EnumWidget<rdf::LicenseId>,
+    pub staging_license: SearchAndPickWidget<rdf::LicenseId>,
     //badges
     pub model_interface_widget: ModelInterfaceWidget,
     ////
@@ -116,7 +117,7 @@ impl Default for BioimgGui {
             staging_tags: StagingVec::default(),
             staging_version: Default::default(),
             staging_documentation: Default::default(),
-            staging_license: Default::default(),
+            staging_license: SearchAndPickWidget::from_enum(Default::default()),
 
             model_interface_widget: Default::default(),
 
