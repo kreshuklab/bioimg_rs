@@ -1,5 +1,7 @@
 use crate::rdf::{model::{axes::NonBatchAxisId, AxisId}, non_empty_list::NonEmptyList};
 
+use super::PreprocessingEpsilon;
+
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ZmuvParsingError{
     #[error("Standard deviation must be greater or equal to 1e-6. Provided {0}")]
@@ -23,12 +25,7 @@ pub struct Zmuv {
     pub axes: Option<NonEmptyList<AxisId>>,
 
     /// epsilon for numeric stability: `out = (tensor - mean) / (std + eps)`.
-    #[serde(default = "_default_eps")]
-    pub eps: f32,
-}
-
-const fn _default_eps() -> f32 {
-    1e-6
+    pub eps: PreprocessingEpsilon,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]

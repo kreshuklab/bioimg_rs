@@ -14,7 +14,7 @@ impl ItemWidgetConf for ZeroMeanAxesItemConfig{
 
 pub struct ZeroMeanUnitVarianceWidget{
     pub axes_widget: StagingOpt<StagingVec< StagingString<modelrdf::AxisId>, ZeroMeanAxesItemConfig >>,
-    pub epsilon_widget: StagingNum<f32, f32>,
+    pub epsilon_widget: StagingNum<f32, modelrdfpreproc::PreprocessingEpsilon>,
 }
 
 
