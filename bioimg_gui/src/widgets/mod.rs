@@ -30,6 +30,7 @@ pub mod image_widget;
 pub mod output_axis_widget;
 pub mod input_axis_widget;
 pub mod preprocessing_widget;
+pub mod posstprocessing_widget;
 pub mod binarize_widget;
 pub mod clip_widget;
 pub mod scale_linear_widget;
@@ -43,6 +44,7 @@ pub mod search_and_pick_widget;
 pub mod popup_widget;
 pub mod image_widget_2;
 pub mod fixed_zero_mean_unit_variance_widget;
+pub mod scale_mean_variance_widget;
 
 pub trait StatefulWidget {
     type Value<'p>
