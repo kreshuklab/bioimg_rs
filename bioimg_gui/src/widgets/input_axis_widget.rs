@@ -2,7 +2,7 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model as modelrdf;
 
-use super::enum_widget::EnumWidget;
+use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
@@ -17,7 +17,7 @@ pub struct InputSpaceAxisWidget {
     pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
 
     pub size_widget: AnyAxisSizeWidget,
-    pub space_unit_widget: StagingOpt<EnumWidget<modelrdf::SpaceUnit>>,
+    pub space_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
 }
 
@@ -33,7 +33,7 @@ impl ValueWidget for InputSpaceAxisWidget{
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
-        self.space_unit_widget.0 = value.unit.map(|unit| EnumWidget::new(unit));
+        self.space_unit_widget.0 = value.unit.map(|unit| SearchAndPickWidget::from_enum(unit));
         self.scale_widget.set_value(value.scale);
     }
 }
@@ -83,7 +83,7 @@ pub struct InputTimeAxisWidget {
     pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
 
     pub size_widget: AnyAxisSizeWidget,
-    pub time_unit_widget: StagingOpt<EnumWidget<modelrdf::TimeUnit>>,
+    pub time_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
 }
 
@@ -93,7 +93,7 @@ impl ValueWidget for InputTimeAxisWidget{
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
-        self.time_unit_widget.0 = value.unit.map(|unit| EnumWidget::new(unit));
+        self.time_unit_widget.0 = value.unit.map(|unit| SearchAndPickWidget::from_enum(unit));
         self.scale_widget.set_value(value.scale);
     }
 }

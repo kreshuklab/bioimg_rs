@@ -12,7 +12,6 @@ use crate::widgets::attachments_widget::AttachmentsWidget;
 
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
-use crate::widgets::enum_widget::EnumWidget;
 use crate::widgets::icon_widget::IconWidgetValue;
 use crate::widgets::image_widget_2::SpecialImageWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;

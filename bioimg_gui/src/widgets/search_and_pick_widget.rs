@@ -15,6 +15,15 @@ pub struct SearchAndPickWidget<T> {
     pub entries: Vec<SearchableEntry<T>>,
 }
 
+impl<T> Default for SearchAndPickWidget<T>
+where
+    T: Default + strum::VariantArray + Clone + Display
+{
+    fn default() -> Self {
+        Self::from_enum(Default::default())
+    }
+}
+
 impl<T> SearchAndPickWidget<T>
 {
     pub fn contains<U, B>(&self, value: U) -> bool

@@ -3,7 +3,6 @@ pub mod axis_size_widget;
 pub mod cite_widget;
 pub mod code_editor_widget;
 pub mod cover_image_widget;
-pub mod enum_widget;
 pub mod error_display;
 pub mod file_widget;
 pub mod functional;

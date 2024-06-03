@@ -3,7 +3,7 @@ use bioimg_spec::rdf::model::axes::output_axes::OutputSpacetimeSize;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model::{self as modelrdf, ParameterizedAxisSize};
 
-use super::enum_widget::EnumWidget;
+use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
@@ -81,7 +81,7 @@ pub struct OutputSpaceAxisWidget {
     pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
 
     pub size_widget: OutputSpacetimeSizeWidget,
-    pub unit_widget: StagingOpt<EnumWidget<modelrdf::SpaceUnit>>,
+    pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
 }
 
@@ -146,7 +146,7 @@ pub struct OutputTimeAxisWidget {
     pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
 
     pub size_widget: OutputSpacetimeSizeWidget,
-    pub unit_widget: StagingOpt<EnumWidget<modelrdf::TimeUnit>>,
+    pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
     pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
 }
 
