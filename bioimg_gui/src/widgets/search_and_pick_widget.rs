@@ -42,6 +42,25 @@ impl<T: Display> SearchAndPickWidget<T>{
                 .collect(),
         }
     }
+
+    pub fn from_enum(value: T) -> Self
+    where
+        T: strum::VariantArray + Clone
+    {
+
+        Self{
+            value,
+            search: String::with_capacity(64),
+            popup_open: false,
+            entries: <T as strum::VariantArray>::VARIANTS.iter()
+                .map(|e| SearchableEntry{
+                    lowercase_display: e.to_string().to_lowercase(),
+                    display: e.to_string(),
+                    value: e.clone(),
+                })
+                .collect(),
+        }
+    }
 }
 
 
@@ -59,51 +78,53 @@ where
     type Value<'p> = T where T: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        if ui.button(&self.value.to_string()).clicked() {
-            self.popup_open = !self.popup_open;
+        let popup_id = id;
+        let button_response = ui.button(&self.value.to_string());
+        let button_min = button_response.rect.min;
+        let button_max = button_response.rect.max;
+        if button_response.clicked() {
+            ui.memory_mut(|mem| mem.toggle_popup(popup_id));
         }
-        if !self.popup_open {
-            return;
-        }
-        egui::containers::Area::new(id.with("Enum Popup"))
-            .movable(false)
-            .order(egui::Order::Foreground)
-            .constrain(true)
-            .show(ui.ctx(), |ui| {
-                if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-                    self.popup_open = false;
-                    self.search.clear();
-                    return;
-                }
-                egui::Frame::popup(&ui.ctx().style()).show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.heading("Pick one");
-                        if ui.button("🗙").clicked() {
-                            self.popup_open = false;
-                        }
-                    });
+
+        let vert_space_above_button = button_min.y;
+        let vert_space_under_button = ui.ctx().screen_rect().max.y - button_max.y;
+
+        let above_or_below = if vert_space_under_button > vert_space_above_button {
+            egui::AboveOrBelow::Below
+        } else {
+            egui::AboveOrBelow::Above
+        };
+        egui::popup::popup_above_or_below_widget(ui, popup_id, &button_response, above_or_below, |ui| {
+            ui.set_min_width(200.0); // if you want to control the size
+            ui.vertical(|ui|{
+                let header_rect = ui.vertical(|ui|{
                     ui.horizontal(|ui| {
                         ui.label("🔎 ");
-                        ui.text_edit_singleline(&mut self.search);
+                        let search_resp = ui.text_edit_singleline(&mut self.search);
+                        search_resp.request_focus();
                     });
-                    ui.separator();
                     ui.add_space(10.0);
+                }).response.rect;
+                let header_height = header_rect.max.y - header_rect.min.y;
 
-                    let lower_search = self.search.to_lowercase();
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        self.entries
-                            .iter()
-                            .filter(|entry| entry.lowercase_display.contains(&lower_search))
-                            .for_each(|entry| {
-                                if ui.button(&entry.display).clicked() {
-                                    self.popup_open = false;
-                                    self.value = entry.value.clone();
-                                    self.search.clear();
-                                }
-                            });
-                    })
+                let lower_search = self.search.to_lowercase();
+                let scroll_area = egui::ScrollArea::vertical()
+                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
+                    .max_height(vert_space_above_button.max(vert_space_under_button) - header_height);
+                scroll_area.show(ui, |ui| {
+                    self.entries
+                        .iter()
+                        .filter(|entry| entry.lowercase_display.contains(&lower_search))
+                        .for_each(|entry| {
+                            if ui.button(&entry.display).clicked() {
+                                self.value = entry.value.clone();
+                                ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                                self.search.clear();
+                            }
+                        });
                 });
-            });
+            });        
+        });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
