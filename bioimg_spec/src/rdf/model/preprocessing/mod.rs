@@ -48,6 +48,12 @@ pub enum PreprocessingEpsilonParsingError{
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug)]
 pub struct PreprocessingEpsilon(f32);
 
+impl Default for PreprocessingEpsilon{
+    fn default() -> Self {
+        Self(1e-6)
+    }
+}
+
 impl TryFrom<f32> for PreprocessingEpsilon{
     type Error = PreprocessingEpsilonParsingError;
     fn try_from(value: f32) -> Result<Self, Self::Error> {
