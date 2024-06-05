@@ -6,7 +6,9 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::{self as modelrdf};
 
 use super::channel_name_widget::ChannelNamesWidget;
+use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_string::StagingString;
+use super::util::group_frame;
 use super::{StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::result::{GuiError, Result};
@@ -49,7 +51,7 @@ impl StatefulWidget for BatchAxisWidget{
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Copy, Clone, PartialEq, Eq, Default, strum::VariantArray, strum::Display)]
 pub enum ChannelNamesMode {
     #[default]
     Explicit,
@@ -60,7 +62,7 @@ pub enum ChannelNamesMode {
 pub struct ChannelAxisWidget {
     pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
 
-    pub channel_names_mode: ChannelNamesMode,
+    pub channel_names_mode_widget: SearchAndPickWidget<ChannelNamesMode>,
     pub channel_extent_widget: StagingNum<usize, NonZeroUsize>,
     pub channel_name_prefix_widget: StagingString<String>,
     pub channel_name_suffix_widget: StagingString<String>,
@@ -71,7 +73,7 @@ pub struct ChannelAxisWidget {
 impl ChannelAxisWidget{
     pub fn set_value(&mut self, value: modelrdf::ChannelAxis){
         self.description_widget.raw = value.description.into();
-        self.channel_names_mode = ChannelNamesMode::Explicit;
+        self.channel_names_mode_widget.set_value(ChannelNamesMode::Explicit);
         self.staging_explicit_names.staging = Vec::from(value.channel_names).into_iter().map(|ident|{
             StagingString::new_with_raw(String::from(ident))
         }).collect();
@@ -89,29 +91,30 @@ impl StatefulWidget for ChannelAxisWidget{
             });
             ui.horizontal(|ui| {
                 ui.strong("Channel Names: ");
-                ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Pattern, "Pattern");
-                ui.radio_value(&mut self.channel_names_mode, ChannelNamesMode::Explicit, "Explicit");
+                self.channel_names_mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
             });
-            match self.channel_names_mode {
+            match self.channel_names_mode_widget.value {
                 ChannelNamesMode::Pattern => {
-                    ui.horizontal(|ui| {
-                        ui.strong("Number of Channels: ");
-                        self.channel_extent_widget.draw_and_parse(ui, id.with("extent"));
+                    group_frame(ui, |ui|{
+                        ui.horizontal(|ui| {
+                            ui.strong("Number of Channels: ");
+                            self.channel_extent_widget.draw_and_parse(ui, id.with("extent"));
+                        });
+                        ui.horizontal(|ui| {
+                            ui.strong("Prefix: ");
+                            self.channel_name_prefix_widget.draw_and_parse(ui, id.with("prefix"));
+                        });
+                        ui.horizontal(|ui| {
+                            ui.strong("Suffix: ");
+                            self.channel_name_suffix_widget.draw_and_parse(ui, id.with("suffix"));
+                        });
+                        if !self.channel_name_prefix_widget.raw.is_empty() || !self.channel_name_suffix_widget.raw.is_empty(){
+                            ui.weak(format!(
+                                "e.g.: Channel #7 will be named \"{}7{}\"",
+                                &self.channel_name_prefix_widget.raw, &self.channel_name_suffix_widget.raw,
+                            ));
+                        }
                     });
-                    ui.horizontal(|ui| {
-                        ui.strong("Prefix: ");
-                        self.channel_name_prefix_widget.draw_and_parse(ui, id.with("prefix"));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.strong("Suffix: ");
-                        self.channel_name_suffix_widget.draw_and_parse(ui, id.with("suffix"));
-                    });
-                    if !self.channel_name_prefix_widget.raw.is_empty() || !self.channel_name_suffix_widget.raw.is_empty(){
-                        ui.weak(format!(
-                            "e.g.: Channel #7 will be named \"{}7{}\"",
-                            &self.channel_name_prefix_widget.raw, &self.channel_name_suffix_widget.raw,
-                        ));
-                    }
                 }
                 ChannelNamesMode::Explicit => {
                     self.staging_explicit_names.draw_and_parse(ui, id.with("explicit"));
@@ -121,7 +124,7 @@ impl StatefulWidget for ChannelAxisWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        let channel_names: NonEmptyList<rdf::Identifier> = match self.channel_names_mode {
+        let channel_names: NonEmptyList<rdf::Identifier> = match self.channel_names_mode_widget.value {
             ChannelNamesMode::Pattern => {
                 let extent: usize = self.channel_extent_widget.state()?.into();
                 (0..extent)
