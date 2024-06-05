@@ -1,13 +1,14 @@
 use bioimg_spec::rdf::model::{self as modelrdf, preprocessing::ClipDescr};
 use bioimg_spec::rdf::model::preprocessing as preproc;
 
-use super::{error_display::show_if_error, staging_num::StagingNum, StatefulWidget, ValueWidget};
+use super::staging_float::StagingFloat;
+use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 
 use crate::result::{GuiError, Result};
 
 pub struct ClipWidget{
-    pub min_widget: StagingNum<f32, f32>,
-    pub max_widget: StagingNum<f32, f32>,
+    pub min_widget: StagingFloat<f32>,
+    pub max_widget: StagingFloat<f32>,
     pub parsed: Result<modelrdf::preprocessing::ClipDescr>,
 }
 

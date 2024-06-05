@@ -1,9 +1,13 @@
+use std::{fmt::Display, str::FromStr};
+
 use crate::rdf::{model::{axes::NonBatchAxisId, AxisId}, non_empty_list::NonEmptyList};
 
 use super::PreprocessingEpsilon;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ZmuvParsingError{
+    #[error(transparent)]
+    ParseFloatError(#[from] std::num::ParseFloatError),
     #[error("Standard deviation must be greater or equal to 1e-6. Provided {0}")]
     BadStandardDeviation(f32),
     #[error("std and mean must have the same lengths")]
@@ -43,6 +47,19 @@ impl TryFrom<f32> for ZmuvStdDeviation{
             return Err(ZmuvParsingError::BadStandardDeviation(value))
         }
         Ok(Self(value))
+    }
+}
+
+impl Display for ZmuvStdDeviation{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for ZmuvStdDeviation{
+    type Err = ZmuvParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(f32::from_str(s)?)
     }
 }
 

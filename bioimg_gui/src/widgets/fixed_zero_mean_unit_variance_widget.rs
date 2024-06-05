@@ -2,7 +2,8 @@ use bioimg_spec::rdf::model::{self as modelrdf, preprocessing::zero_mean_unit_va
 use bioimg_spec::rdf::model::preprocessing as preproc;
 
 use crate::result::{GuiError, Result, VecResultExt};
-use super::{error_display::show_if_error, staging_num::StagingNum, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
+use super::staging_float::StagingFloat;
+use super::{error_display::show_if_error, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default)]
 pub enum Mode{
@@ -12,8 +13,8 @@ pub enum Mode{
 }
 
 pub struct SimpleFixedZmuvWidget{
-    pub mean_widget: StagingNum<f32, f32>,
-    pub std_widget: StagingNum<f32, ZmuvStdDeviation>,
+    pub mean_widget: StagingFloat<f32>,
+    pub std_widget: StagingFloat<ZmuvStdDeviation>,
 }
 
 impl ValueWidget for SimpleFixedZmuvWidget{
@@ -27,8 +28,8 @@ impl ValueWidget for SimpleFixedZmuvWidget{
 impl Default for SimpleFixedZmuvWidget{
     fn default() -> Self {
         Self {
-            mean_widget: StagingNum::new_with_raw(1.0),
-            std_widget: StagingNum::new_with_raw(0.0),
+            mean_widget: StagingFloat::new_with_raw(1.0),
+            std_widget: StagingFloat::new_with_raw(0.0),
         }
     }
 }

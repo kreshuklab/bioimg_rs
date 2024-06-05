@@ -4,6 +4,7 @@ use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model::{self as modelrdf, ParameterizedAxisSize};
 
 use super::search_and_pick_widget::SearchAndPickWidget;
+use super::staging_float::StagingFloat;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
@@ -82,13 +83,13 @@ pub struct OutputSpaceAxisWidget {
 
     pub size_widget: OutputSpacetimeSizeWidget,
     pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
-    pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
+    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
 }
 
 impl OutputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
         self.size_widget.prefil_parameterized(min);
-        self.scale_widget.raw = 1.0;
+        self.scale_widget.raw = 1.0.to_string();
     }
 
     pub fn set_value(&mut self, value: modelrdf::SpaceOutputAxis){
@@ -147,7 +148,7 @@ pub struct OutputTimeAxisWidget {
 
     pub size_widget: OutputSpacetimeSizeWidget,
     pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
-    pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
+    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
 }
 
 impl OutputTimeAxisWidget{

@@ -3,12 +3,13 @@ use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model as modelrdf;
 
 use super::search_and_pick_widget::SearchAndPickWidget;
+use super::staging_float::StagingFloat;
 use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
 use super::axis_widget::{BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
 use super::{StatefulWidget, ValueWidget};
-use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
+use super::axis_size_widget::AnyAxisSizeWidget;
 use crate::result::Result;
 
 #[derive(Default)]
@@ -18,13 +19,13 @@ pub struct InputSpaceAxisWidget {
 
     pub size_widget: AnyAxisSizeWidget,
     pub space_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
-    pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
+    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
 }
 
 impl InputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
         self.size_widget.prefil_parameterized(min);
-        self.scale_widget.raw = 1.0;
+        self.scale_widget.raw = 1.0.to_string();
     }
 }
 impl ValueWidget for InputSpaceAxisWidget{
@@ -84,7 +85,7 @@ pub struct InputTimeAxisWidget {
 
     pub size_widget: AnyAxisSizeWidget,
     pub time_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
-    pub scale_widget: StagingNum<f32, modelrdf::AxisScale>,
+    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
 }
 
 impl ValueWidget for InputTimeAxisWidget{

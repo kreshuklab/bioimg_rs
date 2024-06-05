@@ -4,8 +4,9 @@ use bioimg_spec::rdf::model::preprocessing as preproc;
 use crate::result::{GuiError, Result, VecResultExt};
 
 use super::error_display::show_if_error;
+use super::staging_float::StagingFloat;
 use super::ValueWidget;
-use super::{staging_num::StagingNum, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
+use super::{staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
 
 #[derive(PartialEq, Eq, Copy, Clone, Default)]
 pub enum BinarizeMode{
@@ -16,7 +17,7 @@ pub enum BinarizeMode{
 
 #[derive(Default)]
 pub struct SimpleBinarizeWidget{
-    pub threshold_widget: StagingNum<f32, f32>,
+    pub threshold_widget: StagingFloat<f32>,
 }
 
 impl ValueWidget for SimpleBinarizeWidget{
@@ -49,7 +50,7 @@ impl ItemWidgetConf for ThresholdsItemWidgetConf{
 }
 
 pub struct BinarizeAlongAxisWidget{
-    pub thresholds_widget: StagingVec<StagingNum<f32, f32>, ThresholdsItemWidgetConf>,
+    pub thresholds_widget: StagingVec<StagingFloat<f32>, ThresholdsItemWidgetConf>,
     pub axis_id_widget: StagingString<modelrdf::axes::NonBatchAxisId>,
     pub parsed: Result<preproc::BinarizeAlongAxisDescr>,
 }

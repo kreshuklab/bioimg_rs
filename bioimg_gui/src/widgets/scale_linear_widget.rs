@@ -2,7 +2,7 @@ use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 
 use crate::result::{GuiError, Result, VecResultExt};
-use super::{error_display::show_if_error, staging_num::StagingNum, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
+use super::{error_display::show_if_error, staging_float::StagingFloat, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default)]
 pub enum ScaleLinearMode{
@@ -22,8 +22,8 @@ impl ScaleLinearMode{
 }
 
 pub struct SimpleScaleLinearWidget{
-    pub gain_widget: StagingNum<f32, f32>,
-    pub offset_widget: StagingNum<f32, f32>,
+    pub gain_widget: StagingFloat<f32>,
+    pub offset_widget: StagingFloat<f32>,
 }
 
 impl ValueWidget for SimpleScaleLinearWidget{
@@ -37,8 +37,8 @@ impl ValueWidget for SimpleScaleLinearWidget{
 impl Default for SimpleScaleLinearWidget{
     fn default() -> Self {
         Self {
-            gain_widget: StagingNum::new_with_raw(1.0),
-            offset_widget: StagingNum::new_with_raw(0.0),
+            gain_widget: StagingFloat::new_with_raw(1.0),
+            offset_widget: StagingFloat::new_with_raw(0.0),
         }
     }
 }

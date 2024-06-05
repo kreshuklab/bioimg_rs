@@ -2,7 +2,7 @@ pub mod output_axes;
 pub mod input_axes;
 
 
-use std::borrow::Borrow;
+use std::{borrow::Borrow, fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -60,6 +60,19 @@ impl TryFrom<String> for NonBatchAxisId{
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 pub struct AxisScale(f32);
+
+impl Display for AxisScale{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for AxisScale{
+    type Err = std::num::ParseFloatError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(f32::from_str(s)?))
+    }
+}
 
 impl From<AxisScale> for f32{
     fn from(value: AxisScale) -> Self {

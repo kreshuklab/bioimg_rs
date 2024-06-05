@@ -6,6 +6,9 @@ pub mod zero_mean_unit_variance;
 pub mod scale_range;
 pub mod ensure_dtype;
 
+use std::fmt::Display;
+use std::str::FromStr;
+
 pub use self::scale_linear::{ScaleLinearDescr, SimpleScaleLinearDescr, ScaleLinearAlongAxisDescr};
 pub use self::binarize::{BinarizeDescr, SimpleBinarizeDescr, BinarizeAlongAxisDescr};
 pub use self::clip::ClipDescr;
@@ -41,12 +44,20 @@ fn _default_to_single_0() -> SingleOrMultiple<f32>{
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum PreprocessingEpsilonParsingError{
+    #[error(transparent)]
+    ParseFloatError(#[from] std::num::ParseFloatError),
     #[error("Preprocessing epsilon must be in open interval ]0, 0.1], found {0}")]
     OutOfRange(f32)
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug)]
 pub struct PreprocessingEpsilon(f32);
+
+impl Display for PreprocessingEpsilon{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl Default for PreprocessingEpsilon{
     fn default() -> Self {
@@ -71,6 +82,13 @@ impl From<PreprocessingEpsilon> for f32{
     }
 }
 
+
+impl FromStr for PreprocessingEpsilon{
+    type Err = PreprocessingEpsilonParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(f32::from_str(s)?)
+    }
+}
 // //////////////////
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]

@@ -5,13 +5,14 @@ use bioimg_spec::rdf::model::{preprocessing as modelrdfpreproc, TensorId};
 
 
 use crate::result::{GuiError, Result, VecResultExt};
+use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
 use super::ValueWidget;
-use super::{staging_num::StagingNum, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
 
 pub struct PercentilesWidget{
-    pub min_widget: StagingNum<f32, f32>,
-    pub max_widget: StagingNum<f32, f32>,
+    pub min_widget: StagingFloat<f32>,
+    pub max_widget: StagingFloat<f32>,
     pub parsed: Result<modelrdfpreproc::ScaleRangePercentile>,
 }
 
@@ -26,8 +27,8 @@ impl ValueWidget for PercentilesWidget{
 impl Default for PercentilesWidget{
     fn default() -> Self {
         Self{
-            min_widget: StagingNum::new_with_raw(0.0),
-            max_widget: StagingNum::new_with_raw(100.0),
+            min_widget: StagingFloat::new_with_raw(0.0),
+            max_widget: StagingFloat::new_with_raw(100.0),
             parsed: Err(GuiError::new("empty".to_owned())),
         }
     }
@@ -67,7 +68,7 @@ impl ItemWidgetConf for AxesItemConfig{
 pub struct ScaleRangeWidget{
     pub axes_widget: StagingOpt<StagingVec<StagingString<model::AxisId>, AxesItemConfig>>,
     pub percentiles_widget: PercentilesWidget,
-    pub epsilon_widget: StagingNum<f32, PreprocessingEpsilon>,
+    pub epsilon_widget: StagingFloat<PreprocessingEpsilon>,
     pub reference_tensor: StagingOpt<StagingString<TensorId>>,
 }
 

@@ -2,9 +2,10 @@ use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::{GuiError, Result, VecResultExt};
+use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
 use super::ValueWidget;
-use super::{staging_num::StagingNum, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
+use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
 
 pub struct ZeroMeanAxesItemConfig;
 impl ItemWidgetConf for ZeroMeanAxesItemConfig{
@@ -14,7 +15,7 @@ impl ItemWidgetConf for ZeroMeanAxesItemConfig{
 
 pub struct ZeroMeanUnitVarianceWidget{
     pub axes_widget: StagingOpt<StagingVec< StagingString<modelrdf::AxisId>, ZeroMeanAxesItemConfig >>,
-    pub epsilon_widget: StagingNum<f32, modelrdfpreproc::PreprocessingEpsilon>,
+    pub epsilon_widget: StagingFloat<modelrdfpreproc::PreprocessingEpsilon>,
 }
 
 
@@ -30,7 +31,7 @@ impl Default for ZeroMeanUnitVarianceWidget{
     fn default() -> Self {
         Self{
             axes_widget: Default::default(),
-            epsilon_widget: StagingNum::new_with_raw(1e-6),
+            epsilon_widget: StagingFloat::new_with_raw(modelrdfpreproc::PreprocessingEpsilon::default().into()),
         }
     }
 }
