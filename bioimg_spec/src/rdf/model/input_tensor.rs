@@ -57,6 +57,7 @@ pub struct InputTensorMetadataMsg {
     pub id: TensorId,
     #[serde(default)]
     pub optional: bool,
+    #[serde(default)]
     pub preprocessing: Vec<PreprocessingDescr>,
     #[serde(default)]
     pub description: TensorTextDescription,

@@ -40,6 +40,7 @@ impl OutputTensorMetadata{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OutputTensorMetadataMsg{
     pub id: TensorId,
+    #[serde(default)]
     pub postprocessing: Vec<PostprocessingDescr>,
     #[serde(default)]
     pub description: TensorTextDescription,
