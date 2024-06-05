@@ -42,6 +42,7 @@ pub struct ScaleMeanVarianceDescr{
 
     /// Epsilon for numeric stability:
     /// `out  = (tensor - mean) / (std + eps) * (ref_std + eps) + ref_mean.`
+    #[serde(default)]
     pub eps: PreprocessingEpsilon,
 
 }

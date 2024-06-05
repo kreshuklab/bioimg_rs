@@ -25,6 +25,7 @@ pub struct Zmuv {
     pub axes: Option<NonEmptyList<AxisId>>,
 
     /// epsilon for numeric stability: `out = (tensor - mean) / (std + eps)`.
+    #[serde(default)]
     pub eps: PreprocessingEpsilon,
 }
 
