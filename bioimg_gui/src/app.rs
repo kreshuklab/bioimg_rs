@@ -15,7 +15,7 @@ use crate::widgets::cover_image_widget::CoverImageItemConf;
 use crate::widgets::icon_widget::IconWidgetValue;
 use crate::widgets::image_widget_2::SpecialImageWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
-use crate::widgets::notice_widget::NoticeWidget;
+use crate::widgets::notice_widget::NotificationsWidget;
 use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
@@ -66,7 +66,7 @@ pub struct BioimgGui {
     ////
     pub weights_widget: WeightsWidget,
 
-    pub packing_notice: NoticeWidget,
+    pub notifications_widget: NotificationsWidget,
     model_packing_status: PackingStatus,
 }
 
@@ -97,7 +97,6 @@ impl ValueWidget for BioimgGui{
         self.weights_widget.set_value(zoo_model.weights);
 
         self.model_packing_status = PackingStatus::default();
-        self.packing_notice = NoticeWidget::new_hidden();
     }
 }
 
@@ -122,7 +121,7 @@ impl Default for BioimgGui {
 
             model_packing_status: PackingStatus::default(),
             weights_widget: Default::default(),
-            packing_notice: NoticeWidget::new_hidden(),
+            notifications_widget: NotificationsWidget::new(egui::Id::new("messages_widget")),
         }
     }
 }
@@ -256,9 +255,8 @@ impl eframe::App for BioimgGui {
                 });
 
                 ui.horizontal(|ui| {
-                    let now = std::time::Instant::now();
                     let save_button_clicked = ui.button("Save Model").clicked();
-                    self.packing_notice.draw(ui, now);
+                    self.notifications_widget.draw(ui);
 
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
                         PackingStatus::Done => 'done: {
@@ -322,11 +320,11 @@ impl eframe::App for BioimgGui {
 
                             let zoo_model = match zoo_model_res{
                                 Ok(zoo_model) => {
-                                    self.packing_notice.update_message(Ok(format!("Model saved successfully")));
+                                    self.notifications_widget.push_message(Ok(format!("Model saved successfully")));
                                     zoo_model
                                 }
                                 Err(err) => {
-                                    self.packing_notice.update_message(Err(err.to_string()));
+                                    self.notifications_widget.push_message(Err(err.to_string()));
                                     break 'done PackingStatus::Done;
                                 }
                             };
@@ -345,14 +343,14 @@ impl eframe::App for BioimgGui {
                         }
                         PackingStatus::Packing { path, task } => match task.try_take() {
                             Ok(value) => {
-                                self.packing_notice.update_message(match &value{
+                                self.notifications_widget.push_message(match &value{
                                     Ok(_) => Ok(format!("Model saved to {}", path.to_string_lossy())),
                                     Err(err) => Err(format!("Error saving model: {err}")),
                                 });
                                 PackingStatus::Done
                             },
                             Err(task) => {
-                                self.packing_notice.update_message(Ok(format!("Packing into {}...", path.to_string_lossy())));
+                                self.notifications_widget.push_message(Ok(format!("Packing into {}...", path.to_string_lossy())));
                                 ui.ctx().request_repaint();
                                 PackingStatus::Packing { path, task }
                             }

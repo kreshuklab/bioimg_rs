@@ -1,39 +1,83 @@
-use std::time::{Duration, Instant};
+use std::{collections::VecDeque, time::{Duration, Instant}};
 
-pub struct NoticeWidget{
-    stop_at: Instant,
-    message: Result<String, String>,
+use egui::NumExt;
+
+const FADE_TIME: Duration = Duration::from_secs(5);
+
+struct Message{
+    spawn_instant: Instant,
+    text: String,
+    color: egui::Color32,
 }
 
-impl NoticeWidget{
-    pub const FADE_TIME: Duration = Duration::from_secs(5);
+impl Message{
+    fn progress(&self) -> f32{
+        let elapsed = Instant::now() - self.spawn_instant;
+        (elapsed.as_millis() as f32 / FADE_TIME.as_millis() as f32).at_most(1.0)
+    }
+    fn is_done(&self) -> bool{
+        self.spawn_instant + FADE_TIME < Instant::now()
+    }
+    fn draw(&self, ui: &mut egui::Ui){
+        let alpha = 1.0 - self.progress();
+        let rich_text = egui::RichText::new(&self.text).color(self.color.gamma_multiply(alpha));
+        ui.label(rich_text);
+    }
+}
 
-    pub fn new_hidden() -> Self{
-        Self {
-            stop_at: Instant::now() - Duration::from_secs(10),
-            message: Err("".into())
-        }
+pub struct NotificationsWidget{
+    id: egui::Id,
+    messages: VecDeque<Message>,
+    stop_fade: bool,
+}
+
+impl NotificationsWidget{
+    pub fn new(id: egui::Id) -> Self{
+        Self{id, messages: VecDeque::new(), stop_fade: false}
+    }
+    pub fn push_message(&mut self, message_text: Result<String, String>){
+        let (text, color) = match message_text{
+            Ok(text) => (text, egui::Color32::GREEN),
+            Err(text) => (text, egui::Color32::RED),
+        };
+        self.messages.push_back(Message{
+            spawn_instant: Instant::now(),
+            text,
+            color,
+        });
     }
 
-    pub fn update_message(&mut self, message: Result<String, String>){
-        self.message = message;
-        self.stop_at = Instant::now() + Self::FADE_TIME;
-    }
-
-    pub fn draw(&self, ui: &mut egui::Ui, now: std::time::Instant){
-        if now > self.stop_at{
+    pub fn draw(&mut self, ui: &mut egui::Ui){
+        if self.messages.len() == 0{
             return
         }
-        let start_time = self.stop_at - Self::FADE_TIME;
-        let delta = now - start_time;
-        let progress = delta.as_millis() as f32 / Self::FADE_TIME.as_millis() as f32;
-
-        let alpha = 255 - ( progress * 255.0 ) as u8;
-        let (message, color) = match &self.message{
-            Ok(message) => (message, egui::Color32::from_rgba_unmultiplied(0, 255, 0, alpha)),
-            Err(message) => (message, egui::Color32::from_rgba_unmultiplied(255, 0, 0, alpha)),
-        };
-        ui.label(egui::RichText::new(message).color(color));
-        ui.ctx().request_repaint();
+        let now = Instant::now();
+        let area = egui::containers::Area::new(self.id)
+            .movable(false)
+            .order(egui::Order::Foreground)
+            .constrain(true)
+            .movable(false)
+            .anchor(egui::Align2::LEFT_TOP, egui::Vec2::ZERO);
+            // .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO);
+        let _area_resp = area.show(ui.ctx(), |ui| {
+            let frame = egui::Frame::popup(&ui.ctx().style())
+                .rounding(egui::Rounding::default())
+                .outer_margin(0.0);
+            frame.show(ui, |ui| {
+                self.messages.retain_mut(|msg|{
+                    if self.stop_fade{
+                        msg.spawn_instant = now;
+                    }
+                    if msg.is_done(){
+                        false
+                    } else {
+                        msg.draw(ui);
+                        ui.ctx().request_repaint();
+                        true
+                    }
+                });
+            });
+        });
+        self.stop_fade = _area_resp.response.hovered();
     }
 }
