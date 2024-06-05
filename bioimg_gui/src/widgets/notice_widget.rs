@@ -18,10 +18,10 @@ impl Message{
     fn is_done(&self) -> bool{
         self.spawn_instant + FADE_TIME < Instant::now()
     }
-    fn draw(&self, ui: &mut egui::Ui){
+    fn draw(&self, ui: &mut egui::Ui) -> egui::Response{
         let alpha = 1.0 - self.progress();
         let rich_text = egui::RichText::new(&self.text).color(self.color.gamma_multiply(alpha));
-        ui.label(rich_text);
+        ui.label(rich_text)
     }
 }
 
@@ -59,7 +59,7 @@ impl NotificationsWidget{
             .movable(false)
             .anchor(egui::Align2::LEFT_TOP, egui::Vec2::ZERO);
             // .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO);
-        let _area_resp = area.show(ui.ctx(), |ui| {
+        let area_resp = area.show(ui.ctx(), |ui| {
             let frame = egui::Frame::popup(&ui.ctx().style())
                 .rounding(egui::Rounding::default())
                 .outer_margin(0.0);
@@ -78,6 +78,6 @@ impl NotificationsWidget{
                 });
             });
         });
-        self.stop_fade = _area_resp.response.hovered();
+        self.stop_fade = area_resp.response.contains_pointer();
     }
 }
