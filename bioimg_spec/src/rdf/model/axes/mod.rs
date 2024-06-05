@@ -134,7 +134,10 @@ pub struct Time;
 impl StrMarker for Time { const NAME: &'static str = "time"; }
 
 
-#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+#[derive(
+    serde::Serialize, serde::Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default,
+    strum::VariantArray, strum::AsRefStr, strum::Display,
+)]
 pub enum AxisType {
     #[serde(rename = "batch")]
     Batch,

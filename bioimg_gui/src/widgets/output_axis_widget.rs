@@ -164,23 +164,23 @@ impl ValueWidget for OutputAxisWidget{
     fn set_value(&mut self, value: modelrdf::OutputAxis){
         match value{
             modelrdf::OutputAxis::Batch(axis) => {
-                self.axis_type = AxisType::Batch;
+                self.axis_type_widget.set_value(AxisType::Batch);
                 self.batch_axis_widget.set_value(axis);
             },
             modelrdf::OutputAxis::Channel(axis) => {
-                self.axis_type = AxisType::Channel;
+                self.axis_type_widget.set_value(AxisType::Channel);
                 self.channel_axis_widget.set_value(axis);
             },
             modelrdf::OutputAxis::Index(axis) => {
-                self.axis_type = AxisType::Index;
+                self.axis_type_widget.set_value(AxisType::Index);
                 self.index_axis_widget.set_value(axis);
             },
             modelrdf::OutputAxis::Space(axis) => {
-                self.axis_type = AxisType::Space;
+                self.axis_type_widget.set_value(AxisType::Space);
                 self.space_axis_widget.set_value(axis);
             },
             modelrdf::OutputAxis::Time(axis) => {
-                self.axis_type = AxisType::Time;
+                self.axis_type_widget.set_value(AxisType::Time);
                 self.time_axis_widget.set_value(axis);
             },
         }
@@ -230,7 +230,7 @@ impl StatefulWidget for OutputTimeAxisWidget{
 
 #[derive(Default)]
 pub struct OutputAxisWidget {
-    pub axis_type: AxisType,
+    pub axis_type_widget: SearchAndPickWidget<AxisType>,
 
     pub batch_axis_widget: BatchAxisWidget,
     pub channel_axis_widget: ChannelAxisWidget,
@@ -250,13 +250,9 @@ impl StatefulWidget for OutputAxisWidget{
         ui.vertical(|ui|{
             ui.horizontal(|ui| {
                 ui.strong("Axis Type: ");
-                ui.radio_value(&mut self.axis_type, AxisType::Space, "Space");
-                ui.radio_value(&mut self.axis_type, AxisType::Time, "Time");
-                ui.radio_value(&mut self.axis_type, AxisType::Batch, "Batch");
-                ui.radio_value(&mut self.axis_type, AxisType::Channel, "Channel");
-                ui.radio_value(&mut self.axis_type, AxisType::Index, "Index");
+                self.axis_type_widget.draw_and_parse(ui, id.with("axis_type".as_ptr()));
             });
-            match self.axis_type{
+            match self.axis_type_widget.value{
                 AxisType::Space => self.space_axis_widget.draw_and_parse(ui, id.with("space")),
                 AxisType::Time => self.time_axis_widget.draw_and_parse(ui, id.with("time")),
                 AxisType::Batch => self.batch_axis_widget.draw_and_parse(ui, id.with("batch")),
@@ -267,7 +263,7 @@ impl StatefulWidget for OutputAxisWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(match self.axis_type{
+        Ok(match self.axis_type_widget.value{
             AxisType::Space => modelrdf::OutputAxis::Space(self.space_axis_widget.state()?),
             AxisType::Time => modelrdf::OutputAxis::Time(self.time_axis_widget.state()?),
             AxisType::Batch => modelrdf::OutputAxis::Batch(self.batch_axis_widget.state()?),

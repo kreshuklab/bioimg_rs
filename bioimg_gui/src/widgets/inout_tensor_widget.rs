@@ -80,7 +80,7 @@ impl StatefulWidget for InputTensorWidget {
 
             while let Some(extent) = extents.next() {
                 let mut axis_widget = InputAxisWidget::default();
-                axis_widget.axis_type = if *extent == 1{
+                axis_widget.axis_type_widget.value = if *extent == 1{
                     modelrdf::AxisType::Channel
                 } else {
                     modelrdf::AxisType::Space
@@ -203,7 +203,7 @@ impl StatefulWidget for OutputTensorWidget {
 
             while let Some(extent) = extents.next() {
                 let mut axis_widget = OutputAxisWidget::default();
-                axis_widget.axis_type = if *extent == 1{
+                axis_widget.axis_type_widget.value = if *extent == 1{
                     modelrdf::AxisType::Channel
                 } else {
                     modelrdf::AxisType::Space
