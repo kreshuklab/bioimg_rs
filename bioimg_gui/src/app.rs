@@ -139,7 +139,9 @@ impl eframe::App for BioimgGui {
                     if ui.button("Import Model").clicked() {
                         if let Some(model_path) = rfd::FileDialog::new().pick_file() {
                             match rt::zoo_model::ZooModel::try_load(&model_path){
-                                Err(err) => eprintln!("Could not import model {}: {err}", model_path.to_string_lossy()),
+                                Err(err) => self.notifications_widget.push_message(
+                                    Err(format!("Could not import model {}: {err}", model_path.to_string_lossy()))
+                                ),
                                 Ok(zoo_model) => self.set_value(zoo_model)
                             }
                         }
