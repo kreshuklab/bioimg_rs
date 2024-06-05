@@ -84,7 +84,7 @@ impl ValueWidget for PostprocessingWidget{
 }
 
 impl ItemWidgetConf for PostprocessingWidget{
-    const ITEM_NAME: &'static str = "Preprocessing";
+    const ITEM_NAME: &'static str = "Postprocessing";
 }
 
 impl StatefulWidget for PostprocessingWidget{

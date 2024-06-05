@@ -11,6 +11,7 @@ use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
 use super::error_display::{show_error, show_if_error};
 use super::file_widget::{FileWidget, FileWidgetState};
+use super::posstprocessing_widget::PostprocessingWidget;
 use super::preprocessing_widget::PreprocessingWidget;
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
@@ -149,6 +150,7 @@ pub struct OutputTensorWidget {
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<OutputAxisWidget>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
+    pub postprocessing_widget: StagingVec<PostprocessingWidget>,
 
     pub parsed: Result<OutputSlot<Arc<NpyArray>>>,
 }
@@ -161,6 +163,7 @@ impl Default for OutputTensorWidget{
             description_widget: Default::default(),
             axes_widget: Default::default(),
             test_tensor_widget: Default::default(),
+            postprocessing_widget: Default::default(),
             parsed: Err(GuiError::new("empty".to_owned()))
         }
     }
@@ -170,12 +173,13 @@ impl ValueWidget for OutputTensorWidget{
     type Value<'v> = OutputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
+        self.postprocessing_widget.set_value(value.tensor_meta.postprocessing().clone());
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget.state = FileWidgetState::Finished {
             path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
             value: Ok(value.test_tensor)
-        }
+        };
     }
 }
 
@@ -228,6 +232,11 @@ impl StatefulWidget for OutputTensorWidget {
                 ui.strong("Axes: ");
                 self.axes_widget.draw_and_parse(ui, id.with("Axes"));
             });
+            ui.horizontal(|ui| {
+                ui.strong("Postprocessing: ");
+                self.postprocessing_widget.draw_and_parse(ui, id.with("postproc".as_ptr()));
+            });
+
             self.parsed = || -> Result<OutputSlot<Arc<NpyArray>>> {
                 let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
                     return Err(GuiError::new("Test tensor is missing".into()));
@@ -236,6 +245,7 @@ impl StatefulWidget for OutputTensorWidget {
                 let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
                 let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
                     id: self.id_widget.state()?,
+                    postprocessing: self.postprocessing_widget.state().collect_result()?,
                     description: self.description_widget.state()?,
                     axes: axis_group,
                 };
