@@ -10,6 +10,8 @@ use super::{axes::output_axes::OutputAxisGroup, postprocessing::PostprocessingDe
 pub enum OutputTensorParsingError{
     #[error("Axis reference to non-existing axis")]
     PreprocessingReferencesNonExistingAxis,
+    #[error("Found a self-reference from/to {tensor_id}")]
+    SelfReference{tensor_id: TensorId}
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -76,9 +78,12 @@ impl TryFrom<OutputTensorMetadataMsg> for OutputTensorMetadata{
                         ensure_axis_exists(&message, preproc_axis_id)?;
                     }
                 },
-                PostprocessingDescr::ScaleMeanVarianceDescr(ScaleMeanVarianceDescr{axes: Some(axes), ..}) => {
+                PostprocessingDescr::ScaleMeanVarianceDescr(ScaleMeanVarianceDescr{axes: Some(axes), reference_tensor, ..}) => {
                     for preproc_axis_id in axes.iter(){
                         ensure_axis_exists(&message, preproc_axis_id)?;
+                    }
+                    if message.id == *reference_tensor{
+                        return Err(OutputTensorParsingError::SelfReference { tensor_id: message.id.clone() })
                     }
                 },
                 _ => (),
