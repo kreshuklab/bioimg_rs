@@ -1,6 +1,6 @@
 [package]
 name = "bioimg_gui"
-version = "0.1.0"
+version = "0.1.6"
 authors = ["Tomaz Vieira<tom.fogaca@gmail.com>"]
 edition = "2021"
 rust-version = "1.76"
