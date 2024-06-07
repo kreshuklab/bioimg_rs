@@ -335,12 +335,17 @@ impl eframe::App for BioimgGui {
                             let Some(path) = rfd::FileDialog::new().save_file() else {
                                 break 'done PackingStatus::Done;
                             };
-                            PackingStatus::Packing {
-                                path: path.clone(),
-                                task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
-                                    let file = std::fs::File::create(&path)?;
-                                    zoo_model.pack_into(file)
-                                }),
+                            {
+                                let notification_message = format!("Packing into {}...", path.to_string_lossy());
+                                let next_state = PackingStatus::Packing {
+                                    path: path.clone(),
+                                    task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
+                                        let file = std::fs::File::create(path)?;
+                                        zoo_model.pack_into(file)
+                                    }),
+                                };
+                                self.notifications_widget.push_message(Ok(notification_message));
+                                next_state
                             }
                         }
                         PackingStatus::Packing { path, task } => match task.try_take() {
@@ -352,7 +357,6 @@ impl eframe::App for BioimgGui {
                                 PackingStatus::Done
                             },
                             Err(task) => {
-                                self.notifications_widget.push_message(Ok(format!("Packing into {}...", path.to_string_lossy())));
                                 ui.ctx().request_repaint();
                                 PackingStatus::Packing { path, task }
                             }
