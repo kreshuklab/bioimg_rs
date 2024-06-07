@@ -5,6 +5,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use bioimg_spec::rdf;
+use bioimg_spec::rdf::model::postprocessing::PostprocessingDescr;
+use bioimg_spec::rdf::model::preprocessing::ScaleRangeDescr;
 use ndarray_npy::ReadNpyError;
 
 use crate::axis_size_resolver::{ResolvedAxisSizeExt, SlotResolver};
@@ -14,7 +16,7 @@ use crate::zip_writer_ext::ModelZipWriter;
 use crate::zoo_model::ModelPackingError;
 use crate::FileSource;
 use bioimg_spec::rdf::model::axis_size::QualifiedAxisId;
-use bioimg_spec::rdf::model::{AnyAxisSize, InputAxis, OutputAxis};
+use bioimg_spec::rdf::model::{AnyAxisSize, InputAxis, OutputAxis, PreprocessingDescr};
 use bioimg_spec::rdf::model::{self as modelrdf, TensorId};
 
 use super::axis_size_resolver::AxisSizeResolutionError;
@@ -170,6 +172,8 @@ pub enum TensorValidationError {
     EmptyInputs,
     #[error("Empty model interface outputs")]
     EmptyOutputs,
+    #[error("No tensor with ID {reference}")]
+    InvalidTensorReference{reference: TensorId}
 }
 
 #[allow(dead_code)]
@@ -207,9 +211,9 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         let inputs = rdf::NonEmptyList::try_from(inputs).map_err(|_| TensorValidationError::EmptyInputs)?;
         let outputs = rdf::NonEmptyList::try_from(outputs).map_err(|_| TensorValidationError::EmptyOutputs)?;
 
+        let capacity: usize = usize::from(inputs.len()) + usize::from(outputs.len());
+        let mut seen_tensor_ids = HashSet::<&TensorId>::with_capacity(capacity);
         {
-            let capacity: usize = usize::from(inputs.len()) + usize::from(outputs.len());
-            let mut seen_tensor_ids = HashSet::<&TensorId>::with_capacity(capacity);
             inputs.iter().map(|slot| &slot.tensor_meta.id)
                 .chain(outputs.iter().map(|slot| &slot.tensor_meta.id))
                 .map(|tensor_id|{
@@ -256,6 +260,30 @@ impl<DATA: Borrow<NpyArray>> ModelInterface<DATA> {
         };}
         validate_resolution!(inputs);
         validate_resolution!(outputs);
+
+        for input in inputs.iter(){
+            for proc in input.tensor_meta.preprocessing() {
+                let tensor_ref = match proc{
+                    PreprocessingDescr::ScaleRange(ScaleRangeDescr{reference_tensor: Some(tensor_ref), ..}) => tensor_ref,
+                    _ => continue,
+                };
+                if inputs.iter().find(|inp| inp.tensor_meta.id == *tensor_ref).is_none(){
+                    return Err(TensorValidationError::InvalidTensorReference{reference: tensor_ref.clone()})
+                }
+            }
+        }
+        for output in outputs.iter(){
+            for proc in output.tensor_meta.postprocessing() {
+                let tensor_ref = match proc{
+                    PostprocessingDescr::ScaleMeanVarianceDescr(descr) => &descr.reference_tensor,
+                    PostprocessingDescr::ScaleRange(ScaleRangeDescr{reference_tensor: Some(tensor_ref), ..}) => tensor_ref,
+                    _ => continue,
+                };
+                if !seen_tensor_ids.contains(tensor_ref){
+                    return Err(TensorValidationError::InvalidTensorReference{reference: tensor_ref.clone()})
+                }
+            }
+        }
 
         Ok(Self{inputs, outputs})
     }
