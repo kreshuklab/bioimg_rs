@@ -1,7 +1,7 @@
 use self::{dataset_descr::DatasetDescrEnum, run_mode::RunMode};
 
 use super::{
-    author::Author2, cite_entry::CiteEntry2, file_reference::CoverImageSource, maintainer::Maintainer, non_empty_list::NonEmptyList, version::Version_0_5_0, BoundedString, FileReference, HttpUrl, Icon, LicenseId, ResourceTextDescription, Version
+    author::Author2, cite_entry::CiteEntry2, file_reference::CoverImageSource, maintainer::Maintainer, non_empty_list::NonEmptyList, version::Version_0_5_x, BoundedString, FileReference, HttpUrl, Icon, LicenseId, ResourceTextDescription, Version
 };
 use crate::rdf::ResourceId;
 use crate::rdf;
@@ -152,7 +152,7 @@ pub struct ModelRdf {
     /// Version of the bioimage.io model description specification used.
     /// When creating a new model always use the latest micro/patch version described here.
     /// The `format_version` is important for any consumer software to understand how to parse the fields.
-    pub format_version: Version_0_5_0,
+    pub format_version: Version_0_5_x,
     #[serde(rename = "type")]
     /// Specialized resource type 'model'
     pub rdf_type: RdfTypeModel,
@@ -228,7 +228,7 @@ pub struct ModelRdfRefs<'a> {
     pub maintainers: &'a [Maintainer],
     pub tags: &'a [rdf::Tag],
     pub version: Option<&'a Version>,
-    pub format_version: Version_0_5_0,
+    pub format_version: Version_0_5_x,
     pub rdf_type: RdfTypeModel,
     pub authors: &'a NonEmptyList<Author2>,
     pub documentation: &'a FileReference,

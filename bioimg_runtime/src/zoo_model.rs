@@ -5,7 +5,7 @@ use std::{
 use bioimg_spec::rdf::{
     self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
         ModelRdf, RdfTypeModel
-    }, non_empty_list::NonEmptyList, version::Version_0_5_0, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
+    }, non_empty_list::NonEmptyList, version::Version_0_5_x, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
 };
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
@@ -191,7 +191,7 @@ impl ZooModel {
             maintainers: self.maintainers,
             tags: self.tags,
             version: self.version,
-            format_version: Version_0_5_0::new(),
+            format_version: Version_0_5_x::new(),
             rdf_type: RdfTypeModel,
             authors: self.authors,
             documentation: documentation,

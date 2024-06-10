@@ -11,8 +11,8 @@ pub enum VersionParsingError {
     ParseIntError(ParseIntError),
     #[error("Expected version '{expected}', found '{found}'")]
     UnexpectedVersion { expected: Version, found: Version },
-    #[error("Unexpected version number {0}")]
-    UnexpectedVersionNumber(Version),
+    #[error("Unexpected version number {found}; expecting {expecting}")]
+    UnexpectedVersionNumber{found: Version, expecting: String},
 }
 impl From<ParseIntError> for VersionParsingError {
     fn from(value: ParseIntError) -> Self {
@@ -62,21 +62,21 @@ impl Into<String> for Version {
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct Version_0_5_0(Version);
+pub struct Version_0_5_x(Version);
 
-impl Version_0_5_0{
+impl Version_0_5_x{
     pub fn new() -> Self{
-        Self(Version{major: 0, minor: 5, patch: 0})
+        Self(Version{major: 0, minor: 5, patch: 2})
     }
 }
 
-impl TryFrom<Version> for Version_0_5_0 {
+impl TryFrom<Version> for Version_0_5_x {
     type Error = VersionParsingError;
     fn try_from(version: Version) -> Result<Self, Self::Error> {
-        if version.major == 0 && version.minor == 5 && version.patch == 0 {
+        if version.major == 0 && version.minor == 5 {
             Ok(Self(version))
         } else {
-            Err(VersionParsingError::UnexpectedVersionNumber(version))
+            Err(VersionParsingError::UnexpectedVersionNumber{found: version, expecting: format!("0.5.*")})
         }
     }
 }
