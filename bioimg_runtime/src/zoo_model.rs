@@ -180,13 +180,13 @@ impl ZooModel {
 
         let model_rdf = ModelRdf {
             description: self.description,
-            covers: covers,
+            covers,
             id: None,
-            attachments: attachments,
+            attachments,
             cite: self.cite,
-            config: config,
+            config,
             git_repo: self.git_repo,
-            icon: icon,
+            icon,
             links: self.links,
             maintainers: self.maintainers,
             tags: self.tags,
@@ -194,15 +194,15 @@ impl ZooModel {
             format_version: Version_0_5_x::new(),
             rdf_type: RdfTypeModel,
             authors: self.authors,
-            documentation: documentation,
-            inputs: inputs,
+            documentation,
+            inputs,
             license: self.license,
             name: self.name,
-            outputs: outputs,
+            outputs,
             run_mode: None,
-            timestamp: timestamp,
+            timestamp,
             training_data: None, //FIXME
-            weights: weights,
+            weights,
         };
         let model_json_val = serde_json::to_value(&model_rdf).unwrap();
 
