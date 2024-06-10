@@ -4,7 +4,7 @@ use std::{
 
 use bioimg_spec::rdf::{
     self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
-        ModelRdf, RdfTypeModel
+        legacy::Version_0_4_X_OrEarlier, ModelRdfV0_5, RdfTypeModel
     }, non_empty_list::NonEmptyList, version::Version_0_5_x, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
 };
 use bioimg_spec::rdf::model as  modelrdf;
@@ -60,6 +60,8 @@ pub enum ModelLoadingError{
     InputTensorParsingError(#[from] modelrdf::input_tensor::InputTensorParsingError),
     #[error("Invalid input/output configurtation: {0}")]
     TensorValidationError(#[from] TensorValidationError),
+    #[error("Unsupported legacy model version: {version}")]
+    UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier}
 }
 
 pub struct ZooModel {
@@ -97,6 +99,10 @@ impl ZooModel{
             return Err(ModelLoadingError::RdfYamlNotFound)
         }?;
         let model_rdf: modelrdf::ModelRdf = serde_yaml::from_reader(rdf_yaml)?;
+        let model_rdf = match model_rdf{
+            modelrdf::ModelRdf::Legacy(legacy_model) => return Err(ModelLoadingError::UnsupportedLegacyModel { version: legacy_model.format_version }),
+            modelrdf::ModelRdf::V05(modern_model) => modern_model,
+        };
 
         let covers: Vec<CoverImage> = model_rdf.covers.into_iter()
             .map(|rdf_cover| CoverImage::try_load(rdf_cover, &mut archive))
@@ -178,7 +184,7 @@ impl ZooModel {
         let timestamp = iso8601_timestamp::Timestamp::now_utc();
         let weights = self.weights.rdf_dump(&mut writer)?;
 
-        let model_rdf = ModelRdf {
+        let model_rdf = ModelRdfV0_5 {
             description: self.description,
             covers,
             id: None,
