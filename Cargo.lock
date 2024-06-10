@@ -185,7 +185,7 @@ dependencies = [
 
 [[package]]
 name = "bioimg_gui"
-version = "0.1.0"
+version = "0.1.6"
 dependencies = [
  "bioimg_runtime",
  "bioimg_spec",
