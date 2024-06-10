@@ -45,19 +45,19 @@ impl StatefulWidget for WeightsWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
-                ui.strong("Torchscript weights: ");
+                ui.strong("Torchscript: ");
                 self.torchscript_weights_widget.draw_and_parse(ui, id.with("tsweights".as_ptr()));
             });
             ui.horizontal(|ui|{
-                ui.strong("Pytorch state dict weights: ");
+                ui.strong("Pytorch state dict: ");
                 self.pytorch_state_dict_widget.draw_and_parse(ui, id.with("pytorch".as_ptr()));
             });
             ui.horizontal(|ui|{
-                ui.strong("Keras Weights: ");
+                ui.strong("Keras: ");
                 self.keras_weights_widget.draw_and_parse(ui, id.with("keras".as_ptr()));
             });
             ui.horizontal(|ui|{
-                ui.strong("Onnx Weights: ");
+                ui.strong("Onnx: ");
                 self.onnx_eights_widget.draw_and_parse(ui, id.with("onnx".as_ptr()));
             });
 
