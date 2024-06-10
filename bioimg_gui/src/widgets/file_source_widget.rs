@@ -3,7 +3,7 @@ use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 use bioimg_runtime as rt;
 
 use crate::{result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, StatefulWidget, ValueWidget};
+use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, util::group_frame, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
@@ -105,24 +105,26 @@ impl StatefulWidget for FileSourceWidget{
                 ui.radio_value(&mut self.mode, FileSourceWidgetMode::Path, "Path");
                 ui.radio_value(&mut self.mode, FileSourceWidgetMode::Url, "Url");
             });
-            match self.mode{
-                FileSourceWidgetMode::Path => {
-                    self.outer_file_widget.draw_and_parse(ui, id.with("outer".as_ptr()));
-                    let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &mut self.outer_file_widget.state else {
-                        return;
-                    };
-                    let FileSourceState::PickingInner { inner_options_widget, .. } = file_source_state else {
-                        return;
-                    };
-                    ui.horizontal(|ui|{
-                        ui.strong("Path within zip: ");
-                        inner_options_widget.draw_and_parse(ui, id.with("inner".as_ptr()));
-                    });
-                },
-                FileSourceWidgetMode::Url => {
-                    self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
-                },
-            }
+            group_frame(ui, |ui|{
+                match self.mode{
+                    FileSourceWidgetMode::Path => {
+                        self.outer_file_widget.draw_and_parse(ui, id.with("outer".as_ptr()));
+                        let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &mut self.outer_file_widget.state else {
+                            return;
+                        };
+                        let FileSourceState::PickingInner { inner_options_widget, .. } = file_source_state else {
+                            return;
+                        };
+                        ui.horizontal(|ui|{
+                            ui.strong("Path within zip: ");
+                            inner_options_widget.draw_and_parse(ui, id.with("inner".as_ptr()));
+                        });
+                    },
+                    FileSourceWidgetMode::Url => {
+                        self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
+                    },
+                }
+            });
         });
     }
 
