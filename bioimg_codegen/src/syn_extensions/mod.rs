@@ -1,24 +1,22 @@
-use quote::quote;
+// use quote::quote;
 
-pub trait AttributeExt {
-}
+// pub trait AttributeExt {
+// }
 
-impl AttributeExt for syn::Attribute {
-}
+// impl AttributeExt for syn::Attribute {
+// }
 
 
-pub trait FieldExt {
-}
+// pub trait FieldExt {
+// }
 
-impl FieldExt for syn::Field {
-}
 
-pub trait IdentExt {
-    fn to_lit_str(&self) -> syn::LitStr;
-}
+// pub trait IdentExt {
+//     fn to_lit_str(&self) -> syn::LitStr;
+// }
 
-impl IdentExt for syn::Ident {
-    fn to_lit_str(&self) -> syn::LitStr {
-        syn::LitStr::new(&quote!(#self).to_string(), self.span())
-    }
-}
+// impl IdentExt for syn::Ident {
+//     fn to_lit_str(&self) -> syn::LitStr {
+//         syn::LitStr::new(&quote!(#self).to_string(), self.span())
+//     }
+// }
