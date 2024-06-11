@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{self, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
 pub struct StagingMaintainer {
@@ -24,6 +24,25 @@ impl ValueWidget for StagingMaintainer{
 
 impl ItemWidgetConf for StagingMaintainer{
     const ITEM_NAME: &'static str = "Maintainer";
+}
+
+impl ItemWidgetConf for CollapsibleWidget<StagingMaintainer>{
+    const ITEM_NAME: &'static str = "Maintainer";
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for StagingMaintainer{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(author) => {
+                ui.label(author.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
 }
 
 impl Default for StagingMaintainer {

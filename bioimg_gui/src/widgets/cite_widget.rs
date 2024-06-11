@@ -6,7 +6,7 @@ use bioimg_spec::rdf::{
     cite_entry::CiteEntry2,
 };
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, StatefulWidget, ValueWidget};
 
 pub type ConfString = BoundedString<1, 1023>;
 
@@ -40,6 +40,26 @@ impl ValueWidget for StagingCiteEntry2{
 impl ItemWidgetConf for StagingCiteEntry2{
     const ITEM_NAME: &'static str = "Cite";
     const MIN_NUM_ITEMS: usize = 1;
+}
+
+impl ItemWidgetConf for CollapsibleWidget<StagingCiteEntry2>{
+    const ITEM_NAME: &'static str = "Cite";
+    const MIN_NUM_ITEMS: usize = 1;
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for StagingCiteEntry2{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(author) => {
+                ui.label(author.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
 }
 
 impl Default for StagingCiteEntry2 {
