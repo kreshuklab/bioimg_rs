@@ -51,12 +51,12 @@ pub struct BioimgGui {
     // id?
     pub staging_authors: StagingVec<CollapsibleWidget<StagingAuthor2>>,
     pub attachments_widget: StagingVec<AttachmentsWidget>,
-    pub staging_citations: StagingVec<StagingCiteEntry2>,
+    pub staging_citations: StagingVec<CollapsibleWidget<StagingCiteEntry2>>,
     //config
     pub staging_git_repo: StagingOpt<StagingUrl>,
     pub icon_widget: StagingOpt<IconWidget>,
     //links
-    pub staging_maintainers: StagingVec<StagingMaintainer>,
+    pub staging_maintainers: StagingVec<CollapsibleWidget<StagingMaintainer>>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
     pub staging_version: StagingOpt<VersionWidget>,
 
