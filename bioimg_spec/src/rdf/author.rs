@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::rdf::BoundedString;
@@ -20,6 +22,19 @@ pub struct Author2 {
     pub email: Option<BoundedString<1, 1023>>,       // FIXME: make a parser here (Email) E-Mail
     pub github_user: Option<BoundedString<1, 1023>>, // (String) GitHub user name.
     pub orcid: Option<Orcid>,
+}
+
+impl Display for Author2{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)?;
+        if let Some(email) = &self.email{
+            write!(f, " 📧{email}")?;
+        }
+        if let Some(github_user) = &self.github_user{
+            write!(f, " github: {github_user}")?;
+        }
+        Ok(())
+    }
 }
 
 impl From<Author> for Author2 {

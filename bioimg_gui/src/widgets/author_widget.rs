@@ -1,6 +1,6 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
 pub type ConfString = BoundedString<1, 1023>;
@@ -29,6 +29,26 @@ impl ItemWidgetConf for StagingAuthor2{
     const MIN_NUM_ITEMS: usize = 1;
 }
 
+impl ItemWidgetConf for CollapsibleWidget<StagingAuthor2>{
+    const ITEM_NAME: &'static str = "Author";
+    const MIN_NUM_ITEMS: usize = 1;
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for StagingAuthor2{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(author) => {
+                ui.label(author.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
+}
+
 impl Default for StagingAuthor2 {
     fn default() -> Self {
         Self {
@@ -40,6 +60,7 @@ impl Default for StagingAuthor2 {
         }
     }
 }
+
 
 impl StatefulWidget for StagingAuthor2 {
     type Value<'p> = Result<Author2>;

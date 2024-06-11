@@ -10,6 +10,7 @@ use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
+use crate::widgets::collapsible_widget::CollapsibleWidget;
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::icon_widget::IconWidgetValue;
@@ -48,7 +49,7 @@ pub struct BioimgGui {
     pub staging_description: StagingString<BoundedString<1, 1023>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     // id?
-    pub staging_authors: StagingVec<StagingAuthor2>,
+    pub staging_authors: StagingVec<CollapsibleWidget<StagingAuthor2>>,
     pub attachments_widget: StagingVec<AttachmentsWidget>,
     pub staging_citations: StagingVec<StagingCiteEntry2>,
     //config
