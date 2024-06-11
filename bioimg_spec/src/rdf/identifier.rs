@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, fmt::Display, sync::Arc};
+use std::{borrow::Borrow, error::Error, fmt::Display, ops::Deref, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,13 @@ const PYTHON_KEYWORDS: [&'static str; 35] = [
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct Identifier(Arc<str>);
+
+impl Deref for Identifier{
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Identifier {
     pub fn appended_with(&self, suffix: &str) -> Self { //FIXME?
