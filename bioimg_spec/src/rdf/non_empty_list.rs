@@ -1,5 +1,5 @@
 use std::{
-    borrow::Borrow, num::NonZeroUsize, ops::{Deref, DerefMut}
+    borrow::Borrow, fmt::Display, num::NonZeroUsize, ops::{Deref, DerefMut}
 };
 
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct NonEmptyList<T>(Vec<T>);
+
+impl<T: Display> Display for NonEmptyList<T>{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+        for item in &self.0{
+            write!(f, "{}", item)?;
+        }
+        write!(f, "]")
+    }
+}
 
 impl<T> From<NonEmptyList<T>> for Vec<T>{
     fn from(value: NonEmptyList<T>) -> Self {
