@@ -28,7 +28,7 @@ pub struct InputTensorWidget {
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<InputAxisWidget>>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
-    pub preprocessing_widget: StagingVec<PreprocessingWidget>,
+    pub preprocessing_widget: StagingVec<CollapsibleWidget<PreprocessingWidget>>,
 
     pub parsed: Result<InputSlot<Arc<NpyArray>>>,
 }
@@ -149,9 +149,9 @@ impl StatefulWidget for InputTensorWidget {
 pub struct OutputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
-    pub axes_widget: StagingVec<OutputAxisWidget>,
+    pub axes_widget: StagingVec<CollapsibleWidget<OutputAxisWidget>>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
-    pub postprocessing_widget: StagingVec<PostprocessingWidget>,
+    pub postprocessing_widget: StagingVec<CollapsibleWidget<PostprocessingWidget>>,
 
     pub parsed: Result<OutputSlot<Arc<NpyArray>>>,
 }
@@ -210,7 +210,7 @@ impl StatefulWidget for OutputTensorWidget {
                     modelrdf::AxisType::Space
                 };
                 axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
-                self.axes_widget.staging.push(axis_widget)
+                self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
             }
         };
         ui.vertical(|ui| {

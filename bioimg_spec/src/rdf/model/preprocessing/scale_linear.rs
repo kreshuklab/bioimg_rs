@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{rdf::{model::axes::NonBatchAxisId, non_empty_list::NonEmptyList}, util::SingleOrMultiple};
 
 use super::{_default_to_1, _default_to_single_1, _default_to_single_0};
@@ -6,6 +8,15 @@ use super::{_default_to_1, _default_to_single_1, _default_to_single_0};
 pub enum ScaleLinearDescr{
     Simple(SimpleScaleLinearDescr),
     AlongAxis(ScaleLinearAlongAxisDescr)
+}
+
+impl Display for ScaleLinearDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::Simple(prep) => prep.fmt(f),
+            Self::AlongAxis(prep) => prep.fmt(f),
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -18,6 +29,12 @@ pub struct SimpleScaleLinearDescr{
     pub offset: f32,
 }
 
+impl Display for SimpleScaleLinearDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Scale Linear (gain: {}, offset: {})", self.gain, self.offset)
+    }
+}
+
 // //////////////////////
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -26,6 +43,12 @@ pub struct SimpleScaleLinearDescr{
 pub struct ScaleLinearAlongAxisDescr{
     pub axis: NonBatchAxisId,
     pub gain_offsets: NonEmptyList<(f32, f32)>,
+}
+
+impl Display for ScaleLinearAlongAxisDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Scale Linear along {}", self.axis)
+    }
 }
 
 #[derive(thiserror::Error, Debug)]

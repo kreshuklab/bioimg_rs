@@ -2,7 +2,7 @@ use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::Result;
-use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, fixed_zero_mean_unit_variance_widget::FixedZmuvWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, search_and_pick_widget::SearchAndPickWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget, ValueWidget};
+use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, collapsible_widget::{CollapsibleWidget, SummarizableWidget}, fixed_zero_mean_unit_variance_widget::FixedZmuvWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, search_and_pick_widget::SearchAndPickWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default, Clone, strum::VariantArray, strum::AsRefStr, strum::VariantNames, strum::Display)]
 pub enum PreprocessingWidgetMode {
@@ -76,6 +76,25 @@ impl ValueWidget for PreprocessingWidget{
 
 impl ItemWidgetConf for PreprocessingWidget{
     const ITEM_NAME: &'static str = "Preprocessing";
+}
+
+impl ItemWidgetConf for CollapsibleWidget<PreprocessingWidget>{
+    const ITEM_NAME: &'static str = "Preprocessing";
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for PreprocessingWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(prep) => {
+                ui.label(prep.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        };
+    }
 }
 
 impl StatefulWidget for PreprocessingWidget{

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ClipDescrParsingError{
     #[error("Max '{max}' not greater than min '{min}'")]
@@ -12,6 +14,13 @@ pub struct ClipDescr {
     min: f32,
     max: f32,
 }
+
+impl Display for ClipDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Clip (min: {}, max: {})", self.min, self.max)
+    }
+}
+
 impl ClipDescr {
     pub fn min(&self) ->  f32{
         self.min

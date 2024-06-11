@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::rdf::NonEmptyList;
 
 use super::{preprocessing::{BinarizeDescr, ClipDescr, EnsureDtype, FixedZmuv, PreprocessingEpsilon, ScaleLinearDescr, ScaleRangeDescr, Sigmoid, Zmuv}, AxisId, TensorId};
@@ -26,6 +28,21 @@ pub enum PostprocessingDescr {
     ScaleMeanVarianceDescr(ScaleMeanVarianceDescr),
 }
 
+impl Display for PostprocessingDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::Binarize(prep) => prep.fmt(f),
+            Self::Clip(prep) => prep.fmt(f),
+            Self::EnsureDtype(prep) => prep.fmt(f),
+            Self::ScaleLinear(prep) => prep.fmt(f),
+            Self::Sigmoid(prep) => prep.fmt(f),
+            Self::FixedZeroMeanUnitVariance(prep) => prep.fmt(f),
+            Self::ZeroMeanUnitVariance(prep) => prep.fmt(f),
+            Self::ScaleRange(prep) => prep.fmt(f),
+            Self::ScaleMeanVarianceDescr(prep) => prep.fmt(f),
+        }
+    }
+}
 /// Scale a tensor's data distribution to match another tensor's mean/std.
 /// `out  = (tensor - mean) / (std + eps) * (ref_std + eps) + ref_mean.`
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -45,4 +62,14 @@ pub struct ScaleMeanVarianceDescr{
     #[serde(default)]
     pub eps: PreprocessingEpsilon,
 
+}
+
+impl Display for ScaleMeanVarianceDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Scale Mean Variance(ε={}, ref='{}'", self.eps, self.reference_tensor)?;
+        if let Some(axes) = &self.axes{
+            write!(f, ", axes={axes}")?;
+        }
+        write!(f, ")")
+    }
 }

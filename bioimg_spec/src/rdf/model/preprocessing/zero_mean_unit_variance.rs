@@ -33,11 +33,30 @@ pub struct Zmuv {
     pub eps: PreprocessingEpsilon,
 }
 
+impl Display for Zmuv{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "mean=0 σ²=1 (ε={}", self.eps)?;
+        if let Some(axes) = &self.axes{
+            write!(f, ", axes={}", axes)?;
+        }
+        write!(f, ")")
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum FixedZmuv{
     Simple(SimpleFixedZmuv),
     AlongAxis(FixedZmuvAlongAxis)
+}
+
+impl Display for FixedZmuv{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::Simple(prep) => prep.fmt(f),
+            Self::AlongAxis(prep) => prep.fmt(f),
+        }
+    }
 }
 
 impl TryFrom<f32> for ZmuvStdDeviation{
@@ -79,6 +98,12 @@ pub struct SimpleFixedZmuv{
     pub std: ZmuvStdDeviation,
 }
 
+impl Display for SimpleFixedZmuv{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Fixed mean=0 σ²=1 (from mean={}, σ={})", self.mean, self.std)
+    }
+}
+
 
 // Normalize with fixed, precomputed values for mean and variance.
 // See `zero_mean_unit_variance` for data dependent normalization.
@@ -88,6 +113,12 @@ pub struct SimpleFixedZmuv{
 pub struct FixedZmuvAlongAxis{
     pub mean_and_std: NonEmptyList<SimpleFixedZmuv>,
     pub axis: NonBatchAxisId,
+}
+
+impl Display for FixedZmuvAlongAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Fixed mean=0 σ²=1 along {}", self.axis)
+    }
 }
 
 impl TryFrom<FixedZmuvAlongAxisMsg> for FixedZmuvAlongAxis{

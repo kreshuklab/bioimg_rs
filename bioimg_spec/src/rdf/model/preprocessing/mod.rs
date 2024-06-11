@@ -111,3 +111,18 @@ pub enum PreprocessingDescr {
     #[serde(rename = "scale_range")]
     ScaleRange(ScaleRangeDescr),
 }
+
+impl Display for PreprocessingDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::Binarize(prep) => prep.fmt(f),
+            Self::Clip(prep) => prep.fmt(f),
+            Self::EnsureDtype(prep) => prep.fmt(f),
+            Self::ScaleLinear(prep) => prep.fmt(f),
+            Self::Sigmoid(prep) => prep.fmt(f),
+            Self::FixedZeroMeanUnitVariance(prep) => prep.fmt(f),
+            Self::ZeroMeanUnitVariance(prep) => prep.fmt(f),
+            Self::ScaleRange(prep) => prep.fmt(f),
+        }
+    }
+}

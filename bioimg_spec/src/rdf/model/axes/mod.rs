@@ -26,6 +26,12 @@ pub enum AxisIdParsingError{
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct NonBatchAxisId(AxisId);
 
+impl Display for NonBatchAxisId{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl Borrow<AxisId> for NonBatchAxisId{
     fn borrow(&self) -> &AxisId {
         &self.0

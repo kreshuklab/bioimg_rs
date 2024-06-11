@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::rdf::model::{AxisId, TensorId};
 
 use super::{PreprocessingEpsilon, PreprocessingEpsilonParsingError, _default_to_0f32, _default_to_100f32};
@@ -109,4 +111,14 @@ pub struct ScaleRangeDescr{
     // For a tensor in `outputs` only input tensor refereences are allowed if `mode: per_dataset`
     #[serde(default)]
     pub reference_tensor: Option<TensorId>,
+}
+
+impl Display for ScaleRangeDescr{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Scale Range(ε={}, min={}%, max={}&", self.eps, self.percentiles.min(), self.percentiles.max())?;
+        if let Some(ref_tensor) = &self.reference_tensor{
+            write!(f, ", ref={ref_tensor}")?;
+        }
+        write!(f, ")")
+    }
 }

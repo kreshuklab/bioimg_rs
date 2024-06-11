@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::rdf::model::axis_size::FixedOrRefAxisSize;
@@ -49,6 +51,12 @@ pub struct TimeOutputAxis {
     pub size: OutputSpacetimeSize,
 }
 
+impl Display for TimeOutputAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Time: {}", self.id)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpaceOutputAxis {
     #[serde(default = "_default_space_axis_id")]
@@ -61,6 +69,12 @@ pub struct SpaceOutputAxis {
     pub scale: AxisScale,
     #[serde(flatten)]
     pub size: OutputSpacetimeSize,
+}
+
+impl Display for SpaceOutputAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Space: {}", self.id)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -76,6 +90,18 @@ pub enum OutputAxis {
     Time(TimeOutputAxis),
     #[serde(rename = "space")]
     Space(SpaceOutputAxis),
+}
+
+impl Display for OutputAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self{
+            Self::Batch(axis) => axis.fmt(f),
+            Self::Channel(axis) => axis.fmt(f),
+            Self::Index(axis) => axis.fmt(f),
+            Self::Time(axis) => axis.fmt(f),
+            Self::Space(axis) => axis.fmt(f),
+        }
+    }
 }
 
 impl From<BatchAxis> for OutputAxis{
