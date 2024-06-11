@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::io::{Seek, Write};
 use std::path::Path;
 use std::sync::Arc;
@@ -34,6 +35,23 @@ pub enum ModelInterfaceLoadingError{
 pub struct InputSlot <DATA: Borrow<NpyArray>> {
     pub tensor_meta: modelrdf::input_tensor::InputTensorMetadata,
     pub test_tensor: DATA,
+}
+
+impl<DATA: Borrow<NpyArray>> Display for InputSlot<DATA>{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}([", self.tensor_meta.id)?;
+        for (idx, axis) in self.tensor_meta.axes().iter().enumerate(){
+            write!(f, "{}", axis.id())?;
+            if idx != self.tensor_meta.axes().len() - 1{
+                write!(f, ", ")?;
+            }
+        }
+        write!(f, "])")?;
+        if !self.tensor_meta.preprocessing().is_empty(){
+            write!(f, " (preprocessed)")?;
+        }
+        Ok(())
+    }
 }
 
 impl InputSlot<Arc<NpyArray>> {
@@ -92,6 +110,23 @@ impl<DATA: Borrow<NpyArray>> VecInputSlotExt for [InputSlot<DATA>]{
 pub struct OutputSlot<DATA: Borrow<NpyArray>> {
     pub tensor_meta: modelrdf::output_tensor::OutputTensorMetadata,
     pub test_tensor: DATA,
+}
+
+impl<DATA: Borrow<NpyArray>> Display for OutputSlot<DATA>{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}([", self.tensor_meta.id)?;
+        for (idx, axis) in self.tensor_meta.axes().iter().enumerate(){
+            write!(f, "{}", axis.id())?;
+            if idx != self.tensor_meta.axes().len() - 1{
+                write!(f, ", ")?;
+            }
+        }
+        write!(f, "])")?;
+        if !self.tensor_meta.postprocessing().is_empty(){
+            write!(f, " (postprocessed)")?;
+        }
+        Ok(())
+    }
 }
 
 impl OutputSlot<Arc<NpyArray>> {

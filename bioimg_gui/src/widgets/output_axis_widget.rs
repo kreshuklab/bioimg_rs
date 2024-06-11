@@ -259,7 +259,7 @@ impl ItemWidgetConf for OutputAxisWidget{
 }
 
 impl ItemWidgetConf for CollapsibleWidget<OutputAxisWidget>{
-    const ITEM_NAME: &'static str = "Input Axis";
+    const ITEM_NAME: &'static str = "Output Axis";
     const GROUP_FRAME: bool = false;
 }
 

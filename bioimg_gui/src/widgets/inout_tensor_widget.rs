@@ -9,7 +9,7 @@ use crate::result::{GuiError, Result, VecResultExt};
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
-use super::collapsible_widget::CollapsibleWidget;
+use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::error_display::{show_error, show_if_error};
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::posstprocessing_widget::PostprocessingWidget;
@@ -63,6 +63,25 @@ impl ValueWidget for InputTensorWidget{
 
 impl ItemWidgetConf for InputTensorWidget{
     const ITEM_NAME: &'static str = "Input Tensor";
+}
+
+impl ItemWidgetConf for CollapsibleWidget<InputTensorWidget>{
+    const ITEM_NAME: &'static str = "Input Tensor";
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for InputTensorWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(slot) => {
+                ui.label(slot.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
 }
 
 impl StatefulWidget for InputTensorWidget {
@@ -186,6 +205,24 @@ impl ValueWidget for OutputTensorWidget{
 
 impl ItemWidgetConf for OutputTensorWidget{
     const ITEM_NAME: &'static str = "Output Tensor";
+}
+impl ItemWidgetConf for CollapsibleWidget<OutputTensorWidget>{
+    const ITEM_NAME: &'static str = "Output Tensor";
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for OutputTensorWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(slot) => {
+                ui.label(slot.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
 }
 
 impl StatefulWidget for OutputTensorWidget {

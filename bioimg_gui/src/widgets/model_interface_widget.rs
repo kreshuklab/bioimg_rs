@@ -1,3 +1,4 @@
+use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::ValueWidget;
 use super::{
@@ -12,8 +13,8 @@ use bioimg_runtime::npy_array::ArcNpyArray;
 use crate::result::{GuiError, Result};
 
 pub struct ModelInterfaceWidget {
-    pub inputs_widget: StagingVec<InputTensorWidget>,
-    pub outputs_widget: StagingVec<OutputTensorWidget>,
+    pub inputs_widget: StagingVec<CollapsibleWidget<InputTensorWidget>>,
+    pub outputs_widget: StagingVec<CollapsibleWidget<OutputTensorWidget>>,
     pub parsed: Result<specrt::ModelInterface<ArcNpyArray>>,
 }
 
