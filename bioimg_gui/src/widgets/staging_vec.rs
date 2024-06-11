@@ -6,6 +6,7 @@ pub trait ItemWidgetConf{
     const ITEM_NAME: &'static str;
     const INLINE_ITEM: bool = false;
     const MIN_NUM_ITEMS: usize = 0;
+    const GROUP_FRAME: bool = true;
 }
 
 pub struct StagingVec<Stg, Conf=Stg>{
@@ -51,7 +52,7 @@ where
         ui.vertical(|ui| {
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
                 let item_label = format!("{} #{}", Conf::ITEM_NAME, idx + 1);
-                group_frame(ui, |ui| {
+                let render_item = |ui: &mut egui::Ui| {
                     if Conf::INLINE_ITEM{
                         ui.horizontal(|ui|{
                             ui.label(item_label);
@@ -61,7 +62,12 @@ where
                         ui.label(item_label);
                         staging_item.draw_and_parse(ui, id.with(idx));
                     }
-                });
+                };
+                if Conf::GROUP_FRAME{
+                    group_frame(ui, render_item);
+                }else{
+                    render_item(ui);
+                }
             });
             ui.horizontal(|ui| {
                 if ui.button(format!("+ Add {}", Conf::ITEM_NAME)).clicked() {
