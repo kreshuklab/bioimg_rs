@@ -19,8 +19,10 @@ pub struct BatchAxisWidget {
     pub staging_allow_auto_size: bool,
 }
 
-impl BatchAxisWidget{
-    pub fn set_value(&mut self, value: modelrdf::BatchAxis){
+impl ValueWidget for BatchAxisWidget{
+    type Value<'v> = modelrdf::BatchAxis;
+
+    fn set_value(&mut self, value: modelrdf::BatchAxis){
         self.description_widget.raw = value.description.into();
         self.staging_allow_auto_size = value.size.is_none();
     }
@@ -70,8 +72,10 @@ pub struct ChannelAxisWidget {
     pub staging_explicit_names: ChannelNamesWidget,
 }
 
-impl ChannelAxisWidget{
-    pub fn set_value(&mut self, value: modelrdf::ChannelAxis){
+impl ValueWidget for ChannelAxisWidget{
+    type Value<'v> = modelrdf::ChannelAxis;
+
+    fn set_value(&mut self, value: modelrdf::ChannelAxis){
         self.description_widget.raw = value.description.into();
         self.channel_names_mode_widget.set_value(ChannelNamesMode::Explicit);
         self.staging_explicit_names.staging = Vec::from(value.channel_names).into_iter().map(|ident|{
