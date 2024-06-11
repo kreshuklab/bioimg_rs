@@ -181,6 +181,12 @@ pub struct BatchAxis {
     pub size: Option<LiteralInt<1>>,
 }
 
+impl Display for BatchAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Batch")
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChannelAxis {
     #[serde(default)]
@@ -191,6 +197,12 @@ pub struct ChannelAxis {
     pub channel_names: NonEmptyList<Identifier>,
     // #[serde(default)]
     // pub channel_names: ChannelNames, // FIXME: do we need to handle "#channel_names" ?
+}
+
+impl Display for ChannelAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Channels {}", self.channel_names)
+    }
 }
 
 impl ChannelAxis{
@@ -215,6 +227,11 @@ pub struct IndexAxis {
     pub size: AnyAxisSize,
 }
 
+impl Display for IndexAxis{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Index") //FIXME: maybe include size?
+    }
+}
 
 fn _default_time_axis_id() -> AxisId {
     String::from("time").try_into().unwrap()
