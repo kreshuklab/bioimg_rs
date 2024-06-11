@@ -2,6 +2,7 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model as modelrdf;
 
+use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_float::StagingFloat;
 use super::staging_opt::StagingOpt;
@@ -158,6 +159,7 @@ impl InputAxisWidget{
         out
     }
 }
+
 impl ValueWidget for InputAxisWidget{
     type Value<'v> = modelrdf::InputAxis;
     fn set_value(&mut self, value: modelrdf::InputAxis){
@@ -188,6 +190,25 @@ impl ValueWidget for InputAxisWidget{
 
 impl ItemWidgetConf for InputAxisWidget{
     const ITEM_NAME: &'static str = "Input Axis";
+}
+
+impl ItemWidgetConf for CollapsibleWidget<InputAxisWidget>{
+    const ITEM_NAME: &'static str = "Input Axis";
+    const GROUP_FRAME: bool = false;
+}
+
+impl SummarizableWidget for InputAxisWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(axis) => {
+                ui.label(axis.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
 }
 
 impl StatefulWidget for InputAxisWidget{

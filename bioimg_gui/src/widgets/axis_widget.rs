@@ -6,6 +6,7 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::{self as modelrdf};
 
 use super::channel_name_widget::ChannelNamesWidget;
+use super::collapsible_widget::SummarizableWidget;
 use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_string::StagingString;
 use super::util::group_frame;
@@ -53,6 +54,20 @@ impl StatefulWidget for BatchAxisWidget{
     }
 }
 
+impl SummarizableWidget for BatchAxisWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(axis) => {
+                ui.label(axis.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            }
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Default, strum::VariantArray, strum::Display)]
 pub enum ChannelNamesMode {
     #[default]
@@ -83,6 +98,21 @@ impl ValueWidget for ChannelAxisWidget{
         }).collect();
     }
 }
+
+impl SummarizableWidget for ChannelAxisWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        match self.state(){
+            Ok(axis) => {
+                ui.label(axis.to_string());
+            },
+            Err(err) => {
+                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
+                ui.label(rich_text);
+            },
+        }
+    }
+}
+
 
 impl StatefulWidget for ChannelAxisWidget{
     type Value<'p> = Result<modelrdf::ChannelAxis>;

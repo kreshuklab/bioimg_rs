@@ -9,6 +9,7 @@ use crate::result::{GuiError, Result, VecResultExt};
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
+use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::{show_error, show_if_error};
 use super::file_widget::{FileWidget, FileWidgetState};
 use super::posstprocessing_widget::PostprocessingWidget;
@@ -25,7 +26,7 @@ pub struct InputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub is_optional: bool,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
-    pub axes_widget: StagingVec<InputAxisWidget>,
+    pub axes_widget: StagingVec<CollapsibleWidget<InputAxisWidget>>,
     pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
     pub preprocessing_widget: StagingVec<PreprocessingWidget>,
 
@@ -86,7 +87,7 @@ impl StatefulWidget for InputTensorWidget {
                     modelrdf::AxisType::Space
                 };
                 axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
-                self.axes_widget.staging.push(axis_widget)
+                self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
             }
         };
         ui.vertical(|ui| {
