@@ -11,8 +11,11 @@ pub struct NonEmptyList<T>(Vec<T>);
 impl<T: Display> Display for NonEmptyList<T>{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[")?;
-        for item in &self.0{
+        for (idx, item) in self.0.iter().enumerate(){
             write!(f, "{}", item)?;
+            if idx != self.0.len() - 1{
+                write!(f, ", ")?;
+            }
         }
         write!(f, "]")
     }
