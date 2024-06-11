@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::rdf::BoundedString;
@@ -16,6 +18,12 @@ pub struct CiteEntry2 {
     pub text: BoundedString<1, 1023>,        //(String) free text description
     pub doi: Option<BoundedString<1, 1023>>, // FIXME: make it stricter (DOI→String) digital object identifier, see https://www.doi.org/ (alternatively specify url)
     pub url: Option<HttpUrl>,
+}
+
+impl Display for CiteEntry2{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.text)
+    }
 }
 
 impl From<CiteEntry> for CiteEntry2 {

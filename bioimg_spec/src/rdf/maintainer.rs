@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use super::{bounded_string::BoundedString, orcid::Orcid, slashless_string::SlashlessString};
@@ -13,3 +15,15 @@ pub struct Maintainer {
     pub github_user: BoundedString<1, 1023>, //FIXME validate this somehow
 }
 
+impl Display for Maintainer{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(name) = &self.name{
+            write!(f, "{name} ")?;
+        };
+        write!(f, " github: {}", self.github_user)?;
+        if let Some(email) = &self.email{
+            write!(f, " 📧{email}")?;
+        }
+        Ok(())
+    }
+}
