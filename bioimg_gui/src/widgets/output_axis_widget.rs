@@ -42,12 +42,6 @@ impl OutputSpacetimeSizeWidget{
     }
 }
 
-
-impl ItemWidgetConf for CollapsibleWidget<OutputAxisWidget>{
-    const ITEM_NAME: &'static str = "Input Axis";
-    const GROUP_FRAME: bool = false;
-}
-
 impl SummarizableWidget for OutputAxisWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         match self.state(){
@@ -262,6 +256,11 @@ pub struct OutputAxisWidget {
 
 impl ItemWidgetConf for OutputAxisWidget{
     const ITEM_NAME: &'static str = "Output Axis";
+}
+
+impl ItemWidgetConf for CollapsibleWidget<OutputAxisWidget>{
+    const ITEM_NAME: &'static str = "Input Axis";
+    const GROUP_FRAME: bool = false;
 }
 
 impl StatefulWidget for OutputAxisWidget{
