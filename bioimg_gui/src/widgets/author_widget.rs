@@ -3,7 +3,7 @@ use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Or
 use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
-pub type ConfString = BoundedString<1, 1023>;
+pub type ConfString = BoundedString<1, 1024>;
 
 pub struct StagingAuthor2 {
     pub staging_name: StagingString<ConfString>,                    // (Name→String) Full name.

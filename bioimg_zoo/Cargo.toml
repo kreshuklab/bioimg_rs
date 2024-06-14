@@ -2,6 +2,7 @@
 name = "bioimg_zoo"
 version = "0.1.0"
 edition = "2021"
+rust-version="1.79"
 
 [dependencies]
 bioimg_spec = { version = "0.1.0", path = "../bioimg_spec" }

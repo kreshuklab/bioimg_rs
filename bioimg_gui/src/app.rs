@@ -46,7 +46,7 @@ impl Default for PackingStatus {
 
 pub struct BioimgGui {
     pub staging_name: StagingString<ResourceName>,
-    pub staging_description: StagingString<BoundedString<1, 1023>>,
+    pub staging_description: StagingString<BoundedString<1, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     // id?
     pub staging_authors: StagingVec<CollapsibleWidget<StagingAuthor2>>,

@@ -8,7 +8,7 @@ use bioimg_spec::rdf::{
 
 use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, StatefulWidget, ValueWidget};
 
-pub type ConfString = BoundedString<1, 1023>;
+pub type ConfString = BoundedString<1, 1024>;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum CiteEntry2ParsingError {

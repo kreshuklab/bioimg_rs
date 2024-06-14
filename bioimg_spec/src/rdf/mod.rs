@@ -44,15 +44,15 @@ pub use non_empty_list::NonEmptyList;
 
 use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
-pub type ResourceId = SlashlessString<Lowercase<BoundedString<1, 1023>>>;
-pub type ResourceTextDescription = BoundedString<1, {1024 - 1}>;
-pub type ResourceName = BoundedString<5, {1024 - 5}>;
+pub type ResourceId = SlashlessString<Lowercase<BoundedString<1, 1024>>>;
+pub type ResourceTextDescription = BoundedString<1, 1024>;
+pub type ResourceName = BoundedString<5, 1024>;
 
 // #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 // pub struct Rdf {
 //     pub format_version: Version_0_5_0,
-//     pub description: BoundedString<1, 1023>, //FIXME: double chekc lengrhs
-//     pub name: BoundedString<1, 1023>,
+//     pub description: BoundedString<1, 1024>, //FIXME: double chekc lengrhs
+//     pub name: BoundedString<1, 1024>,
 //     pub attachments: Option<Attachments>,
 //     pub authors: Option<Vec<Author>>,
 //     pub badges: Option<Vec<Badge>>,
@@ -61,14 +61,14 @@ pub type ResourceName = BoundedString<5, {1024 - 5}>;
 //     pub documentation: Option<FileReference>,
 //     pub download_url: Option<FileReference>,
 //     pub git_repo: Option<HttpUrl>,
-//     pub icon: Option<BoundedString<1, 1023>>,
-//     pub id: Option<BoundedString<1, 1023>>,
+//     pub icon: Option<BoundedString<1, 1024>>,
+//     pub id: Option<BoundedString<1, 1024>>,
 //     pub license: Option<SpdxLicense>,
 //     pub links: Option<Vec<FileReference>>,
 //     pub maintainers: Option<Vec<Maintainer>>,
 //     pub rdf_source: Option<FileReference>,
 //     pub source: Option<FileReference>,
-//     pub tags: Option<Vec<BoundedString<1, 1023>>>,
+//     pub tags: Option<Vec<BoundedString<1, 1024>>>,
 //     pub version: Option<Version>,
 // }
 

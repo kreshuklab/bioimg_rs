@@ -3,7 +3,7 @@ name = "bioimg_gui"
 version = "0.1.8"
 authors = ["Tomaz Vieira<tom.fogaca@gmail.com>"]
 edition = "2021"
-rust-version = "1.76"
+rust-version="1.79"
 
 [dependencies]
 egui = "0.27.0"

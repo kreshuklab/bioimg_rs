@@ -4,9 +4,9 @@ use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging
 use crate::result::Result;
 
 pub struct StagingMaintainer {
-    pub github_user_widget: StagingString<BoundedString<1, 1023>>, //FIXME validate this somehow}
-    pub affiliation_widget: StagingOpt<StagingString<BoundedString<1, 1023>>>,
-    pub email_widget: StagingOpt<StagingString<BoundedString<1, 1023>>>, //FIXME
+    pub github_user_widget: StagingString<BoundedString<1, 1024>>, //FIXME validate this somehow}
+    pub affiliation_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>,
+    pub email_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>, //FIXME
     pub orcid_widget: StagingOpt<StagingString<Orcid>>,
     pub name_widget: StagingOpt<StagingString<rdf::MaintainerName>>,
 }

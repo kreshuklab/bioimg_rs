@@ -4,7 +4,7 @@ use super::{bounded_string::BoundedStringParsingError, BoundedString};
 
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug, PartialEq, Eq)]
-pub struct Tag(BoundedString<1, {1024 -1}>);
+pub struct Tag(BoundedString<1, 1024>);
 
 impl Borrow<str> for Tag{
     fn borrow(&self) -> &str {

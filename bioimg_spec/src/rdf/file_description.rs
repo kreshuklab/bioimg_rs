@@ -15,7 +15,7 @@ impl<R: Borrow<FileReference>> Display for FileDescription<R>{
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct Sha256(Lowercase<BoundedString<64, 0>>);
+pub struct Sha256(Lowercase<BoundedString<64, 64>>);
 
 
 pub type EnvironmentFileDescr = FileDescription<EnvironmentFile>;

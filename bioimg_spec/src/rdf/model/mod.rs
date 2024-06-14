@@ -79,7 +79,7 @@ fn _now() -> iso8601_timestamp::Timestamp{
 }
 
 pub type TensorTextDescription = BoundedString<0, 128>;
-pub type ModelRdfName = BoundedString<5, {1024 - 5}>;
+pub type ModelRdfName = BoundedString<5, 1024>;
 
 #[derive(serde::Deserialize)]
 #[serde(untagged)]

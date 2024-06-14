@@ -12,8 +12,8 @@ use super::{
 };
 use crate::rdf::{bounded_string::BoundedString, identifier::Identifier, literal::{LitStr, LiteralInt, StrMarker}, lowercase::{Lowercase, LowercaseParsingError}, non_empty_list::NonEmptyList};
 
-pub type AxisId = Lowercase<BoundedString<1, { 16 - 1 }>>;
-pub type AxisDescription = BoundedString<0, { 128 - 1 }>;
+pub type AxisId = Lowercase<BoundedString<1, 16>>;
+pub type AxisDescription = BoundedString<0, 128>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AxisIdParsingError{

@@ -16,7 +16,7 @@ use crate::result::{GuiError, Result};
 
 #[derive(Default)]
 pub struct BatchAxisWidget {
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
     pub staging_allow_auto_size: bool,
 }
 
@@ -77,7 +77,7 @@ pub enum ChannelNamesMode {
 
 #[derive(Default)]
 pub struct ChannelAxisWidget {
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub channel_names_mode_widget: SearchAndPickWidget<ChannelNamesMode>,
     pub channel_extent_widget: StagingNum<usize, NonZeroUsize>,
@@ -191,7 +191,7 @@ impl StatefulWidget for ChannelAxisWidget{
 
 #[derive(Default)]
 pub struct IndexAxisWidget {
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
     pub size_widget: AnyAxisSizeWidget,
 }
 

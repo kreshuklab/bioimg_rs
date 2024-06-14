@@ -8,19 +8,19 @@ use super::orcid::Orcid;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Author {
-    pub name: BoundedString<1, 1023>,        // (Name→String) Full name. FIXME: disallow / and \.
-    pub affiliation: BoundedString<1, 1023>, // (String) Affiliation.
-    pub email: BoundedString<1, 1023>,       // FIXME: make a parser here (Email) E-Mail
-    pub github_user: BoundedString<1, 1023>, // (String) GitHub user name.
+    pub name: BoundedString<1, 1024>,        // (Name→String) Full name. FIXME: disallow / and \.
+    pub affiliation: BoundedString<1, 1024>, // (String) Affiliation.
+    pub email: BoundedString<1, 1024>,       // FIXME: make a parser here (Email) E-Mail
+    pub github_user: BoundedString<1, 1024>, // (String) GitHub user name.
     pub orcid: Orcid,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Author2 {
-    pub name: BoundedString<1, 1023>,                // (Name→String) Full name.
-    pub affiliation: Option<BoundedString<1, 1023>>, // (String) Affiliation.
-    pub email: Option<BoundedString<1, 1023>>,       // FIXME: make a parser here (Email) E-Mail
-    pub github_user: Option<BoundedString<1, 1023>>, // (String) GitHub user name.
+    pub name: BoundedString<1, 1024>,                // (Name→String) Full name.
+    pub affiliation: Option<BoundedString<1, 1024>>, // (String) Affiliation.
+    pub email: Option<BoundedString<1, 1024>>,       // FIXME: make a parser here (Email) E-Mail
+    pub github_user: Option<BoundedString<1, 1024>>, // (String) GitHub user name.
     pub orcid: Option<Orcid>,
 }
 

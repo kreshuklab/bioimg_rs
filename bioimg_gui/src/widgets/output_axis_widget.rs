@@ -94,7 +94,7 @@ impl StatefulWidget for OutputSpacetimeSizeWidget{
 #[derive(Default)]
 pub struct OutputSpaceAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: OutputSpacetimeSizeWidget,
     pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
@@ -159,7 +159,7 @@ impl StatefulWidget for OutputSpaceAxisWidget{
 #[derive(Default)]
 pub struct OutputTimeAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: OutputSpacetimeSizeWidget,
     pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,

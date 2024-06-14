@@ -16,7 +16,7 @@ use crate::result::Result;
 #[derive(Default)]
 pub struct InputSpaceAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: AnyAxisSizeWidget,
     pub space_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
@@ -82,7 +82,7 @@ impl StatefulWidget for InputSpaceAxisWidget{
 #[derive(Default)]
 pub struct InputTimeAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
-    pub description_widget: StagingString<BoundedString<0, { 128 - 1 }>>,
+    pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: AnyAxisSizeWidget,
     pub time_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
