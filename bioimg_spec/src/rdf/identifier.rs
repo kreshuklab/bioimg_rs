@@ -9,7 +9,7 @@ const PYTHON_KEYWORDS: [&'static str; 35] = [
 ];
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[serde(transparent)]
+#[serde(try_from = "String")]
 pub struct Identifier(Arc<str>);
 
 impl Deref for Identifier{
