@@ -5,7 +5,7 @@ use crate::result::Result;
 
 pub type ConfString = BoundedString<1, 1024>;
 
-pub struct StagingAuthor2 {
+pub struct AuthorWidget {
     pub staging_name: StagingString<ConfString>,                    // (Name→String) Full name.
     pub staging_affiliation: StagingOpt<StagingString<ConfString>>, // (String) Affiliation.
     pub staging_email: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
@@ -13,7 +13,7 @@ pub struct StagingAuthor2 {
     pub staging_orcid: StagingOpt<StagingString<Orcid>>,
 }
 
-impl ValueWidget for StagingAuthor2{
+impl ValueWidget for AuthorWidget{
     type Value<'a> = Author2;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
         self.staging_name.set_value(value.name);
@@ -24,18 +24,18 @@ impl ValueWidget for StagingAuthor2{
     }
 }
 
-impl ItemWidgetConf for StagingAuthor2{
+impl ItemWidgetConf for AuthorWidget{
     const ITEM_NAME: &'static str = "Author";
     const MIN_NUM_ITEMS: usize = 1;
 }
 
-impl ItemWidgetConf for CollapsibleWidget<StagingAuthor2>{
+impl ItemWidgetConf for CollapsibleWidget<AuthorWidget>{
     const ITEM_NAME: &'static str = "Author";
     const MIN_NUM_ITEMS: usize = 1;
     const GROUP_FRAME: bool = false;
 }
 
-impl SummarizableWidget for StagingAuthor2{
+impl SummarizableWidget for AuthorWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         match self.state(){
             Ok(author) => {
@@ -49,7 +49,7 @@ impl SummarizableWidget for StagingAuthor2{
     }
 }
 
-impl Default for StagingAuthor2 {
+impl Default for AuthorWidget {
     fn default() -> Self {
         Self {
             staging_name: Default::default(),
@@ -62,7 +62,7 @@ impl Default for StagingAuthor2 {
 }
 
 
-impl StatefulWidget for StagingAuthor2 {
+impl StatefulWidget for AuthorWidget {
     type Value<'p> = Result<Author2>;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {

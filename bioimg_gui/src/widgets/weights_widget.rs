@@ -4,7 +4,7 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::StagingAuthor2, collapsible_widget::CollapsibleWidget, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
+    author_widget::AuthorWidget, collapsible_widget::CollapsibleWidget, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
 };
 
 pub struct WeightsWidget{
@@ -85,7 +85,7 @@ impl StatefulWidget for WeightsWidget{
 #[derive(Default)]
 pub struct WeightsDescrBaseWidget{
     pub source_widget: FileSourceWidget,
-    pub authors_widget: StagingOpt<StagingVec<CollapsibleWidget<StagingAuthor2>>>,
+    pub authors_widget: StagingOpt<StagingVec<CollapsibleWidget<AuthorWidget>>>,
     // pub parent_widget: Option<WeightsFormat>,
 }
 

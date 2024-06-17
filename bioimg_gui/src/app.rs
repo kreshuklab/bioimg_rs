@@ -25,7 +25,7 @@ use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::ValueWidget;
 use crate::widgets::{
-    author_widget::StagingAuthor2, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
+    author_widget::AuthorWidget, cite_widget::StagingCiteEntry2, code_editor_widget::CodeEditorWidget,
     icon_widget::IconWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
     util::group_frame, StatefulWidget,
 };
@@ -49,7 +49,7 @@ pub struct BioimgGui {
     pub staging_description: StagingString<BoundedString<1, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     // id?
-    pub staging_authors: StagingVec<CollapsibleWidget<StagingAuthor2>>,
+    pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
     pub attachments_widget: StagingVec<AttachmentsWidget>,
     pub staging_citations: StagingVec<CollapsibleWidget<StagingCiteEntry2>>,
     //config
