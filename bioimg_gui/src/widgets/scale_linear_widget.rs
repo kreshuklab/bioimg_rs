@@ -114,7 +114,7 @@ impl StatefulWidget for ScaleLinearAlongAxisWidget{
             });
             self.parsed = || -> Result<modelrdfpreproc::ScaleLinearAlongAxisDescr>{
                 Ok(modelrdfpreproc::ScaleLinearAlongAxisDescr{
-                    axis: self.axis_widget.state()?,
+                    axis: self.axis_widget.state()?.clone(),
                     gain_offsets: self.gain_offsets_widget.state()
                         .collect_result()?
                         .iter()

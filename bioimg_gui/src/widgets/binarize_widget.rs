@@ -91,7 +91,7 @@ impl StatefulWidget for BinarizeAlongAxisWidget{
                 .try_into()
                 .map_err(|_| GuiError::new("Could not make a non-empty list".into()))?;
             Ok(preproc::BinarizeAlongAxisDescr{
-                axis: self.axis_id_widget.state()?,
+                axis: self.axis_id_widget.state()?.clone(),
                 threshold: thresholds
             })
         }();

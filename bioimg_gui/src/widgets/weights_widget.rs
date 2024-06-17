@@ -156,7 +156,7 @@ impl StatefulWidget for KerasHdf5WeightsWidget{
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(rt::KerasHdf5Weights{
             weights: self.base_widget.state()?,
-            tensorflow_version: self.tensorflow_version_widget.state()?,
+            tensorflow_version: self.tensorflow_version_widget.state()?.clone(),
         })
     }
 }
@@ -194,7 +194,7 @@ impl StatefulWidget for TorchscriptWeightsWidget{
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(rt::TorchscriptWeights{
             weights: self.base_widget.state()?,
-            pytorch_version: self.pytorch_version_widget.state()?,
+            pytorch_version: self.pytorch_version_widget.state()?.clone(),
         })
     }
 }

@@ -289,7 +289,9 @@ impl eframe::App for BioimgGui {
                                     .map_err(|_| GuiError::new("Cites are empty".into()))?;
 
                                 let tags: Vec<rdf::Tag> = self.staging_tags.state()
-                                    .collect_result()
+                                    .into_iter()
+                                    .map(|res_ref| res_ref.cloned())
+                                    .collect::<Result<Vec<_>>>()
                                     .map_err(|_| GuiError::new("Check tags for errors".into()))?;
 
                                 let authors = NonEmptyList::try_from(
@@ -297,7 +299,9 @@ impl eframe::App for BioimgGui {
                                 ).map_err(|_| GuiError::new("Empty authors".into()))?;
 
                                 Ok(ZooModel {
-                                    description: self.staging_description.state().map_err(|_| GuiError::new("Check resource text description for errors".into()))?,
+                                    description: self.staging_description.state()
+                                        .cloned()
+                                        .map_err(|_| GuiError::new("Check resource text description for errors".into()))?,
                                     covers,
                                     attachments,
                                     cite: non_empty_cites,
@@ -311,11 +315,14 @@ impl eframe::App for BioimgGui {
                                     tags,
                                     version: self.staging_version.state()
                                         .transpose()
-                                        .map_err(|_| GuiError::new("Review resource version field".into()))?,
+                                        .map_err(|_| GuiError::new("Review resource version field".into()))?
+                                        .cloned(),
                                     authors,
                                     documentation: self.staging_documentation.state().to_owned(),
                                     license: self.staging_license.state(),
-                                    name: self.staging_name.state().map_err(|_| GuiError::new("Check resoure name for errors".into()))?,
+                                    name: self.staging_name.state()
+                                        .cloned()
+                                        .map_err(|_| GuiError::new("Check resoure name for errors".into()))?,
                                     weights: self.weights_widget.state().map_err(|_| GuiError::new("Check model weights for errors".into()))?.as_ref().clone(),
                                     interface: model_interface,
                                 })

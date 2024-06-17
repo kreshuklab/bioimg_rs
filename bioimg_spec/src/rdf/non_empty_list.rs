@@ -52,6 +52,17 @@ impl<T> TryFrom<Vec<T>> for NonEmptyList<T> {
     }
 }
 
+impl<'a, T: Clone> TryFrom<Vec<&'a T>> for NonEmptyList<T> {
+    type Error = Vec<&'a T>;
+    fn try_from(value: Vec<&'a T>) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            Err(value)
+        } else {
+            Ok(Self(value.into_iter().map(|v| v.clone()).collect()))
+        }
+    }
+}
+
 impl<T> Borrow<[T]> for NonEmptyList<T> {
     fn borrow(&self) -> &[T] {
         return &self.0;

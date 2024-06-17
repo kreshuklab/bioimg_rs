@@ -93,8 +93,8 @@ impl StatefulWidget for StagingCiteEntry2 {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(CiteEntry2 {
-            text: self.staging_text.state().to_owned()?,
-            doi: self.staging_doi.state().to_owned().transpose()?,
+            text: self.staging_text.state()?.clone(),
+            doi: self.staging_doi.state().transpose()?.cloned(),
             url: self.staging_url.state()
                 .transpose()?
                 .map(|val| val.as_ref().clone())

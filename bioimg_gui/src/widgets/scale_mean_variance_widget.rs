@@ -48,7 +48,7 @@ impl StatefulWidget for ScaleMeanVarianceWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(postproc::ScaleMeanVarianceDescr {
-            reference_tensor: self.reference_tensor_widget.state()?,
+            reference_tensor: self.reference_tensor_widget.state()?.clone(),
             eps: self.eps_widget.state()?,
             axes: self.axes_widget.state()
                 .map(|val| val.collect_result())

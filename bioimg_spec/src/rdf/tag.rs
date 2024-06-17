@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, str::FromStr};
 
 use super::{bounded_string::BoundedStringParsingError, BoundedString};
 
@@ -22,5 +22,12 @@ impl TryFrom<String> for Tag{
     type Error = BoundedStringParsingError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Ok(Self(BoundedString::try_from(value)?))
+    }
+}
+
+impl FromStr for Tag {
+    type Err = BoundedStringParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(BoundedString::from_str(s)?))
     }
 }

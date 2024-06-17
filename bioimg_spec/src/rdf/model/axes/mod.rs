@@ -44,6 +44,15 @@ impl Borrow<str> for NonBatchAxisId{
     }
 }
 
+impl FromStr for NonBatchAxisId{
+    type Err = AxisIdParsingError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let axis_id = AxisId::from_str(s)?;
+        Self::try_from(axis_id)
+    }
+}
+
 impl TryFrom<AxisId> for NonBatchAxisId{
     type Error = AxisIdParsingError;
     fn try_from(value: AxisId) -> Result<Self, Self::Error> {

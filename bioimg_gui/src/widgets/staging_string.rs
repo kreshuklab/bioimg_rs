@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, fmt::Display};
+use std::{borrow::Borrow, error::Error, fmt::Display, str::FromStr};
 
 use crate::result::{GuiError, Result};
 
@@ -71,12 +71,25 @@ where
     }
 }
 
+impl<T> StagingString<T>
+where
+    T: FromStr<Err: Display> + Borrow<str>,
+{
+    pub fn update(&mut self){
+        if let Ok(val) = &self.parsed{
+            if val.borrow() == self.raw.as_str(){
+                return
+            }
+        }
+        self.parsed = T::from_str(&self.raw).map_err(|err| GuiError::new(err.to_string()));
+    }
+}
+
 impl<T> StatefulWidget for StagingString<T>
 where
-    T: TryFrom<String> + Clone,
-    T::Error: Display,
+    T: FromStr<Err: Display> + Borrow<str>,
 {
-    type Value<'p> = Result<T> where T: 'p;
+    type Value<'p> = Result<&'p T> where T: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.horizontal(|ui| {
@@ -91,12 +104,13 @@ where
                     ui.text_edit_multiline(&mut self.raw);
                 }
             }
-            self.parsed = T::try_from(self.raw.clone()).map_err(|err| GuiError::new(err.to_string()));
+            self.update();
             show_if_error(ui, &self.parsed);
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        self.parsed.clone()
+        //GuiErr is cheap to clone, while T not necessarily clonable at all
+        self.parsed.as_ref().map_err(|err| err.clone())
     }
 }

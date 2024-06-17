@@ -90,12 +90,12 @@ impl StatefulWidget for StagingAuthor2 {
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(Author2 {
-            name: self.staging_name.state().to_owned()?,
-            affiliation: self.staging_affiliation.state().transpose().to_owned()?,
-            email: self.staging_email.state().transpose().to_owned()?,
-            github_user: self.staging_github_user.state().transpose().to_owned()?,
-            orcid: self.staging_orcid.state().transpose().to_owned()?,
+        Ok(Author2 { //FIXME: maybe check everything before cloning?
+            name: self.staging_name.state().cloned()?,
+            affiliation: self.staging_affiliation.state().transpose()?.cloned(),
+            email: self.staging_email.state().transpose()?.cloned(),
+            github_user: self.staging_github_user.state().transpose()?.cloned(),
+            orcid: self.staging_orcid.state().transpose()?.cloned(),
         })
     }
 }

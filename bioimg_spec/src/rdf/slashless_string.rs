@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, fmt::Display};
+use std::{borrow::Borrow, error::Error, fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SlashlessString<T>(T);
@@ -30,6 +30,17 @@ where
 {
     fn from(value: SlashlessString<T>) -> Self {
         value.0.borrow().to_owned()
+    }
+}
+
+impl<T> FromStr for SlashlessString<T>
+where
+    T: Borrow<str> + for <'a> TryFrom<&'a str>,
+    for<'a> <T as TryFrom<&'a str>>::Error: Error + 'static
+{
+    type Err = SlashlessStringError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
     }
 }
 

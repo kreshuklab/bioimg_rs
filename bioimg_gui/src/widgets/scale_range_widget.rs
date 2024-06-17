@@ -4,7 +4,7 @@ use bioimg_spec::rdf::model::{preprocessing as modelrdfpreproc, TensorId};
 
 
 
-use crate::result::{GuiError, Result, VecResultExt};
+use crate::result::{GuiError, Result};
 use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
 use super::ValueWidget;
@@ -107,11 +107,17 @@ impl StatefulWidget for ScaleRangeWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
+        let axes = self.axes_widget.state().map(|results| {
+            results.into_iter()
+                .map(|r| r.map(|v| v.clone()))
+                .collect::<Result<Vec<_>>>()
+        });
+
         Ok(modelrdfpreproc::ScaleRangeDescr{
-            axes: self.axes_widget.state().map(|val| val.collect_result()).transpose()?,
+            axes: axes.transpose()?,
             percentiles: self.percentiles_widget.state().as_ref().map_err(|err| err.clone())?.clone(),
             eps: self.epsilon_widget.state()?,
-            reference_tensor: self.reference_tensor.state().transpose()?,
+            reference_tensor: self.reference_tensor.state().transpose()?.cloned(),
         })
     }
 }

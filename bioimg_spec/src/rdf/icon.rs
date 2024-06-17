@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, str::FromStr};
 
 use super::file_reference::FileReference;
 
@@ -32,14 +32,22 @@ impl Borrow<str> for EmojiIcon{
     }
 }
 
+impl FromStr for EmojiIcon{
+    type Err = IconParsingError;
+    //FIXME: check that characters/glyphs,graphemes/whatever are emoji
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if !(1..=2).contains(&value.chars().count()) {
+            return Err(IconParsingError::NotEmoji(value.to_owned()));
+        }
+        return Ok(Self(value.to_owned()));
+    }
+}
+
 impl TryFrom<String> for EmojiIcon {
     type Error = IconParsingError;
     //FIXME: check that characters/glyphs,graphemes/whatever are emoji
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if !(1..=2).contains(&value.chars().count()) {
-            return Err(IconParsingError::NotEmoji(value));
-        }
-        return Ok(Self(value));
+        Self::from_str(&value)
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{fmt::Display, num::ParseIntError};
+use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -32,6 +32,12 @@ impl Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let self_string: String = self.clone().into();
         write!(f, "{self_string}",)
+    }
+}
+impl FromStr for Version{
+    type Err = VersionParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
     }
 }
 impl TryFrom<&str> for Version {

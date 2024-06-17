@@ -105,7 +105,7 @@ impl StatefulWidget for FixedZmuvAlongAxisWidget{
             });
             self.parsed = || -> Result<preproc::FixedZmuvAlongAxis>{
                 Ok(preproc::FixedZmuvAlongAxis{
-                    axis: self.axis_widget.state()?,
+                    axis: self.axis_widget.state()?.clone(),
                     mean_and_std: self.mean_and_std_widget.state()
                         .collect_result()?
                         .iter()

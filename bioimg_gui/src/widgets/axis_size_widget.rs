@@ -49,8 +49,8 @@ impl StatefulWidget for AxisSizeReferenceWidget {
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::AxisSizeReference {
             qualified_axis_id: modelrdf::QualifiedAxisId {
-                tensor_id: self.staging_tensor_id.state()?,
-                axis_id: self.staging_axis_id.state()?,
+                tensor_id: self.staging_tensor_id.state()?.clone(), //FIXME: clone?
+                axis_id: self.staging_axis_id.state()?.clone(), //FIXME: clone?
             },
             offset: self.staging_offset.state()?,
         })

@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, sync::Arc};
+use std::{borrow::Borrow, str::FromStr, sync::Arc};
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum OrcidParsingError{
@@ -47,6 +47,14 @@ impl From<Orcid> for String{
     fn from(value: Orcid) -> String {
         value.digits.as_ref().to_owned()
     }
+}
+
+impl FromStr for Orcid{
+    type Err = OrcidParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        TryFrom::<&str>::try_from(s)
+    }
+    
 }
 
 impl TryFrom<&str> for Orcid{

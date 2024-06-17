@@ -1,29 +1,52 @@
+use std::str::FromStr;
+
 use bioimg_spec::rdf;
 
-use crate::result::Result;
+use crate::result::{GuiError, Result};
 
-use super::{staging_string::StagingString, StatefulWidget, ValueWidget};
+use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 
-#[derive(Default)]
 pub struct VersionWidget{
-    pub inner: StagingString<rdf::Version>,
+    pub raw: String,
+    pub parsed: Result<rdf::Version>,
+}
+
+impl Default for VersionWidget{
+    fn default() -> Self {
+        Self{
+            raw: String::new(),
+            parsed: rdf::Version::from_str("").map_err(|err| GuiError::from(err))
+        }
+    }
+}
+
+impl VersionWidget{
+    pub fn update(&mut self){
+        self.parsed = rdf::Version::from_str(&self.raw).map_err(|err| GuiError::new(err.to_string()));
+    }
 }
 
 impl StatefulWidget for VersionWidget{
-    type Value<'p> = Result<rdf::Version>;
+    type Value<'p> = Result<&'p rdf::Version>;
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.inner.draw_and_parse(ui, id);
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        ui.add(
+            //FIXME: any way we can not hardcode this? at least use font size?
+            egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }),
+        );
+        self.update();
+        show_if_error(ui, &self.parsed);
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        self.inner.state()
+        self.parsed.as_ref().map_err(|err| err.clone())
     }
 }
 
 impl ValueWidget for VersionWidget{
     type Value<'v> = rdf::Version;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.inner.raw = value.into()
+        self.raw = value.to_string();
+        self.parsed = Ok(value)
     }
 } 

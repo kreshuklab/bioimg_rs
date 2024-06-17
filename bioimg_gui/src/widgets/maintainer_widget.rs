@@ -86,11 +86,11 @@ impl StatefulWidget for StagingMaintainer {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(rdf::Maintainer {
-            github_user: self.github_user_widget.state()?,
-            name: self.name_widget.state().transpose()?,
-            affiliation: self.affiliation_widget.state().transpose()?,
-            email: self.email_widget.state().transpose()?,
-            orcid: self.orcid_widget.state().transpose()?,
+            github_user: self.github_user_widget.state()?.clone(),
+            name: self.name_widget.state().transpose()?.cloned(),
+            affiliation: self.affiliation_widget.state().transpose()?.cloned(),
+            email: self.email_widget.state().transpose()?.cloned(),
+            orcid: self.orcid_widget.state().transpose()?.cloned(),
         })
     }
 }

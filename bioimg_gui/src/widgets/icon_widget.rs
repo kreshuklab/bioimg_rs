@@ -77,7 +77,7 @@ impl StatefulWidget for IconWidget {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         match &self.input_mode{
-            InputMode::Emoji => Ok(rt::Icon::Text(self.emoji_icon_widget.state()?)),
+            InputMode::Emoji => Ok(rt::Icon::Text(self.emoji_icon_widget.state()?.clone())),
             InputMode::File => {
                 Ok(rt::Icon::Image(
                     self.image_icon_widget.state()?.clone()

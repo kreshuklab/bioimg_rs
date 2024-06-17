@@ -145,10 +145,10 @@ impl StatefulWidget for InputTensorWidget {
                 let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
                 let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
                 let meta_msg = rdfinput::InputTensorMetadataMsg{
-                    id: self.id_widget.state()?,
+                    id: self.id_widget.state()?.clone(),
                     optional: self.is_optional,
                     preprocessing: self.preprocessing_widget.state().collect_result()?,
-                    description: self.description_widget.state()?,
+                    description: self.description_widget.state()?.clone(),
                     axes: input_axis_group,
                 };
                 Ok(
@@ -282,9 +282,9 @@ impl StatefulWidget for OutputTensorWidget {
                 let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
                 let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
                 let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
-                    id: self.id_widget.state()?,
+                    id: self.id_widget.state()?.clone(),
                     postprocessing: self.postprocessing_widget.state().collect_result()?,
-                    description: self.description_widget.state()?,
+                    description: self.description_widget.state()?.clone(),
                     axes: axis_group,
                 };
                 Ok(

@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, fmt::Display, ops::Deref, sync::Arc};
+use std::{borrow::Borrow, error::Error, fmt::Display, ops::Deref, str::FromStr, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -49,6 +49,13 @@ pub enum IdentifierParsingError {
     ContainsbadCharacter { value: String, position: usize },
     #[error("Value '{value}' is a python keyword")]
     IsPythonKeyword { value: String },
+}
+
+impl FromStr for Identifier{
+    type Err = IdentifierParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
+    }
 }
 
 impl TryFrom<&str> for Identifier{

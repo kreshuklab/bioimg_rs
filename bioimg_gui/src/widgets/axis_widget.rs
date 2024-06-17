@@ -48,7 +48,7 @@ impl StatefulWidget for BatchAxisWidget{
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::BatchAxis{
             id: rdf::LitStr::new(),
-            description: self.description_widget.state()?,
+            description: self.description_widget.state()?.clone(),
             size: self.staging_allow_auto_size.then_some(rdf::LiteralInt::<1>),
         })
     }
@@ -175,7 +175,7 @@ impl StatefulWidget for ChannelAxisWidget{
             }
             ChannelNamesMode::Explicit => {
                 let channel_names_result: Result<Vec<rdf::Identifier>, GuiError> =
-                    self.staging_explicit_names.state().into_iter().collect();
+                    self.staging_explicit_names.state().into_iter().map(|r| r.cloned()).collect();
                 NonEmptyList::try_from(channel_names_result?)
                     .map_err(|_| GuiError::new("Empty list of channel names".to_owned()))?
             }
@@ -183,7 +183,7 @@ impl StatefulWidget for ChannelAxisWidget{
 
         Ok(modelrdf::ChannelAxis {
             id: rdf::LitStr::new(),
-            description: self.description_widget.state()?,
+            description: self.description_widget.state()?.clone(),
             channel_names
         })
     }
@@ -221,7 +221,7 @@ impl StatefulWidget for IndexAxisWidget{
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::IndexAxis {
             id: rdf::LitStr::new(),
-            description: self.description_widget.state()?,
+            description: self.description_widget.state()?.clone(),
             size: self.size_widget.state()?
         })
     }

@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, error::Error, fmt::Display, ops::Deref};
+use std::{borrow::Borrow, error::Error, fmt::Display, ops::Deref, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +35,18 @@ impl<T: Borrow<str>> Deref for Lowercase<T> {
     type Target = str;
     fn deref(&self) -> &Self::Target {
         return self.borrow();
+    }
+}
+
+impl<T, E> FromStr for Lowercase<T>
+where
+    E: Error + 'static,
+    T: for<'a> TryFrom<&'a str, Error = E>,
+    T: Borrow<str>,
+{
+    type Err = LowercaseParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
     }
 }
 

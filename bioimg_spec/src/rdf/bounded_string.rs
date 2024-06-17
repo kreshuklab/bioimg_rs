@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, fmt::Display, ops::RangeInclusive, sync::Arc};
+use std::{borrow::Borrow, fmt::Display, ops::RangeInclusive, str::FromStr, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,13 @@ impl<const MIN_CHARS: usize, const MAX_CHARS: usize> TryFrom<&str> for BoundedSt
         } else {
             Err(BoundedStringParsingError::BadLength { allowed })
         }
+    }
+}
+
+impl<const MIN_CHARS: usize, const MAX_CHARS: usize> FromStr for BoundedString<MIN_CHARS, MAX_CHARS> {
+    type Err = BoundedStringParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        TryFrom::<&str>::try_from(s)
     }
 }
 

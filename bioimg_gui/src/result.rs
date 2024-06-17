@@ -32,7 +32,16 @@ pub trait VecResultExt{
 }
 impl<T> VecResultExt for Vec<Result<T>>{
     type Item = T;
-    fn collect_result(self) -> Result<Vec<T>>{
+    fn collect_result(self) -> Result<Vec<Self::Item>>{
         self.into_iter().collect()
+    }
+}
+impl<'a, T> VecResultExt for Vec<&'a Result<T>>{
+    type Item = &'a T;
+    fn collect_result(self) -> Result<Vec<Self::Item>>{
+        self.iter().map(|it| match it{
+            Ok(val) => Ok(val),
+            Err(err) => Err(err.clone()) 
+        }).collect()
     }
 }

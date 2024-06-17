@@ -63,14 +63,14 @@ impl StatefulWidget for PytorchArchWidget{
     fn state<'p>(&'p self) -> Self::Value<'p> {
         if self.import_from_widget.raw.is_empty(){
             Ok(modelrdf::weights::PyTorchArchitectureFromFileDescr{
-                callable: self.callable_widget.state()?,
+                callable: self.callable_widget.state()?.clone(),
                 kwargs: self.kwargs_widget.state().as_ref().map_err(|err| err.clone())?.clone()
             }.into())
         }else{
             Ok(modelrdf::weights::PyTorchArchitectureFromLibraryDescr{
-                callable: self.callable_widget.state()?,
+                callable: self.callable_widget.state()?.clone(),
                 kwargs: self.kwargs_widget.state().as_ref().map_err(|err| err.clone())?.clone(),
-                import_from: self.import_from_widget.state()?,
+                import_from: self.import_from_widget.state()?.clone(),
             }.into())
         }
     }
@@ -130,7 +130,7 @@ impl StatefulWidget for PytorchStateDictWidget{
             dependencies: self.dependencies_widget.state().map(|file_state| file_state.ok()).transpose()?.cloned(),
             weights: self.base_widget.state()?,
             architecture: self.architecture_widget.state()?,
-            pytorch_version: self.version_widget.state()?,
+            pytorch_version: self.version_widget.state()?.clone(),
         })
     }
 }

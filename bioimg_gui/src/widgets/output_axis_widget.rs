@@ -147,8 +147,8 @@ impl StatefulWidget for OutputSpaceAxisWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::SpaceOutputAxis {
-            id: self.id_widget.state()?,
-            description: self.description_widget.state()?,
+            id: self.id_widget.state()?.clone(),
+            description: self.description_widget.state()?.clone(),
             unit: self.unit_widget.state(),
             scale: self.scale_widget.state()?,
             size: self.size_widget.state()?,
@@ -234,8 +234,8 @@ impl StatefulWidget for OutputTimeAxisWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::TimeOutputAxis {
-            id: self.id_widget.state()?,
-            description: self.description_widget.state()?,
+            id: self.id_widget.state()?.clone(),
+            description: self.description_widget.state()?.clone(),
             unit: self.unit_widget.state(),
             scale: self.scale_widget.state()?,
             size: self.size_widget.state()?

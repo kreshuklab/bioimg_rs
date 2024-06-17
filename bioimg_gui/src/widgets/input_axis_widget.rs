@@ -70,8 +70,8 @@ impl StatefulWidget for InputSpaceAxisWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::SpaceInputAxis {
-            id: self.id_widget.state()?,
-            description: self.description_widget.state()?,
+            id: self.id_widget.state()?.clone(),
+            description: self.description_widget.state()?.clone(),
             unit: self.space_unit_widget.state(),
             scale: self.scale_widget.state()?,
             size: self.size_widget.state()?
@@ -131,8 +131,8 @@ impl StatefulWidget for InputTimeAxisWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(modelrdf::TimeInputAxis {
-            id: self.id_widget.state()?,
-            description: self.description_widget.state()?,
+            id: self.id_widget.state()?.clone(),
+            description: self.description_widget.state()?.clone(),
             unit: self.time_unit_widget.state(),
             scale: self.scale_widget.state()?,
             size: self.size_widget.state()?
