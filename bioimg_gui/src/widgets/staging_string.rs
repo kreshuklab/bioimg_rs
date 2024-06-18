@@ -2,7 +2,7 @@ use std::{borrow::Borrow, error::Error, fmt::Display, str::FromStr};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
+use super::{error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug)]
 pub enum InputLines {
@@ -15,6 +15,20 @@ pub struct StagingString<T> {
     pub raw: String,
     pub parsed: Result<T>,
     pub input_lines: InputLines,
+}
+
+impl<T> Restore for StagingString<T>
+where
+    T: FromStr<Err: Display> + Borrow<str>,
+{
+    type RawData = String;
+    fn dump(&self) -> Self::RawData {
+        self.raw.clone()
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.raw = raw;
+        self.update()
+    }
 }
 
 impl<T: Borrow<str> + Clone> ValueWidget for StagingString<T>{

@@ -1,3 +1,5 @@
+use serde::de::DeserializeOwned;
+
 pub mod author_widget;
 pub mod axis_size_widget;
 pub mod cite_widget;
@@ -59,4 +61,11 @@ pub trait StatefulWidget {
 pub trait ValueWidget{
     type Value<'v>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>);
+}
+
+pub trait Restore{
+    type RawData: serde::Serialize + DeserializeOwned;
+
+    fn dump(&self) -> Self::RawData;
+    fn restore(&mut self, raw: Self::RawData);
 }

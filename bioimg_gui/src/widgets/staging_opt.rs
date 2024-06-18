@@ -1,4 +1,4 @@
-use super::{util::group_frame, StatefulWidget, ValueWidget};
+use super::{util::group_frame, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug, Default)]
 pub struct StagingOpt<Stg>(pub Option<Stg>);
@@ -47,5 +47,24 @@ where
             widget.set_value(val);
             widget
         });
+    }
+}
+
+impl<W: Restore + Default> Restore for StagingOpt<W>{
+    type RawData = Option<W::RawData>;
+    fn dump(&self) -> Self::RawData {
+        self.0.as_ref().map(|val| val.dump())
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        match raw{
+            None => {
+                self.0 = None
+            },
+            Some(val) => {
+                let mut inner = W::default();
+                inner.restore(val);
+                self.0 = Some(inner)
+            }
+        }
     }
 }
