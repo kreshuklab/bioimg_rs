@@ -187,6 +187,7 @@ dependencies = [
 name = "bioimg_gui"
 version = "0.1.8"
 dependencies = [
+ "bioimg_codegen",
  "bioimg_runtime",
  "bioimg_spec",
  "eframe",

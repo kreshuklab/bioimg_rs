@@ -1,4 +1,5 @@
 use serde::de::DeserializeOwned;
+use bioimg_codegen::Restore;
 
 pub mod author_widget;
 pub mod axis_size_widget;

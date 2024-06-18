@@ -1,9 +1,11 @@
-pub struct AuthorWidgetProjectData1{
-    pub name: String,
-    pub affiliation: Option<String>,
-    pub email: Option<String>,
-    pub github_user: Option<String>,
-    pub orcid: Option<String>,
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AuthorWidgetRawData{
+    pub name_widget: String,
+    pub affiliation_widget: Option<String>,
+    pub email_widget: Option<String>,
+    pub github_user_widget: Option<String>,
+    pub orcid_widget: Option<String>,
 }
 
 pub struct ProjectData1{

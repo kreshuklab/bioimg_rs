@@ -1,32 +1,19 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
-use crate::{project_data::AuthorWidgetProjectData1, result::Result};
+use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, Restore, StatefulWidget, ValueWidget};
+use crate::{result::Result};
 
 pub type ConfString = BoundedString<1, 1024>;
 
+#[derive(Restore)]
 pub struct AuthorWidget {
-    pub name_widget: StagingString<ConfString>,                    // (Name→String) Full name.
-    pub affiliation_widget: StagingOpt<StagingString<ConfString>>, // (String) Affiliation.
-    pub email_widget: StagingOpt<StagingString<ConfString>>,       // FIXME: make a parser here (Email) E-Mail
-    pub github_user_widget: StagingOpt<StagingString<ConfString>>, // (String) GitHub user name.
+    pub name_widget: StagingString<ConfString>,
+    pub affiliation_widget: StagingOpt<StagingString<ConfString>>,
+    pub email_widget: StagingOpt<StagingString<ConfString>>,
+    pub github_user_widget: StagingOpt<StagingString<ConfString>>,
     pub orcid_widget: StagingOpt<StagingString<Orcid>>,
 }
 
-impl AuthorWidget{
-    pub fn get_proj_data(&self) -> AuthorWidgetProjectData1{
-        AuthorWidgetProjectData1 {
-            name: self.name_widget.raw.clone(),
-            affiliation: self.affiliation_widget.0.as_ref().map(|val| val.raw.clone()),
-            email: self.email_widget.0.as_ref().map(|val| val.raw.clone()),
-            github_user: self.github_user_widget.0.as_ref().map(|val| val.raw.clone()),
-            orcid: self.orcid_widget.0.as_ref().map(|val| val.raw.clone()),
-        }
-    }
-    pub fn restor_from_proj_data(&mut self, _proj_data: AuthorWidgetProjectData1){
-        // self.name_widget.set_value(proj_data.name);
-    }
-}
 
 impl ValueWidget for AuthorWidget{
     type Value<'a> = Author2;
