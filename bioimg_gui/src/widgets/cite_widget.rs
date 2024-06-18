@@ -6,7 +6,7 @@ use bioimg_spec::rdf::{
     cite_entry::CiteEntry2,
 };
 
-use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, Restore, StatefulWidget, ValueWidget};
 
 pub type ConfString = BoundedString<1, 1024>;
 
@@ -22,6 +22,7 @@ pub enum CiteEntry2ParsingError {
     BadUrl(#[from] url::ParseError),
 }
 
+#[derive(Restore)]
 pub struct CiteEntryWidget {
     pub citation_text_widget: StagingString<ConfString>,
     pub doi_widget: StagingOpt<StagingString<ConfString>>,

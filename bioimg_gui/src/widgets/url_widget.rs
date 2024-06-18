@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bioimg_spec::rdf::HttpUrl;
 
-use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
+use super::{error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
 use crate::result::{GuiError, Result};
 
 pub struct StagingUrl {
@@ -16,6 +16,16 @@ impl ValueWidget for StagingUrl{
         self.raw.clear();
         self.raw += value.as_str();
         self.parsed = Ok(value)
+    }
+}
+
+impl Restore for StagingUrl{
+    type RawData = String;
+    fn dump(&self) -> Self::RawData {
+        self.raw.clone()
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        let _ = std::mem::replace(self, Self::new_with_raw(raw));
     }
 }
 

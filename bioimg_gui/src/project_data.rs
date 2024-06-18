@@ -8,6 +8,13 @@ pub struct AuthorWidgetRawData{
     pub orcid_widget: Option<String>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CiteEntryWidgetRawData {
+    pub citation_text_widget: String,
+    pub doi_widget: Option<String>,
+    pub url_widget: Option<String>,
+}
+
 pub struct ProjectData1{
     pub staging_name: String,
     pub staging_description: String,
