@@ -22,13 +22,13 @@ pub enum CiteEntry2ParsingError {
     BadUrl(#[from] url::ParseError),
 }
 
-pub struct StagingCiteEntry2 {
+pub struct CiteEntryWidget {
     pub staging_text: StagingString<ConfString>,
     pub staging_doi: StagingOpt<StagingString<ConfString>>,
     pub staging_url: StagingOpt<StagingUrl>,
 }
 
-impl ValueWidget for StagingCiteEntry2{
+impl ValueWidget for CiteEntryWidget{
     type Value<'a> = CiteEntry2;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
         self.staging_text.set_value(value.text);
@@ -37,18 +37,18 @@ impl ValueWidget for StagingCiteEntry2{
     }
 }
 
-impl ItemWidgetConf for StagingCiteEntry2{
+impl ItemWidgetConf for CiteEntryWidget{
     const ITEM_NAME: &'static str = "Cite";
     const MIN_NUM_ITEMS: usize = 1;
 }
 
-impl ItemWidgetConf for CollapsibleWidget<StagingCiteEntry2>{
+impl ItemWidgetConf for CollapsibleWidget<CiteEntryWidget>{
     const ITEM_NAME: &'static str = "Cite";
     const MIN_NUM_ITEMS: usize = 1;
     const GROUP_FRAME: bool = false;
 }
 
-impl SummarizableWidget for StagingCiteEntry2{
+impl SummarizableWidget for CiteEntryWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         match self.state(){
             Ok(author) => {
@@ -62,7 +62,7 @@ impl SummarizableWidget for StagingCiteEntry2{
     }
 }
 
-impl Default for StagingCiteEntry2 {
+impl Default for CiteEntryWidget {
     fn default() -> Self {
         Self {
             staging_text: Default::default(),
@@ -72,7 +72,7 @@ impl Default for StagingCiteEntry2 {
     }
 }
 
-impl StatefulWidget for StagingCiteEntry2 {
+impl StatefulWidget for CiteEntryWidget {
     type Value<'p> = Result<CiteEntry2>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
