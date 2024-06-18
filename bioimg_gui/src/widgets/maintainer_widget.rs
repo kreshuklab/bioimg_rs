@@ -4,7 +4,7 @@ use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging
 use crate::result::Result;
 
 #[derive(Restore)]
-pub struct StagingMaintainer {
+pub struct MaintainerWidget {
     pub github_user_widget: StagingString<BoundedString<1, 1024>>, //FIXME validate this somehow}
     pub affiliation_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>,
     pub email_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>, //FIXME
@@ -12,7 +12,7 @@ pub struct StagingMaintainer {
     pub name_widget: StagingOpt<StagingString<rdf::MaintainerName>>,
 }
 
-impl ValueWidget for StagingMaintainer{
+impl ValueWidget for MaintainerWidget{
     type Value<'a> = rdf::Maintainer;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
         self.github_user_widget.set_value(value.github_user);
@@ -23,16 +23,16 @@ impl ValueWidget for StagingMaintainer{
     }
 }
 
-impl ItemWidgetConf for StagingMaintainer{
+impl ItemWidgetConf for MaintainerWidget{
     const ITEM_NAME: &'static str = "Maintainer";
 }
 
-impl ItemWidgetConf for CollapsibleWidget<StagingMaintainer>{
+impl ItemWidgetConf for CollapsibleWidget<MaintainerWidget>{
     const ITEM_NAME: &'static str = "Maintainer";
     const GROUP_FRAME: bool = false;
 }
 
-impl SummarizableWidget for StagingMaintainer{
+impl SummarizableWidget for MaintainerWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         match self.state(){
             Ok(author) => {
@@ -46,7 +46,7 @@ impl SummarizableWidget for StagingMaintainer{
     }
 }
 
-impl Default for StagingMaintainer {
+impl Default for MaintainerWidget {
     fn default() -> Self {
         Self {
             github_user_widget: Default::default(),
@@ -58,7 +58,7 @@ impl Default for StagingMaintainer {
     }
 }
 
-impl StatefulWidget for StagingMaintainer {
+impl StatefulWidget for MaintainerWidget {
     type Value<'p> = Result<rdf::Maintainer>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {

@@ -26,7 +26,7 @@ use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::ValueWidget;
 use crate::widgets::{
     author_widget::AuthorWidget, cite_widget::CiteEntryWidget, code_editor_widget::CodeEditorWidget,
-    icon_widget::IconWidget, maintainer_widget::StagingMaintainer, url_widget::StagingUrl,
+    icon_widget::IconWidget, maintainer_widget::MaintainerWidget, url_widget::StagingUrl,
     util::group_frame, StatefulWidget,
 };
 
@@ -56,7 +56,7 @@ pub struct BioimgGui {
     pub staging_git_repo: StagingOpt<StagingUrl>,
     pub icon_widget: StagingOpt<IconWidget>,
     //links
-    pub staging_maintainers: StagingVec<CollapsibleWidget<StagingMaintainer>>,
+    pub staging_maintainers: StagingVec<CollapsibleWidget<MaintainerWidget>>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
     pub staging_version: StagingOpt<VersionWidget>,
 
