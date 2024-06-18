@@ -23,17 +23,17 @@ pub enum CiteEntry2ParsingError {
 }
 
 pub struct CiteEntryWidget {
-    pub staging_text: StagingString<ConfString>,
-    pub staging_doi: StagingOpt<StagingString<ConfString>>,
-    pub staging_url: StagingOpt<StagingUrl>,
+    pub citation_text_widget: StagingString<ConfString>,
+    pub doi_widget: StagingOpt<StagingString<ConfString>>,
+    pub url_widget: StagingOpt<StagingUrl>,
 }
 
 impl ValueWidget for CiteEntryWidget{
     type Value<'a> = CiteEntry2;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
-        self.staging_text.set_value(value.text);
-        self.staging_doi.set_value(value.doi);
-        self.staging_url.set_value(value.url.map(|val| Arc::new(val)));
+        self.citation_text_widget.set_value(value.text);
+        self.doi_widget.set_value(value.doi);
+        self.url_widget.set_value(value.url.map(|val| Arc::new(val)));
     }
 }
 
@@ -65,9 +65,9 @@ impl SummarizableWidget for CiteEntryWidget{
 impl Default for CiteEntryWidget {
     fn default() -> Self {
         Self {
-            staging_text: Default::default(),
-            staging_doi: Default::default(),
-            staging_url: Default::default(),
+            citation_text_widget: Default::default(),
+            doi_widget: Default::default(),
+            url_widget: Default::default(),
         }
     }
 }
@@ -78,24 +78,24 @@ impl StatefulWidget for CiteEntryWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         egui::Grid::new(id).show(ui, |ui| {
             ui.strong("Text: ");
-            self.staging_text.draw_and_parse(ui, id.with("Text"));
+            self.citation_text_widget.draw_and_parse(ui, id.with("Text"));
             ui.end_row();
 
             ui.strong("Doi: ");
-            self.staging_doi.draw_and_parse(ui, id.with("Doi"));
+            self.doi_widget.draw_and_parse(ui, id.with("Doi"));
             ui.end_row();
 
             ui.strong("Url: ");
-            self.staging_url.draw_and_parse(ui, id.with("Url"));
+            self.url_widget.draw_and_parse(ui, id.with("Url"));
             ui.end_row();
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(CiteEntry2 {
-            text: self.staging_text.state()?.clone(),
-            doi: self.staging_doi.state().transpose()?.cloned(),
-            url: self.staging_url.state()
+            text: self.citation_text_widget.state()?.clone(),
+            doi: self.doi_widget.state().transpose()?.cloned(),
+            url: self.url_widget.state()
                 .transpose()?
                 .map(|val| val.as_ref().clone())
         })
