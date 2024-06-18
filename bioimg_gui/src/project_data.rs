@@ -15,6 +15,15 @@ pub struct CiteEntryWidgetRawData {
     pub url_widget: Option<String>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct StagingMaintainerRawData {
+    pub github_user_widget: String,
+    pub affiliation_widget: Option<String>,
+    pub email_widget: Option<String>,
+    pub orcid_widget: Option<String>,
+    pub name_widget: Option<String>,
+}
+
 pub struct ProjectData1{
     pub staging_name: String,
     pub staging_description: String,

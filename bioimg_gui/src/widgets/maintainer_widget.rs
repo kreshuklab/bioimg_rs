@@ -1,8 +1,9 @@
 use bioimg_spec::rdf::{self, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, Restore, StatefulWidget, ValueWidget};
 use crate::result::Result;
 
+#[derive(Restore)]
 pub struct StagingMaintainer {
     pub github_user_widget: StagingString<BoundedString<1, 1024>>, //FIXME validate this somehow}
     pub affiliation_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>,
