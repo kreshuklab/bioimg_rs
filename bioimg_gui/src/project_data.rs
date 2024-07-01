@@ -1,3 +1,4 @@
+use bioimg_runtime as rt;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorWidgetRawData{
@@ -22,6 +23,33 @@ pub struct MaintainerWidgetRawData {
     pub email_widget: Option<String>,
     pub orcid_widget: Option<String>,
     pub name_widget: Option<String>,
+}
+
+// #[derive(serde::Serialize, serde::Deserialize)]
+// pub struct ImageWidget2RawData{
+//     pub file_source_widget_popup_button_raw_data: FileSourceWidgetPopupButtonRawData,
+
+// }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum FileWidgetResultRawData<OkRawData>{
+    Empty,
+    AboutToLoad{path: String},
+    Finished{path: String, value: Result<OkRawData, String>}
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum LocalFileSourceRawData{
+    PickedNormalFile{path: String},
+    PickedEmptyZip{path: String},
+    PickingInner{outer: String, inner: String},
+}
+
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum FileSourceWidgetRawData{
+    Path(LocalFileSourceRawData),
+    Url(String),
 }
 
 pub struct ProjectData1{

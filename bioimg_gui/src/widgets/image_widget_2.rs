@@ -4,7 +4,7 @@ use poll_promise as pp;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, util::DynamicImageExt, StatefulWidget, ValueWidget};
+use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
 
 pub type ArcDynImg = Arc<image::DynamicImage>;
 
@@ -75,6 +75,13 @@ pub struct ImageWidget2{
     pub picker_button: FileSourceWidgetPopupButton,
     loading_state: LoadingState,
 }
+
+// impl Restore for ImageWidget2{
+//     type RawData = ImageWidget2RawData;
+//     fn dump(&self) -> Self::RawData {
+//         //FIXME: I was trying to dump this somehow, it might ned info form both loading_state and picker_button
+//     }
+// }
 
 impl ValueWidget for ImageWidget2{
     type Value<'v> = (Option<rt::FileSource>, Option<ArcDynImg>);

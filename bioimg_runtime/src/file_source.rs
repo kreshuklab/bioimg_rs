@@ -14,7 +14,7 @@ pub enum FileSourceError{
     HttpError(#[from] ureq::Error)
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FileSource{
     LocalFile{path: Arc<Path>},
     FileInZipArchive{outer_path: Arc<Path>, inner_path: Arc<str>},

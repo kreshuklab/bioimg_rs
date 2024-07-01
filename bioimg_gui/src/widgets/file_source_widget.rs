@@ -2,8 +2,8 @@ use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 
 use bioimg_runtime as rt;
 
-use crate::{result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, util::group_frame, StatefulWidget, ValueWidget};
+use crate::{project_data::FileSourceWidgetRawData, result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
+use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, util::group_frame, Restore, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
@@ -69,6 +69,28 @@ pub struct FileSourceWidget{
     pub outer_file_widget: FileWidget<Result<FileSourceState>>,
     pub http_url_widget: StagingUrl,
 }
+
+// impl Restore for FileSourceWidget{
+//     type RawData = FileSourceWidgetRawData;
+//     fn dump(&self) -> Self::RawData {
+//         match self.mode{
+//             FileSourceWidgetMode::Path => FileSourceWidgetRawData::Path(self.outer_file_widget.dump()),
+//             FileSourceWidgetMode::Url => FileSourceWidgetRawData::Url(self.http_url_widget.dump()),
+//         }
+//     }
+//     fn restore(&mut self, raw: Self::RawData) {
+//         match raw{
+//             FileSourceWidgetRawData::Path(path_dump) => {
+//                 self.mode = FileSourceWidgetMode::Path;
+//                 self.outer_file_widget.restore(path_dump)
+//             },
+//             FileSourceWidgetRawData::Url(raw_url) => {
+//                 self.mode = FileSourceWidgetMode::Url;
+//                 self.http_url_widget.restore(raw_url);
+//             }
+//         }
+//     }
+// }
 
 impl ValueWidget for FileSourceWidget{
     type Value<'v> = rt::FileSource;
@@ -165,6 +187,28 @@ pub enum FileSourceWidgetPopupButton<C: FileSourcePopupConfig = DefaultFileSourc
     Picking{file_source_widget: FileSourceWidget},
     Ready{file_source: rt::FileSource, marker: PhantomData<C>},
 }
+
+// impl Restore for FileSourceWidgetPopupButton{
+//     type RawData = FileSourceWidgetPopupButtonRawData;
+//     fn dump(&self) -> Self::RawData {
+//         FileSourceWidgetPopupButtonRawData{
+//             state: match self{
+//                 Self::Ready { file_source, .. } => Some(file_source.clone()),
+//                 _ => None
+//             }
+//         }
+//     }
+//     fn restore(&mut self, raw: Self::RawData) {
+//         match raw.state{
+//             None => {
+//                 *self = Self::Empty
+//             },
+//             Some(file_source) => {
+//                 *self = Self::Ready { file_source, marker: PhantomData }
+//             }
+//         }
+//     }
+// }
 
 impl<C: FileSourcePopupConfig> ValueWidget for FileSourceWidgetPopupButton<C>{
     type Value<'v> = rt::FileSource;
