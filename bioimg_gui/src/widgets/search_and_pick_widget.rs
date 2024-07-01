@@ -8,14 +8,14 @@ pub struct SearchableEntry<T>{
     value: T,
 }
 
-pub struct SearchAndPickWidget<T> {
+pub struct SearchAndPickWidget<T, const SHOW_SEARCH: bool = true> {
     pub value: T,
     pub search: String,
     pub popup_open: bool,
     pub entries: Vec<SearchableEntry<T>>,
 }
 
-impl<T> Default for SearchAndPickWidget<T>
+impl<T, const SHOW_SEARCH: bool> Default for SearchAndPickWidget<T, SHOW_SEARCH>
 where
     T: Default + strum::VariantArray + Clone + Display
 {
@@ -36,7 +36,7 @@ impl<T> SearchAndPickWidget<T>
     }
 }
 
-impl<T: Display> SearchAndPickWidget<T>{
+impl<T: Display, const SHOW_SEARCH: bool> SearchAndPickWidget<T, SHOW_SEARCH>{
     pub fn new(value: T, entries: Vec<T>) -> Self{
         Self{
             value,
@@ -80,7 +80,7 @@ impl<T> ValueWidget for SearchAndPickWidget<T>{
     }
 }
 
-impl<T> StatefulWidget for SearchAndPickWidget<T>
+impl<T, const SHOW_SEARCH: bool> StatefulWidget for SearchAndPickWidget<T, SHOW_SEARCH>
 where
     T: Display + Clone
 {
@@ -106,15 +106,19 @@ where
         egui::popup::popup_above_or_below_widget(ui, popup_id, &button_response, above_or_below, |ui| {
             ui.set_min_width(200.0); // if you want to control the size
             ui.vertical(|ui|{
-                let header_rect = ui.vertical(|ui|{
-                    ui.horizontal(|ui| {
-                        ui.label("🔎 ");
-                        let search_resp = ui.text_edit_singleline(&mut self.search);
-                        search_resp.request_focus();
-                    });
-                    ui.add_space(10.0);
-                }).response.rect;
-                let header_height = header_rect.max.y - header_rect.min.y;
+                let header_height = if SHOW_SEARCH{
+                    let header_rect = ui.vertical(|ui|{
+                        ui.horizontal(|ui| {
+                            ui.label("🔎 ");
+                            let search_resp = ui.text_edit_singleline(&mut self.search);
+                            search_resp.request_focus();
+                        });
+                        ui.add_space(10.0);
+                    }).response.rect;
+                    header_rect.max.y - header_rect.min.y
+                } else {
+                    0.0
+                };
 
                 let lower_search = self.search.to_lowercase();
                 let scroll_area = egui::ScrollArea::vertical()
