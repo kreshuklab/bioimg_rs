@@ -1,14 +1,16 @@
 use std::{fmt::Display, path::{Path, PathBuf}, sync::Arc};
 
-use crate::{project_data::FileWidgetResultRawData, result::{GuiError, Result}};
-use super::{error_display::show_error, Restore, StatefulWidget, ValueWidget};
+use crate::result::{GuiError, Result};
+use super::{error_display::show_error, StatefulWidget, ValueWidget};
 
 pub trait ParsedFile: Send + 'static {
     fn parse(path: PathBuf, ctx: egui::Context) -> Self;
     fn render(&self, ui: &mut egui::Ui, id: egui::Id);
 }
 
-pub enum FileWidgetState<V: Send + 'static> {
+#[derive(Default)]
+pub enum FileWidget<V: Send + 'static> {
+    #[default]
     Empty,
     AboutToLoad{ path: Arc<Path> },
     Loading {
@@ -21,7 +23,7 @@ pub enum FileWidgetState<V: Send + 'static> {
     },
 }
 
-impl<V: Send + 'static> FileWidgetState<V>{
+impl<V: Send + 'static> FileWidget<V>{
     pub fn loaded_value(&self) -> Option<&V> {
         if let Self::Finished { value, .. } = self {
             Some(value)
@@ -29,10 +31,6 @@ impl<V: Send + 'static> FileWidgetState<V>{
             None
         }
     }
-}
-
-pub struct FileWidget<PF: ParsedFile> {
-    pub state: FileWidgetState<PF>,
 }
 
 // impl<T: Restore + Default> Restore for FileWidget<Result<T>>
@@ -82,7 +80,7 @@ pub struct FileWidget<PF: ParsedFile> {
 //     }
 // }
 
-impl<T, E> FileWidgetState<Result<T, E>>
+impl<T, E> FileWidget<Result<T, E>>
 where
     T: Send + 'static,
     E: Send + 'static + Display,
@@ -114,31 +112,52 @@ impl<PF: ParsedFile> ValueWidget for FileWidget<PF>{
 impl<PF: ParsedFile> FileWidget<PF> {
     #[allow(dead_code)]
     pub fn path(&self) -> Option<&Path> {
-        match &self.state {
-            FileWidgetState::Empty => None,
-            FileWidgetState::AboutToLoad { path } => Some(path),
-            FileWidgetState::Loading { path, .. } => Some(path),
-            FileWidgetState::Finished { path, .. } => Some(path),
+        match &self {
+            Self::Empty => None,
+            Self::AboutToLoad { path } => Some(path),
+            Self::Loading { path, .. } => Some(path),
+            Self::Finished { path, .. } => Some(path),
         }
-    }
-}
-
-impl<PF: ParsedFile> Default for FileWidget<PF> {
-    fn default() -> Self {
-        Self { state: FileWidgetState::Empty }
     }
 }
 
 impl<T: ParsedFile> FileWidget<T>{
     pub fn set_path(&mut self, path: PathBuf){
-        self.state = FileWidgetState::AboutToLoad { path: Arc::from(path.as_ref()) }; //FIXME: don't use pathbuf?
+        *self = Self::AboutToLoad { path: Arc::from(path.as_ref()) }; //FIXME: don't use pathbuf?
+    }
+}
+
+impl<PF: ParsedFile + Send + 'static> FileWidget<PF> {
+    pub fn update(&mut self, ctx: &egui::Context){
+        *self = match std::mem::replace(self, Self::Empty){
+            Self::AboutToLoad { path } => {
+                let ctx = ctx.clone();
+                Self::Loading {
+                    path: path.clone(),
+                    promise: poll_promise::Promise::spawn_thread(
+                        "loading file",
+                        move || PF::parse(path.as_ref().to_owned(), ctx) //FIXME: maybe don't use to_owned?
+                    )
+                }
+            },
+            Self::Loading { path, promise } => match promise.try_take() {
+                Err(promise) => Self::Loading { path, promise },
+                Ok(parsed) => Self::Finished{
+                    path,
+                    value: parsed
+                },
+            },
+            Self::Finished{ path, value } => Self::Finished{path, value},
+            Self::Empty => Self::Empty,
+        };
     }
 }
 
 impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
-    type Value<'p> = &'p FileWidgetState<PF>;
+    type Value<'p> = &'p Self;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.update(ui.ctx()); //remove this once calling update becomes the standard
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 if ui.button("Open...").clicked(){
@@ -147,40 +166,17 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
                         return;
                     }
                 }
-                self.state = match std::mem::replace(&mut self.state, FileWidgetState::Empty){
-                    FileWidgetState::AboutToLoad { path } => {
-                        ui.ctx().request_repaint();
-                        let texture_name: String = path.to_string_lossy().into();
-                        ui.label(format!("Loading {} ...", texture_name));
-
-                        let ctx = ui.ctx().clone();
-                        FileWidgetState::Loading {
-                            path: path.clone(),
-                            promise: poll_promise::Promise::spawn_thread(
-                                "loading file",
-                                move || { PF::parse(path.as_ref().to_owned(), ctx) } //FIXME: maybe don't use to_owned?
-                            )
-                        }
-                    },
-                    FileWidgetState::Loading { path, promise } => {
+                match &self{
+                    Self::AboutToLoad { path } | Self::Loading { path, .. } => {
                         ui.ctx().request_repaint();
                         ui.label(format!("Loading {} ...", path.to_string_lossy()));
-                        match promise.try_take() {
-                            Err(promise) => FileWidgetState::Loading { path, promise },
-                            Ok(parsed) => FileWidgetState::Finished{
-                                path,
-                                value: parsed
-                            },
-                        }
                     },
-                    FileWidgetState::Finished{ path, value } => {
+                    Self::Finished{ path, value } => {
                         ui.weak(path.to_string_lossy());
                         value.render(ui, id.with("parsed"));
-                        FileWidgetState::Finished{path, value}
                     },
-                    FileWidgetState::Empty => {
+                    Self::Empty => {
                         show_error(ui, "No file selected");
-                        FileWidgetState::Empty
                     },
                 };
             });
@@ -188,7 +184,7 @@ impl<PF: ParsedFile> StatefulWidget for FileWidget<PF> {
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        &self.state
+        self
     }
 }
 

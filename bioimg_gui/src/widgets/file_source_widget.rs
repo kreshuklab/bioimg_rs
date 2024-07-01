@@ -2,8 +2,8 @@ use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 
 use bioimg_runtime as rt;
 
-use crate::{project_data::FileSourceWidgetRawData, result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
-use super::{file_widget::{FileWidget, FileWidgetState, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, util::group_frame, Restore, StatefulWidget, ValueWidget};
+use crate::{result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
+use super::{file_widget::{FileWidget, ParsedFile}, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, util::group_frame, StatefulWidget, ValueWidget};
 
 
 pub enum FileSourceState{
@@ -114,7 +114,7 @@ impl ValueWidget for FileSourceWidget{
                 }
             }
         };
-        self.outer_file_widget.state = FileWidgetState::Finished { path: outer_path, value: outer_result};
+        self.outer_file_widget = FileWidget::Finished { path: outer_path, value: outer_result};
     }
 }
 
@@ -131,7 +131,7 @@ impl StatefulWidget for FileSourceWidget{
                 match self.mode{
                     FileSourceWidgetMode::Path => {
                         self.outer_file_widget.draw_and_parse(ui, id.with("outer".as_ptr()));
-                        let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &mut self.outer_file_widget.state else {
+                        let FileWidget::Finished{ value: Ok(file_source_state), .. } = &mut self.outer_file_widget else {
                             return;
                         };
                         let FileSourceState::PickingInner { inner_options_widget, .. } = file_source_state else {
@@ -153,7 +153,7 @@ impl StatefulWidget for FileSourceWidget{
     fn state(&self) -> Result<rt::FileSource>{
         return match self.mode{
             FileSourceWidgetMode::Path => {
-                let FileWidgetState::Finished{ value: Ok(file_source_state), .. } = &self.outer_file_widget.state else {
+                let FileWidget::Finished{ value: Ok(file_source_state), .. } = &self.outer_file_widget else {
                     return Err(GuiError::new("Not finished".to_owned()));
                 };
                 match file_source_state{

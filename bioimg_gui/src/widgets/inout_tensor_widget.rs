@@ -11,7 +11,7 @@ use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::error_display::{show_error, show_if_error};
-use super::file_widget::{FileWidget, FileWidgetState};
+use super::file_widget::FileWidget;
 use super::posstprocessing_widget::PostprocessingWidget;
 use super::preprocessing_widget::PreprocessingWidget;
 use super::staging_string::StagingString;
@@ -54,7 +54,7 @@ impl ValueWidget for InputTensorWidget{
         self.preprocessing_widget.set_value(value.tensor_meta.preprocessing().clone()); //FIXME: clone
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
-        self.test_tensor_widget.state = FileWidgetState::Finished {
+        self.test_tensor_widget = FileWidget::Finished {
             path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
             value: Ok(value.test_tensor)
         }
@@ -88,7 +88,7 @@ impl StatefulWidget for InputTensorWidget {
     type Value<'p> = &'p Result<InputSlot<ArcNpyArray>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        if let FileWidgetState::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
+        if let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
             if self.id_widget.raw.is_empty() {
                 self.id_widget.raw = path
                     .file_stem()
@@ -113,7 +113,7 @@ impl StatefulWidget for InputTensorWidget {
             ui.horizontal(|ui| {
                 ui.strong("Test Tensor: ");
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
-                if matches!(self.test_tensor_widget.state(), FileWidgetState::Empty) {
+                if matches!(self.test_tensor_widget.state(), FileWidget::Empty) {
                     show_error(ui, "Missing a npy test tensor");
                 }
             });
@@ -139,7 +139,7 @@ impl StatefulWidget for InputTensorWidget {
             });
 
             self.parsed = || -> Result<InputSlot<Arc<NpyArray>>> {
-                let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+                let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
                     return Err(GuiError::new("Test tensor is missing".into()));
                 };
                 let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
@@ -196,7 +196,7 @@ impl ValueWidget for OutputTensorWidget{
         self.postprocessing_widget.set_value(value.tensor_meta.postprocessing().clone());
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
-        self.test_tensor_widget.state = FileWidgetState::Finished {
+        self.test_tensor_widget = FileWidget::Finished {
             path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
             value: Ok(value.test_tensor)
         };
@@ -229,7 +229,7 @@ impl StatefulWidget for OutputTensorWidget {
     type Value<'p> = &'p Result<OutputSlot<ArcNpyArray>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        if let FileWidgetState::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
+        if let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
             if self.id_widget.raw.is_empty() {
                 self.id_widget.raw = path
                     .file_stem()
@@ -254,7 +254,7 @@ impl StatefulWidget for OutputTensorWidget {
             ui.horizontal(|ui| {
                 ui.strong("Test Tensor: ");
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
-                if matches!(self.test_tensor_widget.state(), FileWidgetState::Empty) {
+                if matches!(self.test_tensor_widget.state(), FileWidget::Empty) {
                     show_error(ui, "Missing a npy test tensor");
                 }
             });
@@ -276,7 +276,7 @@ impl StatefulWidget for OutputTensorWidget {
             });
 
             self.parsed = || -> Result<OutputSlot<Arc<NpyArray>>> {
-                let FileWidgetState::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+                let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
                     return Err(GuiError::new("Test tensor is missing".into()));
                 };
                 let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
