@@ -4,7 +4,7 @@ use poll_promise as pp;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result};
-use super::{error_display::show_error, file_source_widget::FileSourceWidgetPopupButton, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
+use super::{error_display::show_error, file_source_widget::{FileSourceWidget, FileSourceWidgetPopupButton}, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
 
 pub type ArcDynImg = Arc<image::DynamicImage>;
 
@@ -72,16 +72,9 @@ impl LoadingState{
 
 #[derive(Default)]
 pub struct ImageWidget2{
-    pub picker_button: FileSourceWidgetPopupButton,
+    file_source_widget: FileSourceWidget,
     loading_state: LoadingState,
 }
-
-// impl Restore for ImageWidget2{
-//     type RawData = ImageWidget2RawData;
-//     fn dump(&self) -> Self::RawData {
-//         //FIXME: I was trying to dump this somehow, it might ned info form both loading_state and picker_button
-//     }
-// }
 
 impl ValueWidget for ImageWidget2{
     type Value<'v> = (Option<rt::FileSource>, Option<ArcDynImg>);
@@ -89,15 +82,15 @@ impl ValueWidget for ImageWidget2{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         match value{
             (None, Some(img)) => {
-                self.picker_button = Default::default();
+                self.file_source_widget = Default::default();
                 self.loading_state = LoadingState::Forced { img, texture: None};
             },
             (None, None) => {
-                self.picker_button = Default::default();
+                self.file_source_widget = Default::default();
                 self.loading_state = LoadingState::Empty;
             },
             (Some(file_source), _) => {
-                self.picker_button.set_value(file_source);
+                self.file_source_widget.set_value(file_source);
                 self.loading_state = LoadingState::Empty;
             }
         }
@@ -108,51 +101,55 @@ impl StatefulWidget for ImageWidget2{
     type Value<'p> = Result<Arc<image::DynamicImage>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        ui.horizontal(|ui|{
-            self.picker_button.draw_and_parse(ui, id.with("file source".as_ptr()));
-            let file_source_res = self.picker_button.state();
-            self.loading_state = match (std::mem::take(&mut self.loading_state), file_source_res){
-                (LoadingState::Empty, Err(_)) => LoadingState::Empty,
-                (LoadingState::Empty, Ok(file_source)) => {
-                    ui.ctx().request_repaint();
-                    LoadingState::loading(file_source, ui.ctx().clone())
-                },
-                (LoadingState::Loading{..}, Err(_)) => LoadingState::Empty,
-                (LoadingState::Loading { source, promise }, Ok(new_source)) => 'loading_ok: {
-                    ui.ctx().request_repaint();
-                    if source != new_source{
-                        break 'loading_ok LoadingState::Empty;
-                    }
-                    match promise.try_take(){
-                        Err(promise) => LoadingState::Loading { source, promise },
-                        Ok(Err(err)) => LoadingState::Failed{source, err},
-                        Ok(Ok((img, texture))) => LoadingState::Ready{source, img, texture},
-                    }
-                },
-                (LoadingState::Failed{..}, Err(_)) => LoadingState::Empty,
-                (LoadingState::Failed{source, err}, Ok(new_source)) => {
-                    if source == new_source{
-                        show_error(ui, &err);
-                        LoadingState::Failed { source, err }
-                    }else{
-                        LoadingState::Empty
-                    }
-                },
-                (LoadingState::Ready{..}, Err(_)) => LoadingState::Empty,
-                (LoadingState::Ready{source, img, texture}, Ok(new_source)) => {
-                    if new_source == source{
+        ui.vertical(|ui|{
+            ui.horizontal(|ui|{
+                self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
+                let file_source_res = self.file_source_widget.state();
+                self.loading_state = match (std::mem::take(&mut self.loading_state), file_source_res){
+                    (LoadingState::Empty, Err(_)) => LoadingState::Empty,
+                    (LoadingState::Empty, Ok(file_source)) => {
+                        ui.ctx().request_repaint();
+                        LoadingState::loading(file_source, ui.ctx().clone())
+                    },
+                    (LoadingState::Loading{..}, Err(_)) => LoadingState::Empty,
+                    (LoadingState::Loading { source, promise }, Ok(new_source)) => 'loading_ok: {
+                        ui.ctx().request_repaint();
+                        if source != new_source{
+                            break 'loading_ok LoadingState::Empty;
+                        }
+                        match promise.try_take(){
+                            Err(promise) => LoadingState::Loading { source, promise },
+                            Ok(Err(err)) => LoadingState::Failed{source, err},
+                            Ok(Ok((img, texture))) => LoadingState::Ready{source, img, texture},
+                        }
+                    },
+                    (LoadingState::Failed{..}, Err(_)) => LoadingState::Empty,
+                    (LoadingState::Failed{source, err}, Ok(new_source)) => {
+                        if source == new_source{
+                            LoadingState::Failed { source, err }
+                        }else{
+                            LoadingState::Empty
+                        }
+                    },
+                    (LoadingState::Ready{..}, Err(_)) => LoadingState::Empty,
+                    (LoadingState::Ready{source, img, texture}, Ok(new_source)) => {
+                        if new_source == source{
+                            texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
+                            LoadingState::Ready{source, img, texture}
+                        }else{
+                            LoadingState::Empty
+                        }
+                    },
+                    (LoadingState::Forced { img, texture }, Err(_)) => { //FIXME: maybe check for source emptyness instead of just Err
+                        let texture = texture.unwrap_or_else(|| Texture::load(&img, ui.ctx().clone()));
                         texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
-                        LoadingState::Ready{source, img, texture}
-                    }else{
-                        LoadingState::Empty
-                    }
-                },
-                (LoadingState::Forced { img, texture }, Err(_)) => {
-                    let texture = texture.unwrap_or_else(|| Texture::load(&img, ui.ctx().clone()));
-                    texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
-                    LoadingState::Forced { img,  texture: Some(texture) }
-                },
-                (LoadingState::Forced{..}, Ok(_)) => LoadingState::Empty,
+                        LoadingState::Forced { img,  texture: Some(texture) }
+                    },
+                    (LoadingState::Forced{..}, Ok(_)) => LoadingState::Empty,
+                }
+            });
+            if let LoadingState::Failed{err, ..} = &self.loading_state{
+                show_error(ui, err);
             }
         });
     }
