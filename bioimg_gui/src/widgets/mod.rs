@@ -50,6 +50,7 @@ pub mod fixed_zero_mean_unit_variance_widget;
 pub mod scale_mean_variance_widget;
 pub mod staging_float;
 pub mod collapsible_widget;
+pub mod path_picker_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

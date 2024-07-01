@@ -1,5 +1,3 @@
-use bioimg_runtime as rt;
-
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorWidgetRawData{
     pub name_widget: String,
@@ -32,23 +30,14 @@ pub struct MaintainerWidgetRawData {
 // }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum FileWidgetResultRawData<OkRawData>{
+pub enum LocalFileSourceWidgetRawData{
     Empty,
-    AboutToLoad{path: String},
-    Finished{path: String, value: Result<OkRawData, String>}
+    AboutToLoad{path: String, inner_path: Option<String>}
 }
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub enum LocalFileSourceRawData{
-    PickedNormalFile{path: String},
-    PickedEmptyZip{path: String},
-    PickingInner{outer: String, inner: String},
-}
-
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum FileSourceWidgetRawData{
-    Path(LocalFileSourceRawData),
+    Local(LocalFileSourceWidgetRawData),
     Url(String),
 }
 
