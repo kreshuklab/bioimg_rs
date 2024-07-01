@@ -226,17 +226,18 @@ impl StatefulWidget for FileSourceWidget{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
-            self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
-            group_frame(ui, |ui|{
-                match self.mode_widget.value{
-                    FileSourceWidgetMode::Local => {
-                        self.local_file_source_widget.draw_and_parse(ui, id.with("local".as_ptr()));
-                    },
-                    FileSourceWidgetMode::Url => {
-                        self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
-                    },
-                }
+            ui.horizontal(|ui|{
+                ui.strong("Origin: ");
+                self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
             });
+            match self.mode_widget.value{
+                FileSourceWidgetMode::Local => {
+                    self.local_file_source_widget.draw_and_parse(ui, id.with("local".as_ptr()));
+                },
+                FileSourceWidgetMode::Url => {
+                    self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
+                },
+            }
         });
     }
 
