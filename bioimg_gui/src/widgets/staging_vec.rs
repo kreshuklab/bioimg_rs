@@ -55,11 +55,11 @@ where
                 let render_item = |ui: &mut egui::Ui| {
                     if Conf::INLINE_ITEM{
                         ui.horizontal(|ui|{
-                            ui.label(item_label);
+                            ui.small(item_label);
                             staging_item.draw_and_parse(ui, id.with(idx));
                         });
                     }else{
-                        ui.label(item_label);
+                        ui.small(item_label);
                         staging_item.draw_and_parse(ui, id.with(idx));
                     }
                 };
