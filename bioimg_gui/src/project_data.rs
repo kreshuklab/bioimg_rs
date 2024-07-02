@@ -23,12 +23,6 @@ pub struct MaintainerWidgetRawData {
     pub name_widget: Option<String>,
 }
 
-// #[derive(serde::Serialize, serde::Deserialize)]
-// pub struct ImageWidget2RawData{
-//     pub file_source_widget_popup_button_raw_data: FileSourceWidgetPopupButtonRawData,
-
-// }
-
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum LocalFileSourceWidgetRawData{
     Empty,
@@ -51,6 +45,17 @@ pub enum ImageWidget2LoadingStateRawData{
 pub struct ImageWidget2RawData{
     pub file_source_widget: FileSourceWidgetRawData,
     pub loading_state: ImageWidget2LoadingStateRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SpecialImageWidgetRawData{
+    pub image_widget: ImageWidget2RawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum IconWidgetRawData{
+    Emoji(String),
+    Image(SpecialImageWidgetRawData),
 }
 
 pub struct ProjectData1{

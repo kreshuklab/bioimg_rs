@@ -1,8 +1,8 @@
 use bioimg_spec::rdf;
 use bioimg_runtime as rt;
 
-use super::{image_widget_2::SpecialImageWidget, staging_string::StagingString, StatefulWidget, ValueWidget};
-use crate::result::Result;
+use super::{image_widget_2::SpecialImageWidget, staging_string::StagingString, Restore, StatefulWidget, ValueWidget};
+use crate::{project_data::IconWidgetRawData, result::Result};
 
 
 
@@ -53,6 +53,28 @@ impl ValueWidget for IconWidget{
                 self.input_mode = InputMode::Emoji;
                 self.emoji_icon_widget.set_value(icon_text);
             }
+        }
+    }
+}
+
+impl Restore for IconWidget{
+    type RawData = IconWidgetRawData;
+    fn restore(&mut self, raw: Self::RawData) {
+        match raw{
+            IconWidgetRawData::Image(special_img_raw_data) => {
+                self.input_mode = InputMode::File;
+                self.image_icon_widget.restore(special_img_raw_data);
+            },
+            IconWidgetRawData::Emoji(icon_text) => {
+                self.input_mode = InputMode::Emoji;
+                self.emoji_icon_widget.restore(icon_text);
+            }
+        }
+    }
+    fn dump(&self) -> Self::RawData {
+        match self.input_mode{
+            InputMode::File => IconWidgetRawData::Image(self.image_icon_widget.dump()),
+            InputMode::Emoji => IconWidgetRawData::Emoji(self.emoji_icon_widget.dump()),
         }
     }
 }

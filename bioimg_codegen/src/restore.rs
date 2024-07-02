@@ -12,12 +12,15 @@ pub fn do_derive_restore(input: TokenStream) -> syn::Result<TokenStream>{
 
     let raw_data_field_initializers: Vec<TokenStream2> = input.fields.iter()
         .enumerate()
-        .map(|(field_idx, field)| {
+        .filter_map(|(field_idx, field)| {
             let ident = field.ident.as_ref().map(|id| quote!(#id)).unwrap_or(quote!(#field_idx));
-            let span = ident.span();
-            quote_spanned! {span=>
-                #ident: crate::widgets::Restore::dump(&self.#ident),
+            let ident_span = ident.span();
+            if field.attrs.iter().find(|attr| attr.path().is_ident("skip_restore")).is_some(){
+                return None
             }
+            Some(quote_spanned! {ident_span=>
+                #ident: crate::widgets::Restore::dump(&self.#ident),
+            })
         })
         .collect();
 
@@ -26,8 +29,15 @@ pub fn do_derive_restore(input: TokenStream) -> syn::Result<TokenStream>{
         .map(|(field_idx, field)|{
             let ident = field.ident.as_ref().map(|id| quote!(#id)).unwrap_or(quote!(#field_idx));
             let span = ident.span();
-            quote_spanned! {span=>
-                crate::widgets::Restore::restore(&mut self.#ident, raw_data.#ident);
+            let ty_span = field.ty.span();
+            if field.attrs.iter().find(|attr| attr.path().is_ident("skip_restore")).is_some(){
+                quote_spanned! {ty_span=>
+                    #ident: std::default::Default::default()
+                }
+            } else {
+                quote_spanned! {span=>
+                    crate::widgets::Restore::restore(&mut self.#ident, raw_data.#ident);
+                }
             }
         })
         .collect();

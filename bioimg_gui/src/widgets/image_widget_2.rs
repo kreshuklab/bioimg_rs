@@ -3,7 +3,7 @@ use std::{borrow::Borrow, error::Error, io::Cursor, sync::Arc};
 use poll_promise as pp;
 use bioimg_runtime as rt;
 
-use crate::{project_data::{ImageWidget2LoadingStateRawData, ImageWidget2RawData}, result::{GuiError, Result}};
+use crate::{project_data::{ImageWidget2LoadingStateRawData, ImageWidget2RawData, SpecialImageWidgetRawData}, result::{GuiError, Result}};
 use super::{error_display::show_error, file_source_widget::{FileSourceWidget, FileSourceWidgetPopupButton}, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
 
 pub type ArcDynImg = Arc<image::DynamicImage>;
@@ -216,6 +216,16 @@ where
         self.image_widget.set_value(
             (value.0, value.1.map(|val| val.borrow().clone()))
         )
+    }
+}
+
+impl<I> Restore for SpecialImageWidget<I>{
+    type RawData = SpecialImageWidgetRawData;
+    fn restore(&mut self, value: Self::RawData){
+        self.image_widget.restore(value.image_widget);
+    }
+    fn dump(&self) -> Self::RawData {
+        SpecialImageWidgetRawData{image_widget: self.image_widget.dump()}
     }
 }
 
