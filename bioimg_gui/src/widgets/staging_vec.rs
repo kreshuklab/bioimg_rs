@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::{util::group_frame, StatefulWidget, ValueWidget};
+use super::{util::group_frame, Restore, StatefulWidget, ValueWidget};
 
 pub trait ItemWidgetConf{
     const ITEM_NAME: &'static str;
@@ -23,6 +23,23 @@ where
         self.staging = value.into_iter().map(|item_value|{
             let mut widget = Stg::default();
             widget.set_value(item_value);
+            widget
+        }).collect();
+    }
+}
+
+impl<Stg, Conf> Restore for StagingVec<Stg, Conf>
+where
+    Stg: Restore + Default
+{
+    type RawData = Vec<Stg::RawData>;
+    fn dump(&self) -> Self::RawData {
+        self.staging.iter().map(|item| item.dump()).collect()
+    }
+    fn restore(&mut self, value: Self::RawData){
+        self.staging = value.into_iter().map(|item_value|{
+            let mut widget = Stg::default();
+            widget.restore(item_value);
             widget
         }).collect();
     }
