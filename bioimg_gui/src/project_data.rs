@@ -41,6 +41,18 @@ pub enum FileSourceWidgetRawData{
     Url(String),
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum ImageWidget2LoadingStateRawData{
+    Empty,
+    Forced{img_bytes: Vec<u8>}
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ImageWidget2RawData{
+    pub file_source_widget: FileSourceWidgetRawData,
+    pub loading_state: ImageWidget2LoadingStateRawData,
+}
+
 pub struct ProjectData1{
     pub staging_name: String,
     pub staging_description: String,

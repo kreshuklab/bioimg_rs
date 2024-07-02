@@ -2,8 +2,18 @@ use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 
 use bioimg_runtime as rt;
 
-use crate::{project_data::{FileSourceWidgetRawData, LocalFileSourceWidgetRawData}, result::{GuiError, Result}, widgets::popup_widget::draw_fullscreen_popup};
-use super::{error_display::show_error, popup_widget::PopupResult, search_and_pick_widget::SearchAndPickWidget, url_widget::StagingUrl, util::group_frame, Restore, StatefulWidget, ValueWidget};
+use crate::{
+    project_data::{FileSourceWidgetRawData, LocalFileSourceWidgetRawData},
+    result::{GuiError, Result},
+    widgets::popup_widget::draw_fullscreen_popup,
+};
+use super::{
+    error_display::show_error,
+    popup_widget::PopupResult,
+    search_and_pick_widget::SearchAndPickWidget,
+    url_widget::StagingUrl,
+    Restore, StatefulWidget, ValueWidget,
+};
 
 
 #[derive(Default)]

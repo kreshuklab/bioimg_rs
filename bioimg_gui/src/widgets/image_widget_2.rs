@@ -3,7 +3,7 @@ use std::{borrow::Borrow, error::Error, io::Cursor, sync::Arc};
 use poll_promise as pp;
 use bioimg_runtime as rt;
 
-use crate::result::{GuiError, Result};
+use crate::{project_data::{ImageWidget2LoadingStateRawData, ImageWidget2RawData}, result::{GuiError, Result}};
 use super::{error_display::show_error, file_source_widget::{FileSourceWidget, FileSourceWidgetPopupButton}, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
 
 pub type ArcDynImg = Arc<image::DynamicImage>;
@@ -74,6 +74,44 @@ impl LoadingState{
 pub struct ImageWidget2{
     file_source_widget: FileSourceWidget,
     loading_state: LoadingState,
+}
+
+impl Restore for ImageWidget2{
+    type RawData = ImageWidget2RawData;
+    fn dump(&self) -> Self::RawData {
+        ImageWidget2RawData{
+            file_source_widget: self.file_source_widget.dump(),
+            loading_state: match &self.loading_state{
+                LoadingState::Forced{img, ..} => {
+                    let mut raw_out = Vec::<u8>::new();
+                    if let Err(err) = img.write_to(&mut Cursor::new(&mut raw_out), image::ImageFormat::Png){
+                        eprintln!("[WARNING] Could not save pathless image: {err}");
+                    }
+                    ImageWidget2LoadingStateRawData::Forced { img_bytes: raw_out }
+                },
+                _ => ImageWidget2LoadingStateRawData::Empty,
+            }
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.file_source_widget.restore(raw.file_source_widget);
+        match raw.loading_state{
+            ImageWidget2LoadingStateRawData::Empty => {
+                self.loading_state = LoadingState::Empty;
+            },
+            ImageWidget2LoadingStateRawData::Forced { img_bytes } => 'forced: {
+                let Ok(reader) = image::io::Reader::new(Cursor::new(img_bytes)).with_guessed_format() else {
+                    eprintln!("[WARNING] Could not guess format of saved image");
+                    break 'forced;
+                };
+                let Ok(image) = reader.decode() else {
+                    eprintln!("[WARNING] Could not decoded saved image");
+                    break 'forced;
+                };
+                self.loading_state = LoadingState::Forced { img: Arc::new(image), texture: None };
+            }
+        }
+    }
 }
 
 impl ValueWidget for ImageWidget2{
