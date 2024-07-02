@@ -1,8 +1,10 @@
 use std::{error::Error, fmt::Display};
 
+use serde::de::DeserializeOwned;
+
 use crate::result::{GuiError, Result};
 
-use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
+use super::{error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
 
 pub struct StagingNum<Raw, Parsed> {
     pub raw: Raw,
@@ -32,6 +34,22 @@ where
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.raw = value.clone().into();
         self.parsed = Ok(value);
+    }
+}
+
+impl<Raw, Parsed> Restore for StagingNum<Raw, Parsed>
+where
+    Raw: Clone + serde::Serialize + DeserializeOwned,
+    Parsed: TryFrom<Raw>,
+    <Parsed as TryFrom<Raw>>::Error: Error,
+{
+    type RawData = Raw;
+    fn dump(&self) -> Raw{
+        self.raw.clone()
+    }
+    fn restore(&mut self, raw: Raw) {
+        self.raw = raw.clone().into();
+        self.parsed = Parsed::try_from(raw).map_err(GuiError::from);
     }
 }
 
