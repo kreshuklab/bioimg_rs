@@ -1,3 +1,5 @@
+use crate::widgets::Restore;
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorWidgetRawData{
     pub name_widget: String,
@@ -58,6 +60,23 @@ pub enum IconWidgetRawData{
     Image(SpecialImageWidgetRawData),
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CollapsibleWidgetRawData<Inner: Restore>{
+    pub is_closed: bool,
+    pub inner: Inner::RawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct VersionWidgetRawData{
+    pub raw: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CodeEditorWidgetRawData{
+    pub raw: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct ProjectData1{
     pub staging_name: String,
     pub staging_description: String,

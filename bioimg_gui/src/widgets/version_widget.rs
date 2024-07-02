@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use bioimg_spec::rdf;
 
-use crate::result::{GuiError, Result};
+use crate::{project_data::VersionWidgetRawData, result::{GuiError, Result}};
 
-use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
+use super::{error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
 
 pub struct VersionWidget{
     pub raw: String,
@@ -48,5 +48,16 @@ impl ValueWidget for VersionWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.raw = value.to_string();
         self.parsed = Ok(value)
+    }
+} 
+
+impl Restore for VersionWidget{
+    type RawData = VersionWidgetRawData;
+    fn restore(&mut self, value: Self::RawData) {
+        self.parsed = rdf::Version::from_str(&value.raw).map_err(GuiError::from);
+        self.raw = value.raw;
+    }
+    fn dump(&self) -> Self::RawData {
+        VersionWidgetRawData{raw: self.raw.clone()}
     }
 } 

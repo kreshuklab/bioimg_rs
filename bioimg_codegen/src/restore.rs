@@ -32,7 +32,7 @@ pub fn do_derive_restore(input: TokenStream) -> syn::Result<TokenStream>{
             let ty_span = field.ty.span();
             if field.attrs.iter().find(|attr| attr.path().is_ident("skip_restore")).is_some(){
                 quote_spanned! {ty_span=>
-                    #ident: std::default::Default::default()
+                    self.#ident = std::default::Default::default();
                 }
             } else {
                 quote_spanned! {span=>

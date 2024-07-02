@@ -24,6 +24,7 @@ use crate::widgets::staging_vec::StagingVec;
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::ValueWidget;
+// use crate::widgets::Restore;
 use crate::widgets::{
     author_widget::AuthorWidget, cite_widget::CiteEntryWidget, code_editor_widget::CodeEditorWidget,
     icon_widget::IconWidget, maintainer_widget::MaintainerWidget, url_widget::StagingUrl,
@@ -40,6 +41,7 @@ enum PackingStatus {
     },
 }
 
+// #[derive(Restore)]
 pub struct BioimgGui {
     pub staging_name: StagingString<ResourceName>,
     pub staging_description: StagingString<BoundedString<1, 1024>>,
@@ -63,7 +65,9 @@ pub struct BioimgGui {
     ////
     pub weights_widget: WeightsWidget,
 
+    // #[skip_restore]
     pub notifications_widget: NotificationsWidget,
+    // #[skip_restore]
     model_packing_status: PackingStatus,
 }
 
@@ -118,7 +122,7 @@ impl Default for BioimgGui {
 
             model_packing_status: PackingStatus::default(),
             weights_widget: Default::default(),
-            notifications_widget: NotificationsWidget::new(egui::Id::new("messages_widget")),
+            notifications_widget: NotificationsWidget::new(),
         }
     }
 }
@@ -255,7 +259,7 @@ impl eframe::App for BioimgGui {
 
                 ui.horizontal(|ui| {
                     let save_button_clicked = ui.button("Save Model").clicked();
-                    self.notifications_widget.draw(ui);
+                    self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));
 
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
                         PackingStatus::Done => 'done: {

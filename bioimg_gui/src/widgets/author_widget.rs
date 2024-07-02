@@ -1,7 +1,15 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
-use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, Restore, StatefulWidget, ValueWidget};
-use crate::{result::Result};
+use super::{
+    collapsible_widget::{CollapsibleWidget, SummarizableWidget},
+    staging_opt::StagingOpt,
+    staging_string::StagingString,
+    staging_vec::ItemWidgetConf,
+    Restore,
+    StatefulWidget,
+    ValueWidget,
+};
+use crate::result::Result;
 
 pub type ConfString = BoundedString<1, 1024>;
 

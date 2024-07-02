@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, fmt::Display};
 
-use super::{StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
 
 pub struct SearchableEntry<T>{
     lowercase_display: String,
@@ -77,6 +77,16 @@ impl<T> ValueWidget for SearchAndPickWidget<T>{
     type Value<'v> = T;
     fn set_value(&mut self, value: T){
         self.value = value
+    }
+}
+
+impl<T: Restore> Restore for SearchAndPickWidget<T>{
+    type RawData = T::RawData;
+    fn restore(&mut self, raw: Self::RawData) {
+        self.value.restore(raw);
+    }
+    fn dump(&self) -> Self::RawData {
+        self.value.dump()
     }
 }
 

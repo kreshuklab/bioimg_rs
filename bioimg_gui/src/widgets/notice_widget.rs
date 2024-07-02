@@ -25,15 +25,15 @@ impl Message{
     }
 }
 
+#[derive(Default)]
 pub struct NotificationsWidget{
-    id: egui::Id,
     messages: VecDeque<Message>,
     stop_fade: bool,
 }
 
 impl NotificationsWidget{
-    pub fn new(id: egui::Id) -> Self{
-        Self{id, messages: VecDeque::new(), stop_fade: false}
+    pub fn new() -> Self{
+        Self{messages: VecDeque::new(), stop_fade: false}
     }
     pub fn push_message(&mut self, message_text: Result<String, String>){
         let (text, color) = match message_text{
@@ -47,12 +47,12 @@ impl NotificationsWidget{
         });
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui){
+    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id){
         if self.messages.len() == 0{
             return
         }
         let now = Instant::now();
-        let area = egui::containers::Area::new(self.id)
+        let area = egui::containers::Area::new(id)
             .movable(false)
             .order(egui::Order::Foreground)
             .constrain(true)

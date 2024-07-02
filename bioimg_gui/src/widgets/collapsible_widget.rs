@@ -1,4 +1,6 @@
-use super::{StatefulWidget, ValueWidget};
+use crate::project_data::CollapsibleWidgetRawData;
+
+use super::{Restore, StatefulWidget, ValueWidget};
 
 pub trait SummarizableWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id);
@@ -8,6 +10,22 @@ pub trait SummarizableWidget{
 pub struct CollapsibleWidget<W>{
     pub is_closed: bool,
     pub inner: W,
+}
+
+impl<W: Restore> Restore for CollapsibleWidget<W>{
+    type RawData = CollapsibleWidgetRawData<W>;
+
+    fn dump(&self) -> Self::RawData {
+        CollapsibleWidgetRawData{
+            is_closed: self.is_closed,
+            inner: self.inner.dump()
+        }
+    }
+
+    fn restore(&mut self, raw: Self::RawData) {
+        self.is_closed.restore(raw.is_closed);
+        self.inner.restore(raw.inner)
+    }
 }
 
 impl<W> StatefulWidget for CollapsibleWidget<W>

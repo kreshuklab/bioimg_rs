@@ -1,6 +1,6 @@
-use super::{StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct CodeEditorWidget {
     pub raw: String,
 }

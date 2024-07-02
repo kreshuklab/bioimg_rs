@@ -1,5 +1,6 @@
 use serde::de::DeserializeOwned;
-use bioimg_codegen::Restore;
+pub use bioimg_codegen::Restore;
+use bioimg_spec::rdf;
 
 pub mod author_widget;
 pub mod axis_size_widget;
@@ -71,3 +72,20 @@ pub trait Restore{
     fn dump(&self) -> Self::RawData;
     fn restore(&mut self, raw: Self::RawData);
 }
+
+macro_rules! impl_Restore_for {($type:ty) => {
+    impl Restore for $type{
+        type RawData = $type;
+        fn dump(&self) -> Self::RawData {
+            self.clone()
+        }
+        fn restore(&mut self, raw: Self::RawData) {
+            *self = raw
+        }
+    }
+};}
+
+
+impl_Restore_for!(bool);
+impl_Restore_for!(String);
+impl_Restore_for!(rdf::LicenseId);
