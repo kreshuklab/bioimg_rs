@@ -30,18 +30,14 @@ use crate::widgets::{
     util::group_frame, StatefulWidget,
 };
 
+#[derive(Default)]
 enum PackingStatus {
+    #[default]
     Done,
     Packing {
         path: PathBuf,
         task: poll_promise::Promise<Result<(), ModelPackingError>>,
     },
-}
-
-impl Default for PackingStatus {
-    fn default() -> Self {
-        Self::Done
-    }
 }
 
 pub struct BioimgGui {
