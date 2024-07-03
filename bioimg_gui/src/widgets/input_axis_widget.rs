@@ -9,11 +9,11 @@ use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
 use super::axis_widget::{BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
-use super::{StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
 use super::axis_size_widget::AnyAxisSizeWidget;
 use crate::result::Result;
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct InputSpaceAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
     pub description_widget: StagingString<BoundedString<0, 128>>,
@@ -79,7 +79,7 @@ impl StatefulWidget for InputSpaceAxisWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct InputTimeAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
     pub description_widget: StagingString<BoundedString<0, 128>>,
@@ -140,7 +140,7 @@ impl StatefulWidget for InputTimeAxisWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct InputAxisWidget {
     pub axis_type_widget: SearchAndPickWidget<AxisType>,
     pub batch_axis_widget: BatchAxisWidget,

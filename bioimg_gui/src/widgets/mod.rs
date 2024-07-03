@@ -89,3 +89,6 @@ macro_rules! impl_Restore_for {($type:ty) => {
 impl_Restore_for!(bool);
 impl_Restore_for!(String);
 impl_Restore_for!(rdf::LicenseId);
+impl_Restore_for!(rdf::model::axes::AxisType);
+impl_Restore_for!(rdf::model::SpaceUnit);
+impl_Restore_for!(rdf::model::TimeUnit);

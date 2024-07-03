@@ -10,11 +10,12 @@ use super::collapsible_widget::SummarizableWidget;
 use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_string::StagingString;
 use super::util::group_frame;
-use super::{StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
+use crate::project_data::ChannelNamesModeRawData;
 use crate::result::{GuiError, Result};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct BatchAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
     pub staging_allow_auto_size: bool,
@@ -75,7 +76,23 @@ pub enum ChannelNamesMode {
     Pattern,
 }
 
-#[derive(Default)]
+impl Restore for ChannelNamesMode{
+    type RawData = ChannelNamesModeRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Explicit => Self::RawData::Explicit,
+            Self::Pattern => Self::RawData::Pattern,
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        *self = match raw{
+            Self::RawData::Explicit => Self::Explicit,
+            Self::RawData::Pattern => Self::Pattern,
+        }
+    }
+}
+
+#[derive(Default, Restore)]
 pub struct ChannelAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
 
@@ -189,7 +206,7 @@ impl StatefulWidget for ChannelAxisWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct IndexAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
     pub size_widget: AnyAxisSizeWidget,

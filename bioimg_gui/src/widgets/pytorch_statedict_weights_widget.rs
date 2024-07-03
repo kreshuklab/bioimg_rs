@@ -5,9 +5,9 @@ use bioimg_spec::rdf::model as modelrdf;
 use bioimg_runtime as rt;
 
 use crate::result::Result;
-use super::{file_widget::FileWidget, json_editor_widget::JsonObjectEditorWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, version_widget::VersionWidget, weights_widget::WeightsDescrBaseWidget, StatefulWidget, ValueWidget};
+use super::{file_widget::FileWidget, json_editor_widget::JsonObjectEditorWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, version_widget::VersionWidget, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct PytorchArchWidget{
     pub callable_widget: StagingString<rdf::Identifier>,
     pub kwargs_widget: JsonObjectEditorWidget,
@@ -76,7 +76,7 @@ impl StatefulWidget for PytorchArchWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct PytorchStateDictWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub architecture_widget: PytorchArchWidget,

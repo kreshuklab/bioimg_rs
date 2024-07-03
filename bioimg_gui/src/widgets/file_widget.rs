@@ -1,7 +1,7 @@
 use std::{fmt::Display, path::{Path, PathBuf}, sync::Arc};
 
-use crate::result::{GuiError, Result};
-use super::{error_display::show_error, StatefulWidget, ValueWidget};
+use crate::{project_data::FileWidgetRawData, result::{GuiError, Result}};
+use super::{error_display::show_error, Restore, StatefulWidget, ValueWidget};
 
 pub trait ParsedFile: Send + 'static {
     fn parse(path: PathBuf, ctx: egui::Context) -> Self;
@@ -33,52 +33,23 @@ impl<V: Send + 'static> FileWidget<V>{
     }
 }
 
-// impl<T: Restore + Default> Restore for FileWidget<Result<T>>
-// where
-//     Result<T>: ParsedFile,
-// {
-//     type RawData = FileWidgetResultRawData<T::RawData>;
-//     fn dump(&self) -> Self::RawData {
-//         match &self.state{
-//             FileWidgetState::Empty => FileWidgetResultRawData::Empty,
-//             FileWidgetState::AboutToLoad{path} | FileWidgetState::Loading {path, ..} => {
-//                 FileWidgetResultRawData::AboutToLoad{path: path.to_string_lossy().into()}
-//             },
-//             FileWidgetState::Finished {path, value} => {
-//                 FileWidgetResultRawData::Finished {
-//                     path: path.to_string_lossy().into(),
-//                     value: match value{
-//                         Ok(val) => Ok(val.dump()),
-//                         Err(err) => Err(err.to_string()),
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     fn restore(&mut self, raw: Self::RawData) {
-//         match raw{
-//             FileWidgetResultRawData::Empty => {
-//                 self.state = FileWidgetState::Empty;
-//             },
-//             FileWidgetResultRawData::AboutToLoad { path } => {
-//                 self.state = FileWidgetState::AboutToLoad { path: Arc::from(PathBuf::from(path)) };
-//             },
-//             FileWidgetResultRawData::Finished { path, value } => {
-//                 self.state = FileWidgetState::Finished {
-//                     value: match value{
-//                         Ok(raw_ok) => {
-//                             let mut val = T::default();
-//                             val.restore(raw_ok);
-//                             Ok(val)
-//                         },
-//                         Err(message) => Err(GuiError::new(message))
-//                     },
-//                     path: Arc::from(PathBuf::from(path)),
-//                 };
-//             }
-//         }
-//     }
-// }
+impl<T: Send + 'static> Restore for FileWidget<T>{
+    type RawData = FileWidgetRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Empty => FileWidgetRawData::Empty,
+            Self::AboutToLoad{path, ..} | Self::Loading{path, ..} | Self::Finished{path, ..} => {
+                FileWidgetRawData::AboutToLoad{path: path.as_ref().to_owned()}
+            }
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        *self = match raw{
+            FileWidgetRawData::Empty => Self::Empty,
+            FileWidgetRawData::AboutToLoad { path } => Self::AboutToLoad { path: Arc::from(path.as_ref()) }
+        }
+    }
+}
 
 impl<T, E> FileWidget<Result<T, E>>
 where

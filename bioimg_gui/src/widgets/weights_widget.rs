@@ -2,9 +2,20 @@ use std::sync::Arc;
 
 use bioimg_runtime as rt;
 
-use crate::result::{GuiError, Result, VecResultExt};
+use crate::{project_data::WeightsWidgetRawData, result::{GuiError, Result, VecResultExt}};
 use super::{
-    author_widget::AuthorWidget, collapsible_widget::CollapsibleWidget, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, version_widget::VersionWidget, StatefulWidget, ValueWidget
+    author_widget::AuthorWidget,
+    collapsible_widget::CollapsibleWidget,
+    error_display::show_error,
+    file_source_widget::FileSourceWidget,
+    onnx_weights_widget::OnnxWeightsWidget,
+    pytorch_statedict_weights_widget::PytorchStateDictWidget,
+    staging_opt::StagingOpt,
+    staging_vec::StagingVec,
+    version_widget::VersionWidget,
+    Restore,
+    StatefulWidget,
+    ValueWidget,
 };
 
 pub struct WeightsWidget{
@@ -14,6 +25,24 @@ pub struct WeightsWidget{
     pub onnx_eights_widget: StagingOpt<OnnxWeightsWidget>,
 
     parsed: Result<Arc<rt::ModelWeights>>
+}
+
+impl Restore for WeightsWidget{
+    type RawData = WeightsWidgetRawData;
+    fn dump(&self) -> Self::RawData {
+        WeightsWidgetRawData{
+            keras_weights_widget: self.keras_weights_widget.dump(),
+            torchscript_weights_widget: self.torchscript_weights_widget.dump(),
+            pytorch_state_dict_widget: self.pytorch_state_dict_widget.dump(),
+            onnx_eights_widget: self.onnx_eights_widget.dump(),
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.keras_weights_widget.restore(raw.keras_weights_widget);
+        self.torchscript_weights_widget.restore(raw.torchscript_weights_widget);
+        self.pytorch_state_dict_widget.restore(raw.pytorch_state_dict_widget);
+        self.onnx_eights_widget.restore(raw.onnx_eights_widget);
+    }
 }
 
 impl Default for WeightsWidget{
@@ -82,7 +111,7 @@ impl StatefulWidget for WeightsWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct WeightsDescrBaseWidget{
     pub source_widget: FileSourceWidget,
     pub authors_widget: StagingOpt<StagingVec<CollapsibleWidget<AuthorWidget>>>,
@@ -125,7 +154,7 @@ impl StatefulWidget for WeightsDescrBaseWidget{
 
 //////////////////////////////
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct KerasHdf5WeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub tensorflow_version_widget: VersionWidget,
@@ -163,7 +192,7 @@ impl StatefulWidget for KerasHdf5WeightsWidget{
 
 ////////////////////////////
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct TorchscriptWeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub pytorch_version_widget: VersionWidget,

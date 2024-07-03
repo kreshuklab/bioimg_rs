@@ -2,11 +2,22 @@ use std::{error::Error, fmt::Display, str::FromStr};
 use std::fmt::Write;
 
 use crate::result::{GuiError, Result};
+use super::Restore;
 use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 
 pub struct StagingFloat<T>{
     pub raw: String,
     pub parsed: Result<T>,
+}
+
+impl<T> Restore for StagingFloat<T>{
+    type RawData = String;
+    fn dump(&self) -> Self::RawData {
+        self.raw.dump()
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.raw.restore(raw)
+    }
 }
 
 impl<T> Default for StagingFloat<T>{

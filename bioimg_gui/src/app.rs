@@ -24,7 +24,7 @@ use crate::widgets::staging_vec::StagingVec;
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::ValueWidget;
-// use crate::widgets::Restore;
+use crate::widgets::Restore;
 use crate::widgets::{
     author_widget::AuthorWidget, cite_widget::CiteEntryWidget, code_editor_widget::CodeEditorWidget,
     icon_widget::IconWidget, maintainer_widget::MaintainerWidget, url_widget::StagingUrl,

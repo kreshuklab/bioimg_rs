@@ -1,5 +1,6 @@
 use std::num::NonZeroUsize;
 
+use crate::project_data::AxisSizeModeRawData;
 use crate::result::Result;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::{axes::AxisId, tensor_id::TensorId};
@@ -7,9 +8,9 @@ use bioimg_spec::rdf::model::{axes::AxisId, tensor_id::TensorId};
 use super::staging_num::StagingNum;
 use super::staging_string::StagingString;
 use super::util::group_frame;
-use super::{StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct AxisSizeReferenceWidget {
     pub staging_tensor_id: StagingString<TensorId>,
     pub staging_axis_id: StagingString<AxisId>,
@@ -57,7 +58,7 @@ impl StatefulWidget for AxisSizeReferenceWidget {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct ParameterizedAxisSizeWidget {
     pub staging_min: StagingNum<usize, NonZeroUsize>,
     pub staging_step: StagingNum<usize, NonZeroUsize>,
@@ -102,13 +103,31 @@ pub enum AxisSizeMode {
     Parameterized,
 }
 
+impl Restore for AxisSizeMode{
+    type RawData = AxisSizeModeRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Fixed => Self::RawData::Fixed,
+            Self::Reference => Self::RawData::Reference,
+            Self::Parameterized => Self::RawData::Parameterized,
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        *self = match raw{
+            Self::RawData::Fixed => Self::Fixed,
+            Self::RawData::Reference => Self::Reference,
+            Self::RawData::Parameterized => Self::Parameterized,
+        }
+    }
+}
+
 impl Default for AxisSizeMode {
     fn default() -> Self {
         AxisSizeMode::Fixed
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct AnyAxisSizeWidget {
     pub mode: AxisSizeMode,
 

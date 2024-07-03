@@ -1,4 +1,7 @@
-use crate::widgets::Restore;
+use std::path::PathBuf;
+
+use bioimg_spec::rdf::model as modelrdf;
+use crate::widgets::{author_widget::AuthorWidget, Restore};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorWidgetRawData{
@@ -23,6 +26,12 @@ pub struct MaintainerWidgetRawData {
     pub email_widget: Option<String>,
     pub orcid_widget: Option<String>,
     pub name_widget: Option<String>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum FileWidgetRawData{
+    Empty,
+    AboutToLoad{path: PathBuf},
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -74,6 +83,147 @@ pub struct VersionWidgetRawData{
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CodeEditorWidgetRawData{
     pub raw: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct BatchAxisWidgetRawData{
+    pub description_widget: String,
+    pub staging_allow_auto_size: bool,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum ChannelNamesModeRawData{
+    Explicit,
+    Pattern,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum AxisSizeModeRawData{
+    Fixed,
+    Reference,
+    Parameterized,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ParameterizedAxisSizeWidgetRawData {
+    pub staging_min: usize,
+    pub staging_step: usize,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AnyAxisSizeWidgetRawData {
+    pub mode: AxisSizeModeRawData,
+
+    pub staging_fixed_size: usize,
+    pub staging_size_ref: AxisSizeReferenceWidgetRawData,
+    pub staging_parameterized: ParameterizedAxisSizeWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct IndexAxisWidgetRawData {
+    pub description_widget: String,
+    pub size_widget: AnyAxisSizeWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AxisSizeReferenceWidgetRawData {
+    pub staging_tensor_id: String,
+    pub staging_axis_id: String,
+    pub staging_offset: usize,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ChannelAxisWidgetRawData {
+    pub description_widget: String,
+
+    pub channel_names_mode_widget: ChannelNamesModeRawData,
+    pub channel_extent_widget: usize,
+    pub channel_name_prefix_widget: String,
+    pub channel_name_suffix_widget: String,
+
+    pub staging_explicit_names: Vec<String>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct InputSpaceAxisWidgetRawData {
+    pub id_widget: String,
+    pub description_widget: String,
+
+    pub size_widget: AnyAxisSizeWidgetRawData,
+    pub space_unit_widget: Option<modelrdf::SpaceUnit>,
+    pub scale_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct InputTimeAxisWidgetRawData {
+    pub id_widget: String,
+    pub description_widget: String,
+
+    pub size_widget: AnyAxisSizeWidgetRawData,
+    pub time_unit_widget: Option<modelrdf::TimeUnit>,
+    pub scale_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct InputAxisWidgetRawData {
+    pub axis_type_widget: bioimg_spec::rdf::model::axes::AxisType,
+    pub batch_axis_widget: BatchAxisWidgetRawData,
+    pub channel_axis_widget: ChannelAxisWidgetRawData,
+    pub index_axis_widget: IndexAxisWidgetRawData,
+    pub space_axis_widget: InputSpaceAxisWidgetRawData,
+    pub time_axis_widget: InputTimeAxisWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct WeightsDescrBaseWidgetRawData{
+    pub source_widget: FileSourceWidgetRawData,
+    pub authors_widget: Option<Vec<CollapsibleWidgetRawData<AuthorWidget>>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct TorchscriptWeightsWidgetRawData{
+    pub base_widget: WeightsDescrBaseWidgetRawData,
+    pub pytorch_version_widget: VersionWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct JsonObjectEditorWidgetRawData{
+    pub code_editor_widget: CodeEditorWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PytorchArchWidgetRawData{
+    pub callable_widget: String,
+    pub kwargs_widget: JsonObjectEditorWidgetRawData,
+    pub import_from_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PytorchStateDictWidgetRawData{
+    pub base_widget: WeightsDescrBaseWidgetRawData,
+    pub architecture_widget: PytorchArchWidgetRawData,
+    pub version_widget: VersionWidgetRawData,
+    pub dependencies_widget: Option<FileWidgetRawData>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct OnnxWeightsWidgetRawData{
+    pub base_widget: WeightsDescrBaseWidgetRawData,
+    pub opset_version_widget: u32,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct KerasHdf5WeightsWidgetRawData{
+    pub base_widget: WeightsDescrBaseWidgetRawData,
+    pub tensorflow_version_widget: VersionWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct WeightsWidgetRawData{
+    pub keras_weights_widget: Option<KerasHdf5WeightsWidgetRawData>,
+    pub torchscript_weights_widget: Option<TorchscriptWeightsWidgetRawData>,
+    pub pytorch_state_dict_widget: Option<PytorchStateDictWidgetRawData>,
+    pub onnx_eights_widget: Option<OnnxWeightsWidgetRawData>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

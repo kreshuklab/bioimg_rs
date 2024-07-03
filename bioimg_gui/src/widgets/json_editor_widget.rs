@@ -1,9 +1,29 @@
-use crate::result::Result;
-use super::{code_editor_widget::CodeEditorWidget, error_display::show_if_error, StatefulWidget, ValueWidget};
+use crate::{project_data::JsonObjectEditorWidgetRawData, result::Result};
+use super::{code_editor_widget::CodeEditorWidget, error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
 
 pub struct JsonObjectEditorWidget{
     pub code_editor_widget: CodeEditorWidget,
     pub parsed: Result<serde_json::Map<String, serde_json::Value>>
+}
+
+impl JsonObjectEditorWidget{
+    pub fn update(&mut self){
+        self.parsed = serde_json::from_str(&self.code_editor_widget.raw)
+            .map_err(|err| err.into());
+    }
+}
+
+impl Restore for JsonObjectEditorWidget{
+    type RawData = JsonObjectEditorWidgetRawData;
+    fn dump(&self) -> Self::RawData {
+        JsonObjectEditorWidgetRawData{
+            code_editor_widget: self.code_editor_widget.dump()
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.code_editor_widget.restore(raw.code_editor_widget);
+        self.update()
+    }
 }
 
 impl ValueWidget for JsonObjectEditorWidget{

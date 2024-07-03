@@ -2,9 +2,9 @@ use bioimg_runtime as rt;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::Result;
-use super::{staging_num::StagingNum, weights_widget::WeightsDescrBaseWidget, StatefulWidget, ValueWidget};
+use super::{staging_num::StagingNum, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct OnnxWeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub opset_version_widget: StagingNum<u32, modelrdf::weights::OnnxOpsetVersion>,
