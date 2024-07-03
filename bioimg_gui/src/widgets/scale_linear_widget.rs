@@ -1,14 +1,31 @@
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 
-use crate::result::{GuiError, Result, VecResultExt};
-use super::{error_display::show_if_error, staging_float::StagingFloat, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
+use crate::{project_data::ScaleLinearModeRawData, result::{GuiError, Result, VecResultExt}};
+use super::{error_display::show_if_error, search_and_pick_widget::SearchAndPickWidget, staging_float::StagingFloat, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, Restore, StatefulWidget, ValueWidget};
 
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Copy, Clone, strum::VariantArray, strum::AsRefStr, strum::Display)]
 pub enum ScaleLinearMode{
     #[default]
     Simple,
+    #[strum(serialize="Along Axis")]
     AlongAxis,
+}
+
+impl Restore for ScaleLinearMode{
+    type RawData = ScaleLinearModeRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Simple => Self::RawData::Simple,
+            Self::AlongAxis => Self::RawData::AlongAxis,
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData){
+        *self = match raw{
+            Self::RawData::Simple => Self::Simple,
+            Self::RawData::AlongAxis => Self::AlongAxis,
+        }
+    }
 }
 
 
@@ -21,6 +38,7 @@ impl ScaleLinearMode{
     }
 }
 
+#[derive(Restore)]
 pub struct SimpleScaleLinearWidget{
     pub gain_widget: StagingFloat<f32>,
     pub offset_widget: StagingFloat<f32>,
@@ -71,10 +89,29 @@ impl ItemWidgetConf for GainOffsetItemConfig{
     const MIN_NUM_ITEMS: usize = 1;
 }
 
+#[derive(Restore)]
 pub struct ScaleLinearAlongAxisWidget{
     pub axis_widget: StagingString<modelrdf::axes::NonBatchAxisId>,
     pub gain_offsets_widget: StagingVec<SimpleScaleLinearWidget, GainOffsetItemConfig>,
+    #[restore_on_update]
     pub parsed: Result<modelrdfpreproc::ScaleLinearAlongAxisDescr>,
+}
+
+impl ScaleLinearAlongAxisWidget{
+    pub fn update(&mut self){
+        self.parsed = || -> Result<modelrdfpreproc::ScaleLinearAlongAxisDescr>{
+            Ok(modelrdfpreproc::ScaleLinearAlongAxisDescr{
+                axis: self.axis_widget.state()?.clone(),
+                gain_offsets: self.gain_offsets_widget.state()
+                    .collect_result()?
+                    .iter()
+                    .map(|simple| (simple.gain, simple.offset))
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .map_err(|_| GuiError::new("Could not create a non-empty list of Gain + Offsets".to_owned()))?
+            })
+        }();
+    }
 }
 
 impl ValueWidget for ScaleLinearAlongAxisWidget{
@@ -103,6 +140,7 @@ impl StatefulWidget for ScaleLinearAlongAxisWidget{
     type Value<'p> = &'p Result<modelrdfpreproc::ScaleLinearAlongAxisDescr>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.update();
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Axis");
@@ -112,18 +150,6 @@ impl StatefulWidget for ScaleLinearAlongAxisWidget{
                 ui.strong("Gains and Offsets:");
                 self.gain_offsets_widget.draw_and_parse(ui, id.with("go".as_ptr()));
             });
-            self.parsed = || -> Result<modelrdfpreproc::ScaleLinearAlongAxisDescr>{
-                Ok(modelrdfpreproc::ScaleLinearAlongAxisDescr{
-                    axis: self.axis_widget.state()?.clone(),
-                    gain_offsets: self.gain_offsets_widget.state()
-                        .collect_result()?
-                        .iter()
-                        .map(|simple| (simple.gain, simple.offset))
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|_| GuiError::new("Could not create a non-empty list of Gain + Offsets".to_owned()))?
-                })
-            }();
             show_if_error(ui, &self.parsed)
         });
     }
@@ -135,9 +161,9 @@ impl StatefulWidget for ScaleLinearAlongAxisWidget{
 
 // //////////////////////////
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct ScaleLinearWidget{
-    pub mode: ScaleLinearMode,
+    pub mode_widget: SearchAndPickWidget<ScaleLinearMode, false>,
     pub simple_widget: SimpleScaleLinearWidget,
     pub along_axis_widget: ScaleLinearAlongAxisWidget,
 }
@@ -147,11 +173,11 @@ impl ValueWidget for ScaleLinearWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         match value{
             modelrdfpreproc::ScaleLinearDescr::Simple(simple) => {
-                self.mode = ScaleLinearMode::Simple;
+                self.mode_widget.value = ScaleLinearMode::Simple;
                 self.simple_widget.set_value(simple)
             },
             modelrdfpreproc::ScaleLinearDescr::AlongAxis(val) => {
-                self.mode = ScaleLinearMode::AlongAxis;
+                self.mode_widget.value = ScaleLinearMode::AlongAxis;
                 self.along_axis_widget.set_value(val)
             },
         }
@@ -165,14 +191,9 @@ impl StatefulWidget for ScaleLinearWidget{
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Mode: ");
-                egui::ComboBox::from_id_source(id.with("mode".as_ptr()))
-                    .selected_text(self.mode.display_str())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.mode, ScaleLinearMode::Simple, ScaleLinearMode::Simple.display_str());
-                        ui.selectable_value(&mut self.mode, ScaleLinearMode::AlongAxis, ScaleLinearMode::AlongAxis.display_str());
-                    });
+                self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
             });
-            match self.mode{
+            match self.mode_widget.value{
                 ScaleLinearMode::Simple => self.simple_widget.draw_and_parse(ui, id.with("simple".as_ptr())),
                 ScaleLinearMode::AlongAxis => self.along_axis_widget.draw_and_parse(ui, id.with("along axis".as_ptr())),
             };
@@ -180,7 +201,7 @@ impl StatefulWidget for ScaleLinearWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(match self.mode{
+        Ok(match self.mode_widget.value{
             ScaleLinearMode::Simple => modelrdfpreproc::ScaleLinearDescr::Simple(
                 self.simple_widget.state()?
             ),

@@ -7,13 +7,26 @@ use bioimg_spec::rdf::model::{preprocessing as modelrdfpreproc, TensorId};
 use crate::result::{GuiError, Result};
 use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
-use super::ValueWidget;
+use super::{Restore, ValueWidget};
 use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
 
+#[derive(Restore)]
 pub struct PercentilesWidget{
     pub min_widget: StagingFloat<f32>,
     pub max_widget: StagingFloat<f32>,
+    #[restore_on_update]
     pub parsed: Result<modelrdfpreproc::ScaleRangePercentile>,
+}
+
+impl PercentilesWidget{
+    pub fn update(&mut self){
+        self.parsed = || -> Result<modelrdfpreproc::ScaleRangePercentile>{
+            Ok(modelrdfpreproc::ScaleRangePercentile::try_from_min_max(
+                self.min_widget.state()?,
+                self.max_widget.state()?,
+            )?)
+        }();
+    }
 }
 
 impl ValueWidget for PercentilesWidget{
@@ -38,18 +51,13 @@ impl StatefulWidget for PercentilesWidget{
     type Value<'p>  = &'p Result<modelrdfpreproc::ScaleRangePercentile>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.update();
         ui.horizontal(|ui|{
             ui.strong("Min Percentile: ");
             self.min_widget.draw_and_parse(ui, id.with("min".as_ptr()));
             ui.strong("Max Percentile: ");
             self.max_widget.draw_and_parse(ui, id.with("max".as_ptr()));
         });
-        self.parsed = || -> Result<modelrdfpreproc::ScaleRangePercentile>{
-            Ok(modelrdfpreproc::ScaleRangePercentile::try_from_min_max(
-                self.min_widget.state()?,
-                self.max_widget.state()?,
-            )?)
-        }();
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
@@ -64,7 +72,7 @@ impl ItemWidgetConf for AxesItemConfig{
     const MIN_NUM_ITEMS: usize = 1;
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct ScaleRangeWidget{
     pub axes_widget: StagingOpt<StagingVec<StagingString<model::AxisId>, AxesItemConfig>>,
     pub percentiles_widget: PercentilesWidget,

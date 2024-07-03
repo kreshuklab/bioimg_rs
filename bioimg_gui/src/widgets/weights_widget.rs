@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bioimg_runtime as rt;
 
-use crate::{project_data::WeightsWidgetRawData, result::{GuiError, Result, VecResultExt}};
+use crate::result::{GuiError, Result, VecResultExt};
 use super::{
     author_widget::AuthorWidget,
     collapsible_widget::CollapsibleWidget,
@@ -18,31 +18,14 @@ use super::{
     ValueWidget,
 };
 
+#[derive(Restore)]
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
     pub torchscript_weights_widget: StagingOpt<TorchscriptWeightsWidget>,
     pub pytorch_state_dict_widget: StagingOpt<PytorchStateDictWidget>,
     pub onnx_eights_widget: StagingOpt<OnnxWeightsWidget>,
-
+    #[restore_on_update]
     parsed: Result<Arc<rt::ModelWeights>>
-}
-
-impl Restore for WeightsWidget{
-    type RawData = WeightsWidgetRawData;
-    fn dump(&self) -> Self::RawData {
-        WeightsWidgetRawData{
-            keras_weights_widget: self.keras_weights_widget.dump(),
-            torchscript_weights_widget: self.torchscript_weights_widget.dump(),
-            pytorch_state_dict_widget: self.pytorch_state_dict_widget.dump(),
-            onnx_eights_widget: self.onnx_eights_widget.dump(),
-        }
-    }
-    fn restore(&mut self, raw: Self::RawData) {
-        self.keras_weights_widget.restore(raw.keras_weights_widget);
-        self.torchscript_weights_widget.restore(raw.torchscript_weights_widget);
-        self.pytorch_state_dict_widget.restore(raw.pytorch_state_dict_widget);
-        self.onnx_eights_widget.restore(raw.onnx_eights_widget);
-    }
 }
 
 impl Default for WeightsWidget{
@@ -67,11 +50,26 @@ impl ValueWidget for WeightsWidget{
     }
 }
 
+impl WeightsWidget{
+    pub fn update(&mut self){
+        self.parsed = (|| {
+            Ok(Arc::new(rt::ModelWeights::new(
+                self.keras_weights_widget.state().transpose()?,
+                self.onnx_eights_widget.state().transpose()?,
+                self.pytorch_state_dict_widget.state().transpose()?,
+                None,
+                None,
+                self.torchscript_weights_widget.state().transpose()?,
+            )?)
+        )})();
+    }
+}
 
 impl StatefulWidget for WeightsWidget{
     type Value<'p> = Result<Arc<rt::ModelWeights>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+        self.update();
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Torchscript: ");
@@ -90,16 +88,6 @@ impl StatefulWidget for WeightsWidget{
                 self.onnx_eights_widget.draw_and_parse(ui, id.with("onnx".as_ptr()));
             });
 
-            self.parsed = (|| {
-                Ok(Arc::new(rt::ModelWeights::new(
-                    self.keras_weights_widget.state().transpose()?,
-                    self.onnx_eights_widget.state().transpose()?,
-                    self.pytorch_state_dict_widget.state().transpose()?,
-                    None,
-                    None,
-                    self.torchscript_weights_widget.state().transpose()?,
-                )?)
-            )})();
             if self.parsed.is_err(){
                 show_error(ui, "Please review the model weights");
             }

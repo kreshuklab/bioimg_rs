@@ -7,10 +7,11 @@ use crate::result::GuiError;
 use crate::result::Result;
 use crate::result::VecResultExt;
 use super::staging_float::StagingFloat;
+use super::Restore;
 use super::ValueWidget;
 use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct ScaleMeanVarianceWidget{
     pub reference_tensor_widget: StagingString<modelrdf::TensorId>,
     pub axes_widget: StagingOpt<  StagingVec< StagingString<modelrdf::AxisId>, ScaleMeanVarItemConfig >  >,

@@ -41,7 +41,7 @@ enum PackingStatus {
     },
 }
 
-// #[derive(Restore)]
+#[derive(Restore)]
 pub struct BioimgGui {
     pub staging_name: StagingString<ResourceName>,
     pub staging_description: StagingString<BoundedString<1, 1024>>,
@@ -65,9 +65,9 @@ pub struct BioimgGui {
     ////
     pub weights_widget: WeightsWidget,
 
-    // #[skip_restore]
+    #[restore_default]
     pub notifications_widget: NotificationsWidget,
-    // #[skip_restore]
+    #[restore_default]
     model_packing_status: PackingStatus,
 }
 

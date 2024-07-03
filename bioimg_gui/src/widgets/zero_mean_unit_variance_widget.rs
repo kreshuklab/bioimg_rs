@@ -4,7 +4,7 @@ use bioimg_spec::rdf::model as modelrdf;
 use crate::result::{GuiError, Result, VecResultExt};
 use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
-use super::ValueWidget;
+use super::{Restore, ValueWidget};
 use super::{staging_opt::StagingOpt, staging_string::StagingString, staging_vec::StagingVec, StatefulWidget};
 
 pub struct ZeroMeanAxesItemConfig;
@@ -13,6 +13,7 @@ impl ItemWidgetConf for ZeroMeanAxesItemConfig{
     const INLINE_ITEM: bool = true;
 }
 
+#[derive(Restore)]
 pub struct ZeroMeanUnitVarianceWidget{
     pub axes_widget: StagingOpt<StagingVec< StagingString<modelrdf::AxisId>, ZeroMeanAxesItemConfig >>,
     pub epsilon_widget: StagingFloat<modelrdfpreproc::PreprocessingEpsilon>,

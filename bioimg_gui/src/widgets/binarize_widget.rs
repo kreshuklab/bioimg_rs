@@ -1,21 +1,40 @@
 use bioimg_spec::rdf::{model as modelrdf, NonEmptyList};
-use bioimg_spec::rdf::model::preprocessing as preproc;
+use bioimg_spec::rdf::model::preprocessing::{self as preproc, BinarizeDescr};
 
+use crate::project_data::{BinarizeAlongAxisWidgetRawData, BinarizeModeRawData};
 use crate::result::{GuiError, Result, VecResultExt};
 
 use super::error_display::show_if_error;
+use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_float::StagingFloat;
-use super::ValueWidget;
+use super::{Restore, ValueWidget};
 use super::{staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
 
-#[derive(PartialEq, Eq, Copy, Clone, Default)]
+#[derive(PartialEq, Eq, Copy, Clone, Default, strum::Display, strum::VariantArray, strum::AsRefStr)]
 pub enum BinarizeMode{
     #[default]
     Simple,
+    #[strum(serialize="Along Axis")]
     AlongAxis,
 }
 
-#[derive(Default)]
+impl Restore for BinarizeMode{
+    type RawData = BinarizeModeRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Simple => Self::RawData::Simple,
+            Self::AlongAxis => Self::RawData::AlongAxis,
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        *self = match raw{
+            Self::RawData::Simple => Self::Simple,
+            Self::RawData::AlongAxis => Self::AlongAxis,
+        }
+    }
+}
+
+#[derive(Default, Restore)]
 pub struct SimpleBinarizeWidget{
     pub threshold_widget: StagingFloat<f32>,
 }
@@ -55,6 +74,21 @@ pub struct BinarizeAlongAxisWidget{
     pub parsed: Result<preproc::BinarizeAlongAxisDescr>,
 }
 
+impl Restore for BinarizeAlongAxisWidget{
+    type RawData = BinarizeAlongAxisWidgetRawData;
+    fn dump(&self) -> Self::RawData {
+        BinarizeAlongAxisWidgetRawData{
+            thresholds_widget: self.thresholds_widget.dump(),
+            axis_id_widget: self.axis_id_widget.dump(),
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.thresholds_widget.restore(raw.thresholds_widget);
+        self.axis_id_widget.restore(raw.axis_id_widget);
+        self.update();
+    }
+}
+
 impl ValueWidget for BinarizeAlongAxisWidget{
     type Value<'v> = preproc::BinarizeAlongAxisDescr;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
@@ -73,18 +107,8 @@ impl Default for BinarizeAlongAxisWidget{
     }
 }
 
-impl StatefulWidget for BinarizeAlongAxisWidget{
-    type Value<'p> = &'p Result<modelrdf::preprocessing::BinarizeAlongAxisDescr>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        ui.horizontal(|ui|{
-            ui.strong("Thresholds: ");
-            self.thresholds_widget.draw_and_parse(ui, id.with("ts"));
-        });
-        ui.horizontal(|ui|{
-            ui.strong("Axis Id: ");
-            self.axis_id_widget.draw_and_parse(ui, id.with("id"))
-        });
+impl BinarizeAlongAxisWidget{
+    fn update(&mut self){
         self.parsed = || -> Result<preproc::BinarizeAlongAxisDescr> {
             let thresholds: NonEmptyList<f32> = self.thresholds_widget.state()
                 .collect_result()?
@@ -95,6 +119,22 @@ impl StatefulWidget for BinarizeAlongAxisWidget{
                 threshold: thresholds
             })
         }();
+    }
+}
+
+impl StatefulWidget for BinarizeAlongAxisWidget{
+    type Value<'p> = &'p Result<modelrdf::preprocessing::BinarizeAlongAxisDescr>;
+
+    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.update();
+        ui.horizontal(|ui|{
+            ui.strong("Thresholds: ");
+            self.thresholds_widget.draw_and_parse(ui, id.with("ts"));
+        });
+        ui.horizontal(|ui|{
+            ui.strong("Axis Id: ");
+            self.axis_id_widget.draw_and_parse(ui, id.with("id"))
+        });
         show_if_error(ui, &self.parsed);
     }
 
@@ -103,9 +143,9 @@ impl StatefulWidget for BinarizeAlongAxisWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct BinarizePreprocessingWidget{
-    pub mode: BinarizeMode,
+    pub mode_widget: SearchAndPickWidget<BinarizeMode, false>,
     pub simple_binarize_widget: SimpleBinarizeWidget,
     pub binarize_along_axis_wiget: BinarizeAlongAxisWidget,
 }
@@ -116,11 +156,11 @@ impl ValueWidget for BinarizePreprocessingWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         match value{
             preproc::BinarizeDescr::Simple(val) => {
-                self.mode = BinarizeMode::Simple;
+                self.mode_widget.value = BinarizeMode::Simple;
                 self.simple_binarize_widget.set_value(val)
             },
             preproc::BinarizeDescr::AlongAxis(val) => {
-                self.mode = BinarizeMode::AlongAxis;
+                self.mode_widget.value = BinarizeMode::AlongAxis;
                 self.binarize_along_axis_wiget.set_value(val);
             }
         }
@@ -133,17 +173,16 @@ impl StatefulWidget for BinarizePreprocessingWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.horizontal(|ui|{
             ui.strong("Mode: ");
-            ui.radio_value(&mut self.mode, BinarizeMode::Simple, "Simple");
-            ui.radio_value(&mut self.mode, BinarizeMode::AlongAxis, "Along Axis");
+            self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
         });
-        match self.mode{
-            BinarizeMode::Simple => self.simple_binarize_widget.draw_and_parse(ui, id.with("simp")),
-            BinarizeMode::AlongAxis => self.binarize_along_axis_wiget.draw_and_parse(ui, id.with("axis")),
+        match self.mode_widget.value{
+            BinarizeMode::Simple => self.simple_binarize_widget.draw_and_parse(ui, id.with("simp".as_ptr())),
+            BinarizeMode::AlongAxis => self.binarize_along_axis_wiget.draw_and_parse(ui, id.with("axis".as_ptr())),
         }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(match self.mode{
+        Ok(match self.mode_widget.value{
             BinarizeMode::Simple => modelrdf::preprocessing::BinarizeDescr::Simple(
                 self.simple_binarize_widget.state()?
             ),

@@ -18,7 +18,7 @@ pub fn derive_str_marker(input: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro_derive(Restore, attributes(skip_restore))]
+#[proc_macro_derive(Restore, attributes(restore_default, restore_on_update))]
 pub fn derive_restore(input: TokenStream) -> TokenStream {
     match restore::do_derive_restore(input) {
         Ok(tokens) => tokens,

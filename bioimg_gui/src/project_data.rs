@@ -1,7 +1,17 @@
 use std::path::PathBuf;
 
-use bioimg_spec::rdf::model as modelrdf;
-use crate::widgets::{author_widget::AuthorWidget, Restore};
+use bioimg_spec::rdf::model::{self as modelrdf, AxisType};
+use crate::widgets::{
+    author_widget::AuthorWidget,
+    cite_widget::CiteEntryWidget,
+    inout_tensor_widget::{InputTensorWidget, OutputTensorWidget},
+    input_axis_widget::InputAxisWidget,
+    maintainer_widget::MaintainerWidget,
+    output_axis_widget::OutputAxisWidget,
+    posstprocessing_widget::PostprocessingWidget,
+    preprocessing_widget::PreprocessingWidget,
+    Restore
+};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorWidgetRawData{
@@ -227,29 +237,248 @@ pub struct WeightsWidgetRawData{
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct ProjectData1{
+pub struct InputTensorWidgetRawData {
+    pub id_widget: String,
+    pub is_optional: bool,
+    pub description_widget: String,
+    pub axes_widget: Vec<CollapsibleWidgetRawData<InputAxisWidget>>,
+    pub test_tensor_widget: FileWidgetRawData,
+    pub preprocessing_widget: Vec<CollapsibleWidgetRawData<PreprocessingWidget>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum PreprocessingWidgetModeRawData {
+    Binarize,
+    Clip,
+    ScaleLinear,
+    Sigmoid,
+    ZeroMeanUnitVariance,
+    ScaleRange,
+    EnsureDtype,
+    FixedZmuv,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum BinarizeModeRawData{
+    Simple,
+    AlongAxis,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SimpleBinarizeWidgetRawData{
+    pub threshold_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct BinarizeAlongAxisWidgetRawData{
+    pub thresholds_widget: Vec<String>,
+    pub axis_id_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct BinarizePreprocessingWidgetRawData{
+    pub mode_widget: BinarizeModeRawData,
+    pub simple_binarize_widget: SimpleBinarizeWidgetRawData,
+    pub binarize_along_axis_wiget: BinarizeAlongAxisWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ClipWidgetRawData{
+    pub min_widget: String,
+    pub max_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum ScaleLinearModeRawData{
+    Simple,
+    AlongAxis,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SimpleScaleLinearWidgetRawData{
+    pub gain_widget: String,
+    pub offset_widget: String,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct ScaleLinearAlongAxisWidgetRawData{
+    pub axis_widget: String,
+    pub gain_offsets_widget: Vec<SimpleScaleLinearWidgetRawData>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ZeroMeanUnitVarianceWidgetRawData{
+    pub axes_widget: Option<Vec<String>>,
+    pub epsilon_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PercentilesWidgetRawData{
+    pub min_widget: String,
+    pub max_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ScaleRangeWidgetRawData{
+    pub axes_widget: Option<Vec<String>>,
+    pub percentiles_widget: PercentilesWidgetRawData,
+    pub epsilon_widget: String,
+    pub reference_tensor: Option<String>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum ZmuvWidgetModeRawData{
+    Simple,
+    AlongAxis,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SimpleFixedZmuvWidgetRawData{
+    pub mean_widget: String,
+    pub std_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct FixedZmuvAlongAxisWidgetRawData{
+    pub axis_widget: String,
+    pub mean_and_std_widget: Vec<SimpleFixedZmuvWidgetRawData>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct FixedZmuvWidgetRawData{
+    pub mode_widget: ZmuvWidgetModeRawData,
+    pub simple_widget: SimpleFixedZmuvWidgetRawData,
+    pub along_axis_widget: FixedZmuvAlongAxisWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ScaleLinearWidgetRawData{
+    pub mode_widget: ScaleLinearModeRawData,
+    pub simple_widget: SimpleScaleLinearWidgetRawData,
+    pub along_axis_widget: ScaleLinearAlongAxisWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PreprocessingWidgetRawData{
+    pub mode_widget: PreprocessingWidgetModeRawData,
+    pub binarize_widget: BinarizePreprocessingWidgetRawData,
+    pub clip_widget: ClipWidgetRawData,
+    pub scale_linear_widget: ScaleLinearWidgetRawData,
+    // pub sigmoid sigmoid has no widget since it has no params
+    pub zero_mean_unit_variance_widget: ZeroMeanUnitVarianceWidgetRawData,
+    pub scale_range_widget: ScaleRangeWidgetRawData,
+    pub ensure_dtype_widget: modelrdf::DataType,
+    pub fixed_zmuv_widget: FixedZmuvWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct OutputSpacetimeSizeWidgetRawData{
+    pub has_halo: bool,
+    pub halo_widget: u64,
+    pub size_widget: AnyAxisSizeWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct OutputTimeAxisWidgetRawData {
+    pub id_widget: String,
+    pub description_widget: String,
+
+    pub size_widget: OutputSpacetimeSizeWidgetRawData,
+    pub unit_widget: Option<modelrdf::TimeUnit>,
+    pub scale_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct OutputSpaceAxisWidgetRawData {
+    pub id_widget: String,
+    pub description_widget: String,
+
+    pub size_widget: OutputSpacetimeSizeWidgetRawData,
+    pub unit_widget: Option<modelrdf::SpaceUnit>,
+    pub scale_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct OutputAxisWidgetRawData {
+    pub axis_type_widget: AxisType,
+
+    pub batch_axis_widget: BatchAxisWidgetRawData,
+    pub channel_axis_widget: ChannelAxisWidgetRawData,
+    pub index_axis_widget: IndexAxisWidgetRawData,
+    pub space_axis_widget: OutputSpaceAxisWidgetRawData,
+    pub time_axis_widget: OutputTimeAxisWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum PostprocessingWidgetModeRawData {
+    Binarize,
+    Clip,
+    ScaleLinear,
+    Sigmoid,
+    ZeroMeanUnitVariance,
+    ScaleRange,
+    EnsureDtype,
+    FixedZmuv,
+    ScaleMeanVariance,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ScaleMeanVarianceWidgetRawData{
+    pub reference_tensor_widget: String,
+    pub axes_widget: Option<Vec<String>>,
+    pub eps_widget: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct PostprocessingWidgetRawData{
+    pub mode_widget: PostprocessingWidgetModeRawData,
+    pub binarize_widget: BinarizePreprocessingWidgetRawData,
+    pub clip_widget: ClipWidgetRawData,
+    pub scale_linear_widget: ScaleLinearWidgetRawData,
+    // pub sigmoid sigmoid has no widget since it has no params
+    pub zero_mean_unit_variance_widget: ZeroMeanUnitVarianceWidgetRawData,
+    pub scale_range_widget: ScaleRangeWidgetRawData,
+    pub ensure_dtype_widget: modelrdf::DataType,
+    pub fixed_zmuv_widget: FixedZmuvWidgetRawData,
+    pub scale_mean_var_widget: ScaleMeanVarianceWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct OutputTensorWidgetRawData {
+    pub id_widget: String,
+    pub description_widget: String,
+    pub axes_widget: Vec<CollapsibleWidgetRawData<OutputAxisWidget>>,
+    pub test_tensor_widget: FileWidgetRawData,
+    pub postprocessing_widget: Vec<CollapsibleWidgetRawData<PostprocessingWidget>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ModelInterfaceWidgetRawData {
+    pub inputs_widget: Vec<CollapsibleWidgetRawData<InputTensorWidget>>,
+    pub outputs_widget: Vec<CollapsibleWidgetRawData<OutputTensorWidget>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct BioimgGuiRawData{
     pub staging_name: String,
     pub staging_description: String,
-    // pub cover_images: Vec<>, // something from LoadingSate in image_widget_2
+    pub cover_images: Vec<SpecialImageWidgetRawData>,
     // id?
-    // pub staging_authors: Vec<CollapsibleWidget<StagingAuthor2>>,
-    // pub attachments_widget: StagingVec<AttachmentsWidget>,
-    // pub staging_citations: StagingVec<CollapsibleWidget<StagingCiteEntry2>>,
-    // //config
-    // pub staging_git_repo: StagingOpt<StagingUrl>,
-    // pub icon_widget: StagingOpt<IconWidget>,
-    // //links
-    // pub staging_maintainers: StagingVec<CollapsibleWidget<StagingMaintainer>>,
-    // pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
-    // pub staging_version: StagingOpt<VersionWidget>,
+    pub staging_authors: Vec<CollapsibleWidgetRawData<AuthorWidget>>,
+    pub attachments_widget: Vec<FileSourceWidgetRawData>,
+    pub staging_citations: Vec<CollapsibleWidgetRawData<CiteEntryWidget>>,
+    //config
+    pub staging_git_repo: Option<String>,
+    pub icon_widget: Option<IconWidgetRawData>,
+    //links
+    pub staging_maintainers: Vec<CollapsibleWidgetRawData<MaintainerWidget>>,
+    pub staging_tags: Vec<String>,
+    pub staging_version: Option<VersionWidgetRawData>,
 
-    // pub staging_documentation: CodeEditorWidget,
-    // pub staging_license: SearchAndPickWidget<rdf::LicenseId>,
-    // //badges
-    // pub model_interface_widget: ModelInterfaceWidget,
-    // ////
-    // pub weights_widget: WeightsWidget,
-
-    // pub notifications_widget: NotificationsWidget,
-    // model_packing_status: PackingStatus,
+    pub staging_documentation: CodeEditorWidgetRawData,
+    pub staging_license: ::bioimg_spec::rdf::LicenseId,
+    //badges
+    pub model_interface_widget: ModelInterfaceWidgetRawData,
+    ////
+    pub weights_widget: WeightsWidgetRawData,
 }

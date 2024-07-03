@@ -80,7 +80,7 @@ impl<T> ValueWidget for SearchAndPickWidget<T>{
     }
 }
 
-impl<T: Restore> Restore for SearchAndPickWidget<T>{
+impl<T: Restore, const SHOW_SEARCH: bool> Restore for SearchAndPickWidget<T, SHOW_SEARCH>{
     type RawData = T::RawData;
     fn restore(&mut self, raw: Self::RawData) {
         self.value.restore(raw);

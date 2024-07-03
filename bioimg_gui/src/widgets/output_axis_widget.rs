@@ -11,11 +11,11 @@ use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
 use super::axis_widget::{BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
 use super::util::group_frame;
-use super::{StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::result::{GuiError, Result};
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct OutputSpacetimeSizeWidget{
     pub has_halo: bool,
     pub halo_widget: StagingNum<u64, modelrdf::Halo>,
@@ -91,7 +91,7 @@ impl StatefulWidget for OutputSpacetimeSizeWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct OutputSpaceAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
     pub description_widget: StagingString<BoundedString<0, 128>>,
@@ -156,7 +156,7 @@ impl StatefulWidget for OutputSpaceAxisWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct OutputTimeAxisWidget {
     pub id_widget: StagingString<modelrdf::axes::AxisId>,
     pub description_widget: StagingString<BoundedString<0, 128>>,
@@ -243,7 +243,7 @@ impl StatefulWidget for OutputTimeAxisWidget{
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct OutputAxisWidget {
     pub axis_type_widget: SearchAndPickWidget<AxisType>,
 

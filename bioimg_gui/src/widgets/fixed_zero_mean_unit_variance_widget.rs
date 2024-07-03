@@ -1,17 +1,38 @@
 use bioimg_spec::rdf::model::{self as modelrdf, preprocessing::zero_mean_unit_variance::ZmuvStdDeviation};
 use bioimg_spec::rdf::model::preprocessing as preproc;
 
+use crate::project_data::ZmuvWidgetModeRawData;
 use crate::result::{GuiError, Result, VecResultExt};
+use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_float::StagingFloat;
+use super::Restore;
 use super::{error_display::show_if_error, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget, ValueWidget};
 
-#[derive(PartialEq, Eq, Default)]
-pub enum Mode{
+#[derive(PartialEq, Eq, Default, strum::VariantArray, strum::AsRefStr, strum::Display, Copy, Clone)]
+pub enum ZmuvWidgetMode{
     #[default]
     Simple,
+    #[strum(serialize="Along Axis")]
     AlongAxis,
 }
 
+impl Restore for ZmuvWidgetMode{
+    type RawData = ZmuvWidgetModeRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Simple => Self::RawData::Simple,
+            Self::AlongAxis => Self::RawData::AlongAxis,
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        *self = match raw{
+            Self::RawData::Simple => Self::Simple,
+            Self::RawData::AlongAxis => Self::AlongAxis,
+        }
+    }
+}
+
+#[derive(Restore)]
 pub struct SimpleFixedZmuvWidget{
     pub mean_widget: StagingFloat<f32>,
     pub std_widget: StagingFloat<ZmuvStdDeviation>,
@@ -62,10 +83,29 @@ impl ItemWidgetConf for MeanAndStdItemConfig{
     const MIN_NUM_ITEMS: usize = 1;
 }
 
+#[derive(Restore)]
 pub struct FixedZmuvAlongAxisWidget{
     pub axis_widget: StagingString<modelrdf::axes::NonBatchAxisId>,
     pub mean_and_std_widget: StagingVec<SimpleFixedZmuvWidget, MeanAndStdItemConfig>,
+    #[restore_on_update]
     pub parsed: Result<preproc::FixedZmuvAlongAxis>,
+}
+
+impl FixedZmuvAlongAxisWidget{
+    pub fn update(&mut self){
+        self.parsed = || -> Result<preproc::FixedZmuvAlongAxis>{
+            Ok(preproc::FixedZmuvAlongAxis{
+                axis: self.axis_widget.state()?.clone(),
+                mean_and_std: self.mean_and_std_widget.state()
+                    .collect_result()?
+                    .iter()
+                    .map(|simple| preproc::SimpleFixedZmuv{mean: simple.mean, std: simple.std})
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .map_err(|_| GuiError::new("Could not create a non-empty list of Gain + Offsets".to_owned()))?
+            })
+        }();
+    }
 }
 
 impl ValueWidget for FixedZmuvAlongAxisWidget{
@@ -94,6 +134,7 @@ impl StatefulWidget for FixedZmuvAlongAxisWidget{
     type Value<'p> = &'p Result<preproc::FixedZmuvAlongAxis>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.update();
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Axis");
@@ -103,18 +144,6 @@ impl StatefulWidget for FixedZmuvAlongAxisWidget{
                 ui.strong("Gains and Offsets:");
                 self.mean_and_std_widget.draw_and_parse(ui, id.with("go".as_ptr()));
             });
-            self.parsed = || -> Result<preproc::FixedZmuvAlongAxis>{
-                Ok(preproc::FixedZmuvAlongAxis{
-                    axis: self.axis_widget.state()?.clone(),
-                    mean_and_std: self.mean_and_std_widget.state()
-                        .collect_result()?
-                        .iter()
-                        .map(|simple| preproc::SimpleFixedZmuv{mean: simple.mean, std: simple.std})
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|_| GuiError::new("Could not create a non-empty list of Gain + Offsets".to_owned()))?
-                })
-            }();
             show_if_error(ui, &self.parsed)
         });
     }
@@ -126,9 +155,9 @@ impl StatefulWidget for FixedZmuvAlongAxisWidget{
 
 // //////////////////////////
 
-#[derive(Default)]
+#[derive(Default, Restore)]
 pub struct FixedZmuvWidget{
-    pub mode: Mode,
+    pub mode_widget: SearchAndPickWidget<ZmuvWidgetMode, false>,
     pub simple_widget: SimpleFixedZmuvWidget,
     pub along_axis_widget: FixedZmuvAlongAxisWidget,
 }
@@ -138,11 +167,11 @@ impl ValueWidget for FixedZmuvWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         match value{
             preproc::FixedZmuv::Simple(simple) => {
-                self.mode = Mode::Simple;
+                self.mode_widget.value = ZmuvWidgetMode::Simple;
                 self.simple_widget.set_value(simple)
             },
             preproc::FixedZmuv::AlongAxis(val) => {
-                self.mode = Mode::AlongAxis;
+                self.mode_widget.value = ZmuvWidgetMode::AlongAxis;
                 self.along_axis_widget.set_value(val)
             },
         }
@@ -156,22 +185,21 @@ impl StatefulWidget for FixedZmuvWidget{
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Mode: ");
-                ui.radio_value(&mut self.mode, Mode::Simple, "Simple");
-                ui.radio_value(&mut self.mode, Mode::AlongAxis, "Along Axis");
+                self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
             });
-            match self.mode{
-                Mode::Simple => self.simple_widget.draw_and_parse(ui, id.with("simple".as_ptr())),
-                Mode::AlongAxis => self.along_axis_widget.draw_and_parse(ui, id.with("along axis".as_ptr())),
+            match self.mode_widget.value{
+                ZmuvWidgetMode::Simple => self.simple_widget.draw_and_parse(ui, id.with("simple".as_ptr())),
+                ZmuvWidgetMode::AlongAxis => self.along_axis_widget.draw_and_parse(ui, id.with("along axis".as_ptr())),
             };
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(match self.mode{
-            Mode::Simple => preproc::FixedZmuv::Simple(
+        Ok(match self.mode_widget.value{
+            ZmuvWidgetMode::Simple => preproc::FixedZmuv::Simple(
                 self.simple_widget.state()?
             ),
-            Mode::AlongAxis => preproc::FixedZmuv::AlongAxis(
+            ZmuvWidgetMode::AlongAxis => preproc::FixedZmuv::AlongAxis(
                 self.along_axis_widget.state().as_ref().map_err(|err| err.clone())?.clone()
             )
         })

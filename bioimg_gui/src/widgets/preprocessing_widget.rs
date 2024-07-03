@@ -1,8 +1,8 @@
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
-use crate::result::Result;
-use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, collapsible_widget::{CollapsibleWidget, SummarizableWidget}, fixed_zero_mean_unit_variance_widget::FixedZmuvWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, search_and_pick_widget::SearchAndPickWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, StatefulWidget, ValueWidget};
+use crate::{project_data::PreprocessingWidgetModeRawData, result::Result};
+use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, collapsible_widget::{CollapsibleWidget, SummarizableWidget}, fixed_zero_mean_unit_variance_widget::FixedZmuvWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, search_and_pick_widget::SearchAndPickWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, Restore, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default, Clone, strum::VariantArray, strum::AsRefStr, strum::VariantNames, strum::Display)]
 pub enum PreprocessingWidgetMode {
@@ -22,7 +22,35 @@ pub enum PreprocessingWidgetMode {
     FixedZmuv,
 }
 
-#[derive(Default)]
+impl Restore for PreprocessingWidgetMode{
+    type RawData = PreprocessingWidgetModeRawData;
+    fn dump(&self) -> Self::RawData {
+        match self{
+            Self::Binarize => Self::RawData::Binarize ,
+            Self::Clip => Self::RawData::Clip ,
+            Self::ScaleLinear => Self::RawData::ScaleLinear ,
+            Self::Sigmoid => Self::RawData::Sigmoid ,
+            Self::ZeroMeanUnitVariance => Self::RawData::ZeroMeanUnitVariance ,
+            Self::ScaleRange => Self::RawData::ScaleRange ,
+            Self::EnsureDtype => Self::RawData::EnsureDtype ,
+            Self::FixedZmuv => Self::RawData::FixedZmuv ,
+        }
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        *self = match raw{
+            Self::RawData::Binarize => Self::Binarize ,
+            Self::RawData::Clip => Self::Clip ,
+            Self::RawData::ScaleLinear => Self::ScaleLinear ,
+            Self::RawData::Sigmoid => Self::Sigmoid ,
+            Self::RawData::ZeroMeanUnitVariance => Self::ZeroMeanUnitVariance ,
+            Self::RawData::ScaleRange => Self::ScaleRange ,
+            Self::RawData::EnsureDtype => Self::EnsureDtype ,
+            Self::RawData::FixedZmuv => Self::FixedZmuv ,
+        }
+    }
+}
+
+#[derive(Default, Restore)]
 pub struct PreprocessingWidget{
     pub mode_widget: SearchAndPickWidget<PreprocessingWidgetMode>,
     pub binarize_widget: BinarizePreprocessingWidget,
