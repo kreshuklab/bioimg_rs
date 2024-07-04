@@ -147,6 +147,40 @@ impl eframe::App for BioimgGui {
                             }
                         }
                     }
+                    if ui.button("Save Project").clicked() { 'save_project: {
+                        let Some(path) = rfd::FileDialog::new().set_file_name("/home/builder/bla.bmb").save_file() else {
+                            break 'save_project;
+                        };
+                        let save_result = std::fs::write(&path, serde_json::to_string_pretty(&self.dump()).unwrap());
+                        self.notifications_widget.push_message(match &save_result {
+                            Ok(_) => Ok(format!("Project saved to {}", path.to_string_lossy())),
+                            Err(err) => Err(format!("Error saving project: {err}")),
+                        });
+                    }}
+                    if ui.button("Load Project").clicked() { 'load_project: {
+                        let Some(path) = rfd::FileDialog::new().pick_file() else {
+                            break 'load_project;
+                        };
+                        let project_file = match std::fs::File::open(&path){
+                            Ok(project_file) => project_file,
+                            Err(err) => {
+                                self.notifications_widget.push_message(
+                                    Err(format!("Error loading project: {err}"))
+                                );
+                                break 'load_project
+                            }
+                        };
+                        let loaded_project = match serde_json::from_reader(project_file){
+                            Ok(loaded_project) => loaded_project,
+                            Err(err) => {
+                                self.notifications_widget.push_message(
+                                    Err(format!("Error loading project: {err}"))
+                                );
+                                break 'load_project
+                            }
+                        };
+                        self.restore(loaded_project);
+                    }}
                 });
                 ui.add_space(16.0);
                 egui::widgets::global_dark_light_mode_buttons(ui);
