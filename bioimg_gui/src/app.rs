@@ -138,6 +138,7 @@ impl eframe::App for BioimgGui {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {
+                        ui.close_menu();
                         if let Some(model_path) = rfd::FileDialog::new().pick_file() {
                             match rt::zoo_model::ZooModel::try_load(&model_path){
                                 Err(err) => self.notifications_widget.push_message(
@@ -148,6 +149,7 @@ impl eframe::App for BioimgGui {
                         }
                     }
                     if ui.button("Save Project").clicked() { 'save_project: {
+                        ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().set_file_name("/home/builder/bla.bmb").save_file() else {
                             break 'save_project;
                         };
@@ -158,6 +160,7 @@ impl eframe::App for BioimgGui {
                         });
                     }}
                     if ui.button("Load Project").clicked() { 'load_project: {
+                        ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().pick_file() else {
                             break 'load_project;
                         };
