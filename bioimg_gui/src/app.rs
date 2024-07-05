@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -150,39 +151,42 @@ impl eframe::App for BioimgGui {
                     }
                     if ui.button("Save Project").clicked() { 'save_project: {
                         ui.close_menu();
-                        let Some(path) = rfd::FileDialog::new().set_file_name("/home/builder/bla.bmb").save_file() else {
+                        let Some(path) = rfd::FileDialog::new().set_file_name("MyProject.bmb").save_file() else {
                             break 'save_project;
                         };
-                        let save_result = std::fs::write(&path, serde_json::to_string_pretty(&self.dump()).unwrap());
-                        self.notifications_widget.push_message(match &save_result {
-                            Ok(_) => Ok(format!("Project saved to {}", path.to_string_lossy())),
-                            Err(err) => Err(format!("Error saving project: {err}")),
-                        });
+                        let result = || -> Result<String, String>{
+                            println!("Trying to open {path:?} for writing");
+                            let writer = std::fs::File::options()
+                                .write(true)
+                                .create(true)
+                                .truncate(true)
+                                .open(&path).map_err(|err| format!("Could not open project file for writing: {err}"))?;
+                            postcard::to_io(&self.dump(), &writer).map_err(|err| format!("Could not serialize project to bytes: {err}"))?;
+                            Ok(format!("Saved project to {}", path.to_string_lossy()))
+                        }();
+                        self.notifications_widget.push_message(result);
                     }}
                     if ui.button("Load Project").clicked() { 'load_project: {
                         ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().pick_file() else {
                             break 'load_project;
                         };
-                        let project_file = match std::fs::File::open(&path){
-                            Ok(project_file) => project_file,
-                            Err(err) => {
-                                self.notifications_widget.push_message(
-                                    Err(format!("Error loading project: {err}"))
-                                );
-                                break 'load_project
-                            }
-                        };
-                        let loaded_project = match serde_json::from_reader(project_file){
-                            Ok(loaded_project) => loaded_project,
-                            Err(err) => {
-                                self.notifications_widget.push_message(
-                                    Err(format!("Error loading project: {err}"))
-                                );
-                                break 'load_project
-                            }
-                        };
-                        self.restore(loaded_project);
+                        let result = || -> Result<(), String>{
+                            println!("Started OPENING file at {:?}", std::time::Instant::now());
+                            let mut project_file = std::fs::File::open(&path).map_err(|err| format!("Could not open project file: {err}"))?;
+                            println!("Started READING file at {:?}", std::time::Instant::now());
+                            let mut project_bytes = Vec::<u8>::new();
+                            project_file.read_to_end(&mut project_bytes).map_err(|err| format!("Could not read file: {err}"))?;
+                            let loaded_project: crate::project_data::BioimgGuiRawData = postcard::from_bytes(&project_bytes)
+                                .map_err(|err| format!("Could not deserialize project: {err}"))?;
+                            println!("Started RESTORING file at {:?}", std::time::Instant::now());
+                            self.restore(loaded_project);
+                            println!("FINISHED RESTORING file at {:?}", std::time::Instant::now());
+                            Ok(())
+                        }();
+                        if let Err(err) = result{
+                            self.notifications_widget.push_message(Err(err));
+                        }
                     }}
                 });
                 ui.add_space(16.0);
