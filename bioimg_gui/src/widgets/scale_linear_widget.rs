@@ -28,16 +28,6 @@ impl Restore for ScaleLinearMode{
     }
 }
 
-
-impl ScaleLinearMode{
-    fn display_str(&self) -> &'static str{
-        match self{
-            Self::Simple => "Simple",
-            Self::AlongAxis => "Along Axis",
-        }
-    }
-}
-
 #[derive(Restore)]
 pub struct SimpleScaleLinearWidget{
     pub gain_widget: StagingFloat<f32>,

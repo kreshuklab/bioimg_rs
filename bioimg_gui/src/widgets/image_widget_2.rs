@@ -4,7 +4,7 @@ use poll_promise as pp;
 use bioimg_runtime as rt;
 
 use crate::{project_data::{ImageWidget2LoadingStateRawData, ImageWidget2RawData, SpecialImageWidgetRawData}, result::{GuiError, Result}};
-use super::{error_display::show_error, file_source_widget::{FileSourceWidget, FileSourceWidgetPopupButton}, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
+use super::{error_display::show_error, file_source_widget::FileSourceWidget, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
 
 pub type ArcDynImg = Arc<image::DynamicImage>;
 

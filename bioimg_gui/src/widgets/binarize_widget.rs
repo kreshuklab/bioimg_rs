@@ -1,5 +1,5 @@
 use bioimg_spec::rdf::{model as modelrdf, NonEmptyList};
-use bioimg_spec::rdf::model::preprocessing::{self as preproc, BinarizeDescr};
+use bioimg_spec::rdf::model::preprocessing as preproc;
 
 use crate::project_data::{BinarizeAlongAxisWidgetRawData, BinarizeModeRawData};
 use crate::result::{GuiError, Result, VecResultExt};
