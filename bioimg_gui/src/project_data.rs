@@ -459,7 +459,13 @@ pub struct ModelInterfaceWidgetRawData {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct BioimgGuiRawData{
+// #[serde(tag = "app_state_version")]
+pub enum AppStateRawData{
+    Version1(AppState1RawData),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AppState1RawData{
     pub staging_name: String,
     pub staging_description: String,
     pub cover_images: Vec<SpecialImageWidgetRawData>,

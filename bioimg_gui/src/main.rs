@@ -15,7 +15,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Bioimage Model Builder",
         native_options,
-        Box::new(|_cc| Box::new(bioimg_gui::BioimgGui::default())),
+        Box::new(|_cc| Box::new(bioimg_gui::app::AppState1::default())),
     )
 }
 
@@ -32,7 +32,7 @@ fn main() {
             .start(
                 "the_canvas_id", // hardcode it
                 web_options,
-                Box::new(|cc| Box::new(bioimg_gui::BioimgGui::new(cc))),
+                Box::new(|cc| Box::new(bioimg_gui::AppState1::new(cc))),
             )
             .await
             .expect("failed to start eframe");

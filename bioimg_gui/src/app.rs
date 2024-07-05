@@ -8,6 +8,7 @@ use bioimg_spec::rdf::{self, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
+use crate::project_data::AppStateRawData;
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
@@ -43,7 +44,7 @@ enum PackingStatus {
 }
 
 #[derive(Restore)]
-pub struct BioimgGui {
+pub struct AppState1 {
     pub staging_name: StagingString<ResourceName>,
     pub staging_description: StagingString<BoundedString<1, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
@@ -72,7 +73,7 @@ pub struct BioimgGui {
     model_packing_status: PackingStatus,
 }
 
-impl ValueWidget for BioimgGui{
+impl ValueWidget for AppState1{
     type Value<'v> = rt::zoo_model::ZooModel;
 
     fn set_value<'v>(&mut self, zoo_model: Self::Value<'v>) {
@@ -102,7 +103,7 @@ impl ValueWidget for BioimgGui{
     }
 }
 
-impl Default for BioimgGui {
+impl Default for AppState1 {
     fn default() -> Self {
         Self {
             staging_name: StagingString::new(InputLines::SingleLine),
@@ -129,7 +130,7 @@ impl Default for BioimgGui {
 }
 
 
-impl eframe::App for BioimgGui {
+impl eframe::App for AppState1 {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
         // eframe::set_value(storage, eframe::APP_KEY, self);
     }
@@ -161,7 +162,9 @@ impl eframe::App for BioimgGui {
                                 .create(true)
                                 .truncate(true)
                                 .open(&path).map_err(|err| format!("Could not open project file for writing: {err}"))?;
-                            postcard::to_io(&self.dump(), &writer).map_err(|err| format!("Could not serialize project to bytes: {err}"))?;
+                            postcard::to_io(
+                                &AppStateRawData::Version1(self.dump()), &writer
+                            ).map_err(|err| format!("Could not serialize project to bytes: {err}"))?;
                             Ok(format!("Saved project to {}", path.to_string_lossy()))
                         }();
                         self.notifications_widget.push_message(result);
@@ -177,11 +180,11 @@ impl eframe::App for BioimgGui {
                             println!("Started READING file at {:?}", std::time::Instant::now());
                             let mut project_bytes = Vec::<u8>::new();
                             project_file.read_to_end(&mut project_bytes).map_err(|err| format!("Could not read file: {err}"))?;
-                            let loaded_project: crate::project_data::BioimgGuiRawData = postcard::from_bytes(&project_bytes)
+                            let loaded_project: AppStateRawData = postcard::from_bytes(&project_bytes)
                                 .map_err(|err| format!("Could not deserialize project: {err}"))?;
-                            println!("Started RESTORING file at {:?}", std::time::Instant::now());
-                            self.restore(loaded_project);
-                            println!("FINISHED RESTORING file at {:?}", std::time::Instant::now());
+                            match loaded_project{
+                                AppStateRawData::Version1(ver1) => self.restore(ver1),
+                            }
                             Ok(())
                         }();
                         if let Err(err) = result{
