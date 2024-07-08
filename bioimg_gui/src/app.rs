@@ -8,7 +8,7 @@ use bioimg_spec::rdf::{self, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
-use crate::project_data::AppStateRawData;
+use crate::project_data::{AppStateRawData, ProjectLoadError};
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
@@ -162,10 +162,9 @@ impl eframe::App for AppState1 {
                                 .create(true)
                                 .truncate(true)
                                 .open(&path).map_err(|err| format!("Could not open project file for writing: {err}"))?;
-                            postcard::to_io(
-                                &AppStateRawData::Version1(self.dump()), &writer
-                            ).map_err(|err| format!("Could not serialize project to bytes: {err}"))?;
-                            Ok(format!("Saved project to {}", path.to_string_lossy()))
+                            AppStateRawData::Version1(self.dump()).save(writer)
+                                .map_err(|err| format!("Could not serialize project to bytes: {err}"))
+                                .map(|_| format!("Saved project to {}", path.to_string_lossy()))
                         }();
                         self.notifications_widget.push_message(result);
                     }}
@@ -175,14 +174,17 @@ impl eframe::App for AppState1 {
                             break 'load_project;
                         };
                         let result = || -> Result<(), String>{
-                            println!("Started OPENING file at {:?}", std::time::Instant::now());
-                            let mut project_file = std::fs::File::open(&path).map_err(|err| format!("Could not open project file: {err}"))?;
-                            println!("Started READING file at {:?}", std::time::Instant::now());
-                            let mut project_bytes = Vec::<u8>::new();
-                            project_file.read_to_end(&mut project_bytes).map_err(|err| format!("Could not read file: {err}"))?;
-                            let loaded_project: AppStateRawData = postcard::from_bytes(&project_bytes)
-                                .map_err(|err| format!("Could not deserialize project: {err}"))?;
-                            match loaded_project{
+                            let reader = std::fs::File::open(&path).map_err(|err| format!("Could not open project file: {err}"))?;
+                            let proj_data = match AppStateRawData::load(reader){
+                                Err(ProjectLoadError::FutureVersion{found_version}) => return Err(format!(
+                                    "Found project data version {found_version}, but this program only supports project data up to {}\n\
+                                    You can try downloading the newest version at https://github.com/kreshuklab/bioimg_rs/releases",
+                                    AppStateRawData::highest_supported_version(),
+                                )),
+                                Err(err) => return Err(format!("Could not load project file at {}: {err}", path.to_string_lossy())),
+                                Ok(proj_data) => proj_data,
+                            };
+                            match proj_data{
                                 AppStateRawData::Version1(ver1) => self.restore(ver1),
                             }
                             Ok(())

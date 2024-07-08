@@ -458,10 +458,49 @@ pub struct ModelInterfaceWidgetRawData {
     pub outputs_widget: Vec<CollapsibleWidgetRawData<OutputTensorWidget>>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-// #[serde(tag = "app_state_version")]
+#[derive(serde::Serialize, serde::Deserialize, strum::VariantNames)]
+#[serde(tag = "app_state_raw_data_version")]
 pub enum AppStateRawData{
     Version1(AppState1RawData),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ProjectLoadError{
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error("Could not parse BSON: {0}")]
+    BsonParsingError(#[from] bson::de::Error),
+    #[error("No version in project data")]
+    MissingVersion,
+    #[error("Could not parse project of version {found_version}")]
+    FutureVersion{ found_version: String },
+}
+
+impl AppStateRawData{
+    pub fn supported_versions() -> &'static [&'static str]{
+        <Self as strum::VariantNames>::VARIANTS        
+    }
+
+    pub fn highest_supported_version() -> &'static str{
+        *Self::supported_versions().last().unwrap()
+    }
+
+    pub fn save(&self, writer: impl std::io::Write) -> Result<(), bson::ser::Error>{
+        let doc = bson::to_document(self)?;
+        doc.to_writer(writer)
+    }
+
+    pub fn load(reader: impl std::io::Read) -> Result<Self, ProjectLoadError>{
+        let doc: bson::Document = bson::from_reader(reader)?;
+        let found_version = match doc.get("app_state_raw_data_version"){
+            Some(bson::Bson::String(version)) => version.to_owned(),
+            _ => return Err(ProjectLoadError::MissingVersion)
+        };
+        if Self::supported_versions().iter().find(|ver| **ver == found_version.as_str()).is_none(){
+            return Err(ProjectLoadError::FutureVersion { found_version })
+        }
+        Ok(bson::from_document::<Self>(doc)?)
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
