@@ -71,6 +71,10 @@ pub struct AppState1 {
     pub notifications_widget: NotificationsWidget,
     #[restore_default]
     model_packing_status: PackingStatus,
+    #[restore_default]
+    close_confirmed: bool,
+    #[restore_default]
+    show_confirmation_dialog: bool,
 }
 
 impl ValueWidget for AppState1{
@@ -125,6 +129,9 @@ impl Default for AppState1 {
             model_packing_status: PackingStatus::default(),
             weights_widget: Default::default(),
             notifications_widget: NotificationsWidget::new(),
+
+            close_confirmed: false,
+            show_confirmation_dialog: false,
         }
     }
 }
@@ -419,5 +426,33 @@ impl eframe::App for AppState1 {
                 })
             });
         });
+
+        if ctx.input(|i| i.viewport().close_requested()) {
+            if self.close_confirmed {
+                // do nothing - we will close
+            } else {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                self.show_confirmation_dialog = true;
+            }
+        }
+
+        if self.show_confirmation_dialog {
+            egui::Window::new("Are you sure you want to quit?")
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        if ui.button("No").clicked() {
+                            self.show_confirmation_dialog = false;
+                            self.close_confirmed = false;
+                        }
+                        if ui.button("Yes").clicked() {
+                            self.show_confirmation_dialog = false;
+                            self.close_confirmed = true;
+                            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                    });
+                });
+        }
     }
 }
