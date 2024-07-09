@@ -90,7 +90,9 @@ impl StatefulWidget for PytorchArchWidget{
                 PytorchArchMode::FromFile => {
                     ui.horizontal(|ui|{
                         ui.strong("Source File: ");
-                        self.source_widget.draw_and_parse(ui, id.with("source".as_ptr()));
+                        group_frame(ui, |ui|{
+                            self.source_widget.draw_and_parse(ui, id.with("source".as_ptr()));
+                        })
                     });
                 }
             }

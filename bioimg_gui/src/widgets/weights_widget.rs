@@ -4,18 +4,7 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::AuthorWidget,
-    collapsible_widget::CollapsibleWidget,
-    error_display::show_error,
-    file_source_widget::FileSourceWidget,
-    onnx_weights_widget::OnnxWeightsWidget,
-    pytorch_statedict_weights_widget::PytorchStateDictWidget,
-    staging_opt::StagingOpt,
-    staging_vec::StagingVec,
-    version_widget::VersionWidget,
-    Restore,
-    StatefulWidget,
-    ValueWidget,
+    author_widget::AuthorWidget, collapsible_widget::CollapsibleWidget, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, util::group_frame, version_widget::VersionWidget, Restore, StatefulWidget, ValueWidget
 };
 
 #[derive(Restore)]
@@ -122,7 +111,9 @@ impl StatefulWidget for WeightsDescrBaseWidget{
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Source: ");
-                self.source_widget.draw_and_parse(ui, id.with("source"));
+                group_frame(ui, |ui|{
+                    self.source_widget.draw_and_parse(ui, id.with("source"));
+                });
             });
             ui.horizontal(|ui|{
                 ui.strong("Authors: ");
