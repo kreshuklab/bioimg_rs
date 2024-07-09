@@ -227,9 +227,57 @@ impl OnnxWeights{
 }
 
 #[derive(Clone)]
+pub enum PytorchArch{
+    FromLib(modelrdf::weights::PyTorchArchitectureFromLibraryDescr),
+    FromFile{
+        file_source: FileSource,
+        callable: rdf::Identifier,
+        kwargs: serde_json::Map<String, serde_json::Value>,
+    }
+}
+
+impl PytorchArch{
+    fn rdf_dump(
+        &self,
+        zip_file: &mut ModelZipWriter<impl Write + Seek>,
+    ) -> Result<modelrdf::PytorchArchitectureDescr, ModelPackingError> {
+        match self{
+            Self::FromFile { file_source: file_descr, callable, kwargs } => {
+                let file_descr = file_descr.dump_as_file_description(zip_file)?;
+                Ok(modelrdf::PytorchArchitectureDescr::FromFileDescr(
+                    modelrdf::weights::PyTorchArchitectureFromFileDescr{
+                        file_descr,
+                        callable: callable.clone(),
+                        kwargs: kwargs.clone()
+                    }
+                ))
+            },
+            Self::FromLib(arch) => {
+                Ok(arch.clone().into())
+            },
+        }
+    }
+
+    pub fn try_from_rdf(zip_path: &Path, rdf: modelrdf::PytorchArchitectureDescr) -> Result<Self, ModelWeightsLoadingError>{
+        match rdf{
+            modelrdf::PytorchArchitectureDescr::FromFileDescr(from_file) => {
+                Ok(Self::FromFile {
+                    file_source: FileSource::from_rdf_file_descr(zip_path, &from_file.file_descr)?,
+                    callable: from_file.callable,
+                    kwargs: from_file.kwargs,
+                })
+            },
+            modelrdf::PytorchArchitectureDescr::FromLibraryDescr(from_lib) => {
+                Ok(Self::FromLib(from_lib))
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct PytorchStateDictWeights{
     pub weights: WeightsBase,
-    pub architecture: modelrdf::PytorchArchitectureDescr,
+    pub architecture: PytorchArch,
     pub pytorch_version: rdf::Version,
     pub dependencies: Option<CondaEnv>,
 }
@@ -240,7 +288,7 @@ impl PytorchStateDictWeights{
     ) -> Result<modelrdf::PytorchStateDictWeightsDescr, ModelPackingError> {
         Ok(modelrdf::PytorchStateDictWeightsDescr{
             base: self.weights.rdf_dump(zip_file)?,
-            architecture: self.architecture.clone(),
+            architecture: self.architecture.rdf_dump(zip_file)?,
             pytorch_version: self.pytorch_version.clone(),
             dependencies: self.dependencies.as_ref().map(|env|{
                 env.rdf_dump(zip_file)
@@ -256,7 +304,7 @@ impl PytorchStateDictWeights{
         let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
         Ok(Self{
             weights,
-            architecture: rdf.architecture,
+            architecture: PytorchArch::try_from_rdf(zip_file_path, rdf.architecture)?,
             pytorch_version: rdf.pytorch_version,
             dependencies: rdf.dependencies
                 .map(|value| CondaEnv::try_load_rdf(value, zip_archive))

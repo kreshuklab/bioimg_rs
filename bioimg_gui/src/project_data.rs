@@ -202,10 +202,18 @@ pub struct JsonObjectEditorWidgetRawData{
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub enum PytorchArchModeRawData{
+    FromFile,
+    FromLib
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct PytorchArchWidgetRawData{
+    pub mode_widget: PytorchArchModeRawData,
     pub callable_widget: String,
     pub kwargs_widget: JsonObjectEditorWidgetRawData,
     pub import_from_widget: String,
+    pub source_widget: FileSourceWidgetRawData,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

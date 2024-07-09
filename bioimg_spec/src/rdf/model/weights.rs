@@ -139,6 +139,8 @@ pub struct OnnxWeightsDescr{
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PyTorchArchitectureFromFileDescr{
+    #[serde(flatten)]
+    pub file_descr: FileDescription,
     /// Identifier of the callable that returns a torch.nn.Module instance."""
     /// examples: "MyNetworkClass", "get_my_model"
     pub callable: Identifier,
