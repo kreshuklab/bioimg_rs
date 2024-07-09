@@ -148,7 +148,7 @@ impl eframe::App for AppState1 {
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {
                         ui.close_menu();
-                        if let Some(model_path) = rfd::FileDialog::new().pick_file() {
+                        if let Some(model_path) = rfd::FileDialog::new().add_filter("bioimage model", &["zip"],).pick_file() {
                             match rt::zoo_model::ZooModel::try_load(&model_path){
                                 Err(err) => self.notifications_widget.push_message(
                                     Err(format!("Could not import model {}: {err}", model_path.to_string_lossy()))
@@ -177,7 +177,7 @@ impl eframe::App for AppState1 {
                     }}
                     if ui.button("Load Project").clicked() { 'load_project: {
                         ui.close_menu();
-                        let Some(path) = rfd::FileDialog::new().pick_file() else {
+                        let Some(path) = rfd::FileDialog::new().add_filter("bioimage model builder", &["bmb"]).pick_file() else {
                             break 'load_project;
                         };
                         let result = || -> Result<(), String>{
