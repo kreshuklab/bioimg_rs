@@ -98,7 +98,7 @@ where
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         let popup_id = id;
-        let button_response = ui.button(&self.value.to_string());
+        let button_response = ui.button(format!("{}↕", &self.value.to_string()));
         let button_min = button_response.rect.min;
         let button_max = button_response.rect.max;
         if button_response.clicked() {
