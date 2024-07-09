@@ -148,7 +148,7 @@ impl StatefulWidget for LocalFileSourceWidget{
             }).inner;
             if let Some(inner_widget) = inner_widget {
                 ui.horizontal(|ui|{
-                    ui.label("Inner Path: ");
+                    ui.strong("Inner Path: ");
                     inner_widget.draw_and_parse(ui, id.with("inner_widget".as_ptr()));
                 });
             }
@@ -173,9 +173,10 @@ impl StatefulWidget for LocalFileSourceWidget{
     }
 }
 
-#[derive(Default, PartialEq, Eq, strum::VariantArray, Clone, strum::Display)]
+#[derive(Default, PartialEq, Eq, strum::VariantArray, Clone, strum::Display, strum::AsRefStr)]
 pub enum FileSourceWidgetMode{
     #[default]
+    #[strum(to_string = "Local File")]
     Local,
     Url,
 }
