@@ -1,7 +1,7 @@
 use std::num::NonZeroUsize;
 
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
-use bioimg_spec::rdf;
+use bioimg_spec::rdf::{self, LiteralInt};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::{self as modelrdf};
 
@@ -26,7 +26,10 @@ impl ValueWidget for BatchAxisWidget{
 
     fn set_value(&mut self, value: modelrdf::BatchAxis){
         self.description_widget.raw = value.description.into();
-        self.staging_allow_auto_size = value.size.is_none();
+        self.staging_allow_auto_size = match value.size{
+            None => true,
+            Some(LiteralInt::<1>) => false,
+        };
     }
 }
 
@@ -50,7 +53,7 @@ impl StatefulWidget for BatchAxisWidget{
         Ok(modelrdf::BatchAxis{
             id: rdf::LitStr::new(),
             description: self.description_widget.state()?.clone(),
-            size: self.staging_allow_auto_size.then_some(rdf::LiteralInt::<1>),
+            size: if self.staging_allow_auto_size{ None } else { Some(rdf::LiteralInt::<1>) },
         })
     }
 }
