@@ -37,7 +37,19 @@ impl FileSource{
         &self,
         zip_file: &mut ModelZipWriter<impl Write + Seek>,
     ) -> Result<rdf::FsPath, ModelPackingError> {
-        let output_inner_path = rdf::FsPath::unique();
+        let extension = match self{
+            Self::LocalFile { path } => path.extension().map(|ex| ex.to_string_lossy().to_string()),
+            Self::FileInZipArchive { inner_path, .. } => {
+                inner_path.split(".").last().map(|s| s.to_owned())
+            },
+            Self::HttpUrl(url) => {
+                url.path().split(".").last().map(|s| s.to_owned())
+            }
+        };
+        let output_inner_path = match extension{
+            Some(ext) => rdf::FsPath::unique_suffixed(&format!(".{ext}")),
+            None => rdf::FsPath::unique(),
+        };
         zip_file.write_file(&output_inner_path, |writer| -> Result<u64, ModelPackingError>{
             let copied_bytes: u64 = match self{
                 Self::LocalFile { path } => {
