@@ -8,24 +8,22 @@ rust-version="1.79"
 name = "bioimg_spec"
 crate-type = ["rlib"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 image = { workspace = true }
-serde = { version = "1.0.190", features = ["derive"] }
-serde_json = "1.0.107"
-strum = { version = "0.26.1", features = ["strum_macros", "derive"] }
-thiserror = "1.0.50"
-url = { version = "2.4.1", features = ["serde"] }
+serde = { workspace = true, features = ["derive", "rc"] }
+serde_json = { workspace = true }
+strum = { workspace = true, features = ["strum_macros", "derive"] }
+thiserror = { workspace = true }
+url = { workspace = true, features = ["serde"] }
 ndarray = { workspace = true }
 ndarray-npy = { workspace = true }
 paste = "1.0.14"
 iso8601-timestamp = { workspace = true }
-serde_yaml = "0.9.32"
-uuid = { version = "1.7.0", features = ["v4"] }
+serde_yaml = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-uuid = { version = "1.7.0", features = ["v4", "js"] }
+uuid = { workspace = true, features = ["v4", "js"] }
 iso8601-timestamp = { workspace = true, features = ["js"]}
 
 
