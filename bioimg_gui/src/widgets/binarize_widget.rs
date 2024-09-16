@@ -113,7 +113,7 @@ impl BinarizeAlongAxisWidget{
             let thresholds: NonEmptyList<f32> = self.thresholds_widget.state()
                 .collect_result()?
                 .try_into()
-                .map_err(|_| GuiError::new("Could not make a non-empty list".into()))?;
+                .map_err(|_| GuiError::new("Could not make a non-empty list"))?;
             Ok(preproc::BinarizeAlongAxisDescr{
                 axis: self.axis_id_widget.state()?.clone(),
                 threshold: thresholds

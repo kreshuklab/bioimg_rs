@@ -31,7 +31,7 @@ impl Default for ModelInterfaceWidget {
         Self {
             inputs_widget: StagingVec::default(),
             outputs_widget: StagingVec::default(),
-            parsed: Err(GuiError::new("emtpy".into())), //FIXME?
+            parsed: Err(GuiError::new("emtpy")), //FIXME?
         }
     }
 }

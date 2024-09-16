@@ -112,7 +112,7 @@ impl InputTensorWidget{
 
         self.parsed = || -> Result<InputSlot<Arc<NpyArray>>> {
             let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
-                return Err(GuiError::new("Test tensor is missing".into()));
+                return Err(GuiError::new("Test tensor is missing"));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
             let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
@@ -259,7 +259,7 @@ impl OutputTensorWidget{
         };
         self.parsed = || -> Result<OutputSlot<Arc<NpyArray>>> {
             let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
-                return Err(GuiError::new("Test tensor is missing".into()));
+                return Err(GuiError::new("Test tensor is missing"));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
             let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?

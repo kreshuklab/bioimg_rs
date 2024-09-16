@@ -158,7 +158,7 @@ impl StatefulWidget for LocalFileSourceWidget{
         match self{
             Self::Failed(err) => Err(err.clone()),
             Self::AboutToLoad{..} | Self::LoadingExternal{..} | Self::Empty | Self::PickedEmptyZip{..} => {
-                Err(GuiError::new("Empty".into()))
+                Err(GuiError::new("Empty"))
             },
             Self::PickingInner{outer, inner_options_widget} => {
                 Ok(rt::FileSource::FileInZipArchive {

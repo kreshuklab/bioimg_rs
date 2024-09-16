@@ -165,7 +165,7 @@ impl ParsedFile for Result<PathBuf>{
         if path.exists(){
             Ok(path)
         }else{
-            Err(GuiError::new("File does not exist".into()))
+            Err(GuiError::new("File does not exist"))
         }
     }
     fn render(&self, _ui: &mut egui::Ui, _id: egui::Id){

@@ -21,9 +21,10 @@ where
 }
 
 impl GuiError {
-    pub fn new(message: String) -> Self {
-        return Self(Arc::from(message));
+    pub fn new<S: AsRef<str>>(message: S) -> Self {
+        return Self(Arc::from(message.as_ref()));
     }
+    
 }
 
 pub trait VecResultExt{

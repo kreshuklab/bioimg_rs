@@ -39,7 +39,7 @@ impl Default for ClipWidget{
         Self{
             min_widget: Default::default(),
             max_widget: Default::default(),
-            parsed: Err(GuiError::new("empty".into()))
+            parsed: Err(GuiError::new("empty"))
         }
     }
 }

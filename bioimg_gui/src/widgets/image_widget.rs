@@ -68,7 +68,7 @@ impl<T> Default for ImageWidget<T>{
     fn default() -> Self {
         ImageWidget{
             state: ImageWidgetState::default(),
-            parsed: Err(GuiError::new("Empty".into())),
+            parsed: Err(GuiError::new("Empty")),
             display_size: egui::Vec2 { x: 50.0, y: 50.0 },
         }
     }
@@ -149,7 +149,7 @@ where
                     show_if_error(ui, &self.parsed);
                 },
                 _ => {
-                    self.parsed = Err(GuiError::new("No image ready".into()));
+                    self.parsed = Err(GuiError::new("No image ready"));
                 },
             };
         });

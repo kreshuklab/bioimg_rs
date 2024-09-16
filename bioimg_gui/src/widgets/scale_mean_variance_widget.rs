@@ -54,7 +54,7 @@ impl StatefulWidget for ScaleMeanVarianceWidget{
             axes: self.axes_widget.state()
                 .map(|val| val.collect_result())
                 .transpose()?
-                .map(|axes| rdf::NonEmptyList::try_from(axes).map_err(|_| GuiError::new("No axes".into())))
+                .map(|axes| rdf::NonEmptyList::try_from(axes).map_err(|_| GuiError::new("No axes")))
                 .transpose()?,
         })
     }

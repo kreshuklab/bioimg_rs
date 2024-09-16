@@ -24,7 +24,7 @@ impl Default for WeightsWidget{
             torchscript_weights_widget: Default::default(),
             pytorch_state_dict_widget: Default::default(),
             onnx_eights_widget: Default::default(),
-            parsed: Err(GuiError::new("empty".into()))
+            parsed: Err(GuiError::new("empty"))
         }
     }
 }
@@ -126,7 +126,7 @@ impl StatefulWidget for WeightsDescrBaseWidget{
         let authors  = self.authors_widget.state().map(|authors|{
             authors.collect_result()
         }).transpose()?;
-        let source = self.source_widget.state().map_err(|_| GuiError::new("Review cover images".into()))?;
+        let source = self.source_widget.state().map_err(|_| GuiError::new("Review cover images"))?;
         Ok(rt::WeightsBase{authors, source})
     }
 }
