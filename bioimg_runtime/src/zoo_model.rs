@@ -64,7 +64,7 @@ pub enum ModelLoadingError{
     UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier},
     #[error("Rdf version is too new for this application: {format_version}")]
     FutureModel{format_version: FutureRdfVersion},
-    #[error("Unrecognized rdf data")]
+    #[error("Unrecognized rdf data (found version {format_version:?})")]
     UnrecognizedRdf{format_version: Option<String>},
 }
 
