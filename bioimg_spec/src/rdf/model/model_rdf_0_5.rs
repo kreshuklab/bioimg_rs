@@ -21,6 +21,7 @@ pub struct ModelRdfV0_5 {
     /// Cover images.
     /// Please use an image smaller than 500KB and an aspect ratio width to height of 2:1 or 1:1
     /// The supported image formats are: {VALID_COVER_IMAGE_EXTENSIONS}
+    #[serde(default)]
     pub covers: Vec<CoverImageSource>,
 
     #[serde(default)]
@@ -29,6 +30,7 @@ pub struct ModelRdfV0_5 {
     pub id: Option<ResourceId>,
 
     /// file attachments
+    #[serde(default)]
     pub attachments: Vec<FileReference>,
 
     /// citations
@@ -56,9 +58,11 @@ pub struct ModelRdfV0_5 {
     pub config: serde_yaml::Mapping,
 
     /// A URL to the Git repository where the resource is being developed
+    #[serde(default)]
     pub git_repo: Option<HttpUrl>,
 
     /// An icon for illustration, e.g. on bioimage.io
+    #[serde(default)]
     pub icon: Option<Icon>,
 
     /// IDs of other bioimage.io resources
@@ -71,10 +75,12 @@ pub struct ModelRdfV0_5 {
 
     /// Maintainers of this resource.
     /// If not specified, `authors` are maintainers and at least some of them has to specify their `github_user` name
+    #[serde(default)]
     pub maintainers: Vec<Maintainer>,
 
     /// Associated tags
     /// e.g. "unet2d", "pytorch", "nucleus", "segmentation", "dsb2018"
+    #[serde(default)]
     pub tags: Vec<rdf::Tag>,
 
     /// The version number of the resource. Its format must be a string in
