@@ -86,6 +86,7 @@ impl Into<String> for Version {
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[serde(try_from="Version")]
 pub struct Version_0_5_x(Version);
 
 impl Version_0_5_x{
