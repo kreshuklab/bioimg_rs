@@ -24,9 +24,9 @@ pub struct ModelRdfV0_5 {
     #[serde(default)]
     pub covers: Vec<CoverImageSource>,
 
-    #[serde(default)]
     /// bioimage.io wide, unique identifier assigned by the
     /// [bioimage.io collection](https://github.com/bioimage-io/collection-bioimage-io)
+    #[serde(default)]
     pub id: Option<ResourceId>,
 
     /// file attachments
