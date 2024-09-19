@@ -28,6 +28,24 @@ pub struct Version {
     pub minor: usize,
     pub patch: usize,
 }
+impl Ord for Version{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.major.cmp(&other.major){
+            std::cmp::Ordering::Equal => (),
+            out => return out
+        }
+        match self.minor.cmp(&other.minor){
+            std::cmp::Ordering::Equal => (),
+            out => return out
+        }
+        return self.patch.cmp(&other.patch)
+    }
+}
+impl PartialOrd for Version{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 impl Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let self_string: String = self.clone().into();
