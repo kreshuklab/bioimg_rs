@@ -37,18 +37,3 @@ pub struct UnsupportedLegacyModel{
     pub format_version: Version_0_4_X_OrEarlier,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct UnrecognizedRdf{
-    #[serde(default)]
-    pub format_version: Option<String>
-}
-
-impl Display for UnrecognizedRdf{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(format_version) = &self.format_version{
-            write!(f, "This seems like a model RDF from a version that is not supported by this program: {format_version}. ")
-        }else{
-            write!(f, "Data doesn't look like a model RDF; It even lacks the 'format_version' field")
-        }
-    }
-}

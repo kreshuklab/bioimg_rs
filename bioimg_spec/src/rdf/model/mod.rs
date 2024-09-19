@@ -1,6 +1,7 @@
 
 use self::unsupported::UnsupportedLegacyModel;
 
+use super::version::FutureRdfVersion;
 use super::BoundedString;
 
 pub mod axes;
@@ -31,7 +32,6 @@ pub use axes::input_axes::{InputAxis, InputAxisGroup, SpaceInputAxis, TimeInputA
 pub use axes::output_axes::{OutputAxis, OutputAxisGroup, SpaceOutputAxis, TimeOutputAxis};
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize, QualifiedAxisId, ResolvedAxisSize};
 pub use input_tensor::InputTensorDescr;
-use unsupported::UnrecognizedRdf;
 pub use output_tensor::OutputTensorDescr;
 pub use space_unit::SpaceUnit;
 pub use tensor_id::TensorId;
@@ -87,5 +87,6 @@ pub type ModelRdfName = BoundedString<5, 1024>;
 pub enum ModelRdf{
     Legacy(UnsupportedLegacyModel),
     V05(ModelRdfV0_5),
-    Unrecognized(UnrecognizedRdf),
+    Future{format_version: FutureRdfVersion},
+    Unrecognized{format_version: Option<String>},
 }

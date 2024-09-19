@@ -4,8 +4,8 @@ use std::{
 
 use bioimg_spec::rdf::{
     self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
-        unsupported::{UnrecognizedRdf, Version_0_4_X_OrEarlier}, ModelRdfV0_5, RdfTypeModel
-    }, non_empty_list::NonEmptyList, version::Version_0_5_x, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
+        unsupported::Version_0_4_X_OrEarlier, ModelRdfV0_5, RdfTypeModel
+    }, non_empty_list::NonEmptyList, version::{FutureRdfVersion, Version_0_5_x}, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
 };
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
@@ -62,8 +62,10 @@ pub enum ModelLoadingError{
     TensorValidationError(#[from] TensorValidationError),
     #[error("Unsupported legacy model version: {version}")]
     UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier},
-    #[error("Unrecognized rdf data: {inner}")]
-    UnrecognizedRdf{inner: UnrecognizedRdf},
+    #[error("Rdf version is too new for this application: {format_version}")]
+    FutureModel{format_version: FutureRdfVersion},
+    #[error("Unrecognized rdf data")]
+    UnrecognizedRdf{format_version: Option<String>},
 }
 
 pub struct ZooModel {
@@ -104,7 +106,8 @@ impl ZooModel{
         let model_rdf = match model_rdf{
             modelrdf::ModelRdf::Legacy(legacy_model) => return Err(ModelLoadingError::UnsupportedLegacyModel { version: legacy_model.format_version }),
             modelrdf::ModelRdf::V05(modern_model) => modern_model,
-            modelrdf::ModelRdf::Unrecognized(inner) => return Err(ModelLoadingError::UnrecognizedRdf { inner })
+            modelrdf::ModelRdf::Future { format_version } => return Err(ModelLoadingError::FutureModel { format_version }),
+            modelrdf::ModelRdf::Unrecognized { format_version } => return Err(ModelLoadingError::UnrecognizedRdf { format_version })
         };
 
         let covers: Vec<CoverImage> = model_rdf.covers.into_iter()

@@ -91,7 +91,7 @@ pub struct Version_0_5_x(Version);
 
 impl Version_0_5_x{
     pub fn new() -> Self{
-        Self(Version{major: 0, minor: 5, patch: 2})
+        Self(Version{major: 0, minor: 5, patch: 3})
     }
 }
 
@@ -102,6 +102,33 @@ impl TryFrom<Version> for Version_0_5_x {
             Ok(Self(version))
         } else {
             Err(VersionParsingError::UnexpectedVersionNumber{found: version, expecting: format!("0.5.*")})
+        }
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[allow(non_camel_case_types)]
+#[serde(try_from = "Version")]
+pub struct FutureRdfVersion(Version);
+
+impl Display for FutureRdfVersion{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum FutureRdfVersionParsingError{
+    #[error("Version '{found}' is too low")]
+    VersionTooLow{found: Version}
+}
+
+impl TryFrom<Version> for FutureRdfVersion{
+    type Error = FutureRdfVersionParsingError;
+    fn try_from(value: Version) -> Result<Self, Self::Error> {
+        match value.cmp(&Version{major: 0, minor: 5, patch: 3}){
+            std::cmp::Ordering::Greater => Ok(Self(value)),
+            std::cmp::Ordering::Equal | std::cmp::Ordering::Less => Err(Self::Error::VersionTooLow { found: value })
         }
     }
 }
