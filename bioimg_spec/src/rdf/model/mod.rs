@@ -1,5 +1,5 @@
 
-use self::legacy::UnsupportedLegacyModel;
+use self::unsupported::UnsupportedLegacyModel;
 
 use super::BoundedString;
 
@@ -18,7 +18,7 @@ pub mod time_unit;
 pub mod weights;
 pub mod run_mode;
 pub mod dataset_descr;
-pub mod legacy;
+pub mod unsupported;
 pub mod model_rdf_0_5;
 
 pub use axes::{
@@ -31,6 +31,7 @@ pub use axes::input_axes::{InputAxis, InputAxisGroup, SpaceInputAxis, TimeInputA
 pub use axes::output_axes::{OutputAxis, OutputAxisGroup, SpaceOutputAxis, TimeOutputAxis};
 pub use axis_size::{AnyAxisSize, AxisSizeReference, FixedAxisSize, ParameterizedAxisSize, QualifiedAxisId, ResolvedAxisSize};
 pub use input_tensor::InputTensorDescr;
+use unsupported::UnrecognizedRdf;
 pub use output_tensor::OutputTensorDescr;
 pub use space_unit::SpaceUnit;
 pub use tensor_id::TensorId;
@@ -85,5 +86,6 @@ pub type ModelRdfName = BoundedString<5, 1024>;
 #[serde(untagged)]
 pub enum ModelRdf{
     Legacy(UnsupportedLegacyModel),
-    V05(ModelRdfV0_5)
+    V05(ModelRdfV0_5),
+    Unrecognized(UnrecognizedRdf),
 }
