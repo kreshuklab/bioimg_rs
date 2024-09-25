@@ -71,7 +71,7 @@ impl TryFrom<Arc<image::DynamicImage>> for CoverImage{
 pub enum CoverImageLoadingError{
     #[error("{0}")]
     IoError(#[from] std::io::Error),
-    #[error("Could not parse cover imgae: {0}")]
+    #[error("Could not parse cover image: {0}")]
     ParsingError(#[from] CoverImageParsingError),
     #[error("Could not parse image: {0}")]
     ImageParsingError(#[from] image::ImageError),

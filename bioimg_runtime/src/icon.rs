@@ -88,7 +88,7 @@ pub enum IconLoadingError{
     IoErro(#[from] std::io::Error),
     #[error("{0}")]
     ZipError(#[from] zip::result::ZipError),
-    #[error("Could not parse cover imgae: {0}")]
+    #[error("Could not parse icon image: {0}")]
     ParsingError(#[from] IconParsingError),
     #[error("Could not parse image: {0}")]
     ImageParsingError(#[from] image::ImageError),
