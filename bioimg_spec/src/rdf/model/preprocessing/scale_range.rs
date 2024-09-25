@@ -104,6 +104,7 @@ pub struct ScaleRangeDescr{
     /// Epsilon for numeric stability.
     /// `out = (tensor - v_lower) / (v_upper - v_lower + eps)`;
     /// with `v_lower,v_upper` values at the respective percentiles.
+    #[serde(default)]
     pub eps: PreprocessingEpsilon,
 
     // Tensor name to compute the percentiles from. Default: The tensor itself.

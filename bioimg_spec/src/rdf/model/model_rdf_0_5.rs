@@ -1,3 +1,4 @@
+use crate::rdf::FileDescription;
 use crate::rdf::{
     self,
     version::Version_0_5_x, Author2, CiteEntry2, CoverImageSource, FileReference, HttpUrl, Icon, LicenseId,
@@ -31,7 +32,7 @@ pub struct ModelRdfV0_5 {
 
     /// file attachments
     #[serde(default)]
-    pub attachments: Vec<FileReference>,
+    pub attachments: Vec<FileDescription>,
 
     /// citations
     pub cite: NonEmptyList<CiteEntry2>,

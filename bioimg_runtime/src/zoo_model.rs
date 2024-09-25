@@ -115,7 +115,7 @@ impl ZooModel{
             .collect::<Result<_, _>>()?;
 
         let attachments: Vec<FileSource> = model_rdf.attachments.into_iter()
-            .map(|att| match att{
+            .map(|att| match att.source{
                 rdf::FileReference::Url(_) => return Err(ModelLoadingError::UrlFileReferenceNotSupportedYet),
                 rdf::FileReference::Path(fs_path) => {
                     Ok(FileSource::FileInZipArchive { outer_path: Arc::from(path), inner_path: Arc::from(String::from(fs_path).as_str()) })
@@ -173,7 +173,7 @@ impl ZooModel {
             cov.dump(&mut writer)
         }).collect::<Result<Vec<_>, _>>()?;
         let attachments = self.attachments.iter().map(|file|{
-            file.rdf_dump_as_file_reference(&mut writer)
+            file.dump_as_file_description(&mut writer)
         }).collect::<Result<Vec<_>, _>>()?;
         let icon: Option<rdf::Icon> = match &self.icon{
             Some(icon) => Some(icon.dump(&mut writer)?),

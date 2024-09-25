@@ -24,6 +24,10 @@ pub struct OutputTensorDescr {
 }
 
 
+fn _default_to_output() -> TensorId{
+    TensorId::try_from("output").unwrap()
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(try_from = "OutputTensorMetadataMsg")]
 #[serde(into = "OutputTensorMetadataMsg")]
@@ -41,6 +45,7 @@ impl OutputTensorMetadata{
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OutputTensorMetadataMsg{
+    #[serde(default="_default_to_output")]
     pub id: TensorId,
     #[serde(default)]
     pub postprocessing: Vec<PostprocessingDescr>,
