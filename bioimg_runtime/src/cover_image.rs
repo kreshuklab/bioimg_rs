@@ -14,11 +14,12 @@ impl CoverImage {
     pub const ALLOWED_WIDTH_TO_HEIGHT_RATIOS: [f32; 2] = [1.0, 2.0];
     pub const MAX_SIZE_IN_BYTES: usize = 500 * 1024;
 
-    fn is_valid_ratio(ratio: f32) -> bool {
-        return Self::ALLOWED_WIDTH_TO_HEIGHT_RATIOS
-            .into_iter()
-            .find(|v| *v == ratio)
-            .is_some();
+    fn is_valid_ratio(_ratio: f32) -> bool {
+        return true
+        // return Self::ALLOWED_WIDTH_TO_HEIGHT_RATIOS
+        //     .into_iter()
+        //     .find(|v| *v == ratio)
+        //     .is_some();
     }
     pub fn dump(
         &self,
