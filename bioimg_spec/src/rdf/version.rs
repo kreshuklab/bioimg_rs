@@ -5,7 +5,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum VersionParsingError {
-    #[error("Expected 3 fields, found {found}")]
+    #[error("Version must have 3 fields, found {found}")]
     WrongNumberOfComponents { found: usize },
     #[error("Could not parse version field: {0}")]
     ParseIntError(ParseIntError),
@@ -21,7 +21,7 @@ impl From<ParseIntError> for VersionParsingError {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[serde(try_from = "String")]
+#[serde(try_from = "VersionMsg")]
 #[serde(into = "String")]
 pub struct Version {
     pub major: usize,
@@ -61,10 +61,17 @@ impl FromStr for Version{
 impl TryFrom<&str> for Version {
     type Error = VersionParsingError;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let parts = value
+        let mut parts = value
             .split(".")
             .map(|comp| comp.parse::<usize>())
             .collect::<Result<Vec<_>, _>>()?;
+        match parts.len(){
+            0 => return Err(VersionParsingError::WrongNumberOfComponents { found: 0 }),
+            1..=3 => while parts.len() < 3{
+                parts.push(0)
+            },
+            num_comps => return Err(VersionParsingError::WrongNumberOfComponents { found: num_comps })
+        }
         let three_parts: [usize; 3] = parts
             .try_into()
             .map_err(|parts: Vec<usize>| VersionParsingError::WrongNumberOfComponents { found: parts.len() })?;
@@ -81,6 +88,23 @@ impl TryFrom<String> for Version {
 impl Into<String> for Version {
     fn into(self) -> String {
         format!("{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+pub enum VersionMsg{
+    Text(String),
+    Float(f32),
+}
+
+impl TryFrom<VersionMsg> for Version{
+    type Error = VersionParsingError;
+    fn try_from(value: VersionMsg) -> Result<Self, Self::Error> {
+        match value{
+            VersionMsg::Text(s) => Self::try_from(s),
+            VersionMsg::Float(f) => Self::try_from(f.to_string()),
+        }
     }
 }
 
