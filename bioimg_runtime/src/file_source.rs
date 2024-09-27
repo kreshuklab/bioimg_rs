@@ -8,8 +8,8 @@ use crate::{zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 pub enum FileSourceError{
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[error(transparent)]
-    ZipError(#[from] zip::result::ZipError),
+    #[error("IO error trying to read {path}: {inner}")]
+    ZipError{inner: zip::result::ZipError, path: String},
     #[error("Error downloading file: {0}")]
     HttpError(#[from] ureq::Error)
 }
@@ -120,8 +120,12 @@ impl FileSource{
         match self{
             Self::LocalFile { path } => Ok(std::fs::File::open(path)?.read_to_end(buf)?),
             Self::FileInZipArchive { outer_path, inner_path } => {
-                let mut archive = zip::ZipArchive::new(std::fs::File::open(outer_path)?)?;
-                let bytes_read = archive.by_name(&inner_path)?.read_to_end(buf)?;
+                let mut archive = zip::ZipArchive::new(std::fs::File::open(outer_path)?)
+                    .map_err(|inner| FileSourceError::ZipError{inner, path: outer_path.to_string_lossy().into()})?;
+                let full_path = format!("{}/{}", outer_path.to_string_lossy(), inner_path);
+                let bytes_read = archive.by_name(&inner_path)
+                    .map_err(|inner| FileSourceError::ZipError { inner, path: full_path})?
+                    .read_to_end(buf)?;
                 Ok(bytes_read)
             },
             Self::HttpUrl(http_url) => {
