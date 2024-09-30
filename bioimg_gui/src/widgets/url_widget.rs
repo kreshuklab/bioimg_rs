@@ -47,11 +47,8 @@ impl Default for StagingUrl {
     }
 }
 
-impl StatefulWidget for StagingUrl {
-    type Value<'p> = Result<Arc<HttpUrl>>;
-
-    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
-        ui.add(egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }));
+impl StagingUrl{
+    pub fn update(&mut self){
         if let Ok(parsed) = &self.parsed{
             if parsed.as_str() == self.raw.as_str(){
                 return
@@ -60,6 +57,15 @@ impl StatefulWidget for StagingUrl {
         self.parsed = HttpUrl::try_from(self.raw.clone())
             .map(|val| Arc::new(val))
             .map_err(|err| GuiError::new(err.to_string()));
+    }
+}
+
+impl StatefulWidget for StagingUrl {
+    type Value<'p> = Result<Arc<HttpUrl>>;
+
+    fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        self.update(); //FIXME: move update out of the draw method
+        ui.add(egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }));
         show_if_error(ui, &self.parsed);
     }
 

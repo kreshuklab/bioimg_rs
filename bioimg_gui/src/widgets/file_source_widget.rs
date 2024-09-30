@@ -232,6 +232,13 @@ impl ValueWidget for FileSourceWidget{
     }
 }
 
+impl FileSourceWidget{
+    pub fn update(&mut self){
+        self.http_url_widget.update();
+        self.local_file_source_widget.update();
+    }
+}
+
 impl StatefulWidget for FileSourceWidget{
     type Value<'p> = Result<rt::FileSource>;
 

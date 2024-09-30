@@ -132,6 +132,48 @@ impl ValueWidget for ImageWidget2{
                 self.loading_state = LoadingState::Empty;
             }
         }
+        self.update();
+    }
+}
+
+impl ImageWidget2{
+    pub fn update(&mut self){
+        self.file_source_widget.update();
+        let file_source_res = self.file_source_widget.state();
+        self.loading_state = match (std::mem::take(&mut self.loading_state), file_source_res){
+            (LoadingState::Empty, _) => LoadingState::Empty,
+            (LoadingState::Loading{..}, Err(_)) => LoadingState::Empty,
+            (LoadingState::Failed{..}, Err(_)) => LoadingState::Empty,
+            (LoadingState::Ready{..}, Err(_)) => LoadingState::Empty,
+            (LoadingState::Loading { source, promise }, Ok(new_source)) => 'loading_ok: {
+                if source != new_source{
+                    break 'loading_ok LoadingState::Empty;
+                }
+                match promise.try_take(){
+                    Err(promise) => LoadingState::Loading{ source, promise },
+                    Ok(Err(err)) => LoadingState::Failed{ source, err },
+                    Ok(Ok((img, texture))) => LoadingState::Ready{source, img, texture},
+                }
+            },
+            (LoadingState::Failed{source, err}, Ok(new_source)) => {
+                if source == new_source{
+                    LoadingState::Failed { source, err }
+                }else{
+                    LoadingState::Empty
+                }
+            },
+            (LoadingState::Ready{source, img, texture}, Ok(new_source)) => {
+                if new_source == source{
+                    LoadingState::Ready{source, img, texture}
+                }else{
+                    LoadingState::Empty
+                }
+            },
+            (LoadingState::Forced { img, texture }, Err(_)) => { //FIXME: maybe check for source emptyness instead of just Err
+                LoadingState::Forced { img,  texture }
+            },
+            (LoadingState::Forced{..}, Ok(_)) => LoadingState::Empty,
+        }
     }
 }
 
@@ -139,51 +181,39 @@ impl StatefulWidget for ImageWidget2{
     type Value<'p> = Result<Arc<image::DynamicImage>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
+        self.update(); //FIXME: don't call update on draw
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
-                let file_source_res = self.file_source_widget.state();
-                self.loading_state = match (std::mem::take(&mut self.loading_state), file_source_res){
-                    (LoadingState::Empty, Err(_)) => LoadingState::Empty,
-                    (LoadingState::Empty, Ok(file_source)) => {
+                self.loading_state = match std::mem::take(&mut self.loading_state){
+                    LoadingState::Empty => {
+                        match self.file_source_widget.state(){
+                            Ok(file_source) => {
+                                //we need to check this on draw instead of update because we need the Context to load the texture
+                                ui.ctx().request_repaint();
+                                LoadingState::loading(file_source, ui.ctx().clone())
+                            },
+                            Err(_) => LoadingState::Empty,
+                        }
+                    },
+                    LoadingState::Loading{source, promise} => {
                         ui.ctx().request_repaint();
-                        LoadingState::loading(file_source, ui.ctx().clone())
+                        ui.weak("Loading...");
+                        LoadingState::Loading { source, promise }
                     },
-                    (LoadingState::Loading{..}, Err(_)) => LoadingState::Empty,
-                    (LoadingState::Loading { source, promise }, Ok(new_source)) => 'loading_ok: {
-                        ui.ctx().request_repaint();
-                        if source != new_source{
-                            break 'loading_ok LoadingState::Empty;
-                        }
-                        match promise.try_take(){
-                            Err(promise) => LoadingState::Loading { source, promise },
-                            Ok(Err(err)) => LoadingState::Failed{source, err},
-                            Ok(Ok((img, texture))) => LoadingState::Ready{source, img, texture},
-                        }
+                    LoadingState::Ready{source, img, texture} => {
+                        texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
+                        LoadingState::Ready{source, img, texture}
                     },
-                    (LoadingState::Failed{..}, Err(_)) => LoadingState::Empty,
-                    (LoadingState::Failed{source, err}, Ok(new_source)) => {
-                        if source == new_source{
-                            LoadingState::Failed { source, err }
-                        }else{
-                            LoadingState::Empty
-                        }
-                    },
-                    (LoadingState::Ready{..}, Err(_)) => LoadingState::Empty,
-                    (LoadingState::Ready{source, img, texture}, Ok(new_source)) => {
-                        if new_source == source{
-                            texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
-                            LoadingState::Ready{source, img, texture}
-                        }else{
-                            LoadingState::Empty
-                        }
-                    },
-                    (LoadingState::Forced { img, texture }, Err(_)) => { //FIXME: maybe check for source emptyness instead of just Err
+                    LoadingState::Forced { img, texture } => { //FIXME: maybe check for source emptyness instead of just Err
                         let texture = texture.unwrap_or_else(|| Texture::load(&img, ui.ctx().clone()));
                         texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
                         LoadingState::Forced { img,  texture: Some(texture) }
                     },
-                    (LoadingState::Forced{..}, Ok(_)) => LoadingState::Empty,
+                    LoadingState::Failed { source, err } => {
+                        //will render error later so it shows under the button
+                        LoadingState::Failed { source, err }
+                    }
                 }
             });
             if let LoadingState::Failed{err, ..} = &self.loading_state{
