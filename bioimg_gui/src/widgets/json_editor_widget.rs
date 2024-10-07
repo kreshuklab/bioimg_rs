@@ -30,7 +30,7 @@ impl ValueWidget for JsonObjectEditorWidget{
     type Value<'v> = serde_json::Map<String, serde_json::Value>;
 
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.code_editor_widget.raw = serde_json::to_string(&value).unwrap();
+        self.code_editor_widget.raw = serde_json::to_string_pretty(&value).unwrap();
         self.parsed = Ok(value)
     }
 }
