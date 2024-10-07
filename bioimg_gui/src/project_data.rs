@@ -516,7 +516,8 @@ pub struct AppState1RawData{
     pub staging_name: String,
     pub staging_description: String,
     pub cover_images: Vec<SpecialImageWidgetRawData>,
-    // id?
+    #[serde(default)] // added after AppState1RawData
+    pub model_id_widget: Option<String>,
     pub staging_authors: Vec<CollapsibleWidgetRawData<AuthorWidget>>,
     pub attachments_widget: Vec<FileSourceWidgetRawData>,
     pub staging_citations: Vec<CollapsibleWidgetRawData<CiteEntryWidget>>,

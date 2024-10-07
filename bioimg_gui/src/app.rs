@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
-use bioimg_spec::rdf::{self, ResourceName};
+use bioimg_spec::rdf::{self, ResourceId, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
@@ -47,7 +47,7 @@ pub struct AppState1 {
     pub staging_name: StagingString<ResourceName>,
     pub staging_description: StagingString<BoundedString<1, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
-    // id?
+    pub model_id_widget: StagingOpt<StagingString<ResourceId>>,
     pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
     pub attachments_widget: StagingVec<AttachmentsWidget>,
     pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
@@ -87,6 +87,7 @@ impl ValueWidget for AppState1{
                 .map(|cover| (None, Some(cover)))
                 .collect()
         );
+        self.model_id_widget.set_value(zoo_model.id);
         self.staging_authors.set_value(zoo_model.authors.into_inner());
         self.attachments_widget.set_value(zoo_model.attachments);
         self.staging_citations.set_value(zoo_model.cite.into_inner());
@@ -112,6 +113,7 @@ impl Default for AppState1 {
             staging_name: StagingString::new(InputLines::SingleLine),
             staging_description: StagingString::new(InputLines::Multiline),
             cover_images: StagingVec::default(),
+            model_id_widget: Default::default(),
             staging_authors: StagingVec::default(),
             attachments_widget: StagingVec::default(),
             staging_citations: StagingVec::default(),
@@ -226,6 +228,13 @@ impl eframe::App for AppState1 {
                 ui.horizontal_top(|ui| {
                     ui.strong("Cover Images: ");
                     self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
+                    // let cover_img_results = self.cover_images.state();
+                });
+                ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
+                    ui.strong("Model Id: ");
+                    self.model_id_widget.draw_and_parse(ui, egui::Id::from("Model Id"));
                     // let cover_img_results = self.cover_images.state();
                 });
                 ui.add_space(10.0);
@@ -375,6 +384,7 @@ impl eframe::App for AppState1 {
                                     name: self.staging_name.state()
                                         .cloned()
                                         .map_err(|_| GuiError::new("Check resoure name for errors".into()))?,
+                                    id: self.model_id_widget.state().transpose().map_err(|_| GuiError::new("Check model id for errors".into()))?.cloned(),
                                     weights: self.weights_widget.state().map_err(|_| GuiError::new("Check model weights for errors".into()))?.as_ref().clone(),
                                     interface: model_interface,
                                 })

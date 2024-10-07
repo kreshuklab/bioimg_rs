@@ -5,7 +5,7 @@ use std::{
 use bioimg_spec::rdf::{
     self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
         unsupported::Version_0_4_X_OrEarlier, ModelRdfV0_5, RdfTypeModel
-    }, non_empty_list::NonEmptyList, version::{FutureRdfVersion, Version_0_5_x}, FileReference, FsPath, HttpUrl, LicenseId, ResourceName, Version
+    }, non_empty_list::NonEmptyList, version::{FutureRdfVersion, Version_0_5_x}, FileReference, FsPath, HttpUrl, LicenseId, ResourceId, ResourceName, Version
 };
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
@@ -84,6 +84,7 @@ pub struct ZooModel {
     pub documentation: String,
     pub license: LicenseId,
     pub name: ResourceName,
+    pub id: Option<ResourceId>,
     // training_data: DatasetDescrEnum, //FIXME
     pub weights: ModelWeights,
     pub interface: ModelInterface<ArcNpyArray>,
@@ -158,6 +159,7 @@ impl ZooModel{
             documentation,
             license: model_rdf.license,
             name: model_rdf.name,
+            id: model_rdf.id,
             weights,
             interface: model_interface,
         })
