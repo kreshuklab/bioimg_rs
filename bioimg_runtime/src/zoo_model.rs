@@ -73,7 +73,7 @@ pub struct ZooModel {
     pub covers: Vec<CoverImage>,
     pub attachments: Vec<FileSource>,
     pub cite: NonEmptyList<rdf::CiteEntry2>,
-    // config: serde_json::Map<String, serde_json::Value>,
+    pub config: serde_json::Map<String, serde_json::Value>,
     pub git_repo: Option<rdf::HttpUrl>,
     pub icon: Option<Icon>,
     pub links: Vec<String>,
@@ -149,6 +149,7 @@ impl ZooModel{
             covers,
             attachments,
             cite: model_rdf.cite,
+            config: model_rdf.config,
             git_repo: model_rdf.git_repo,
             icon,
             links: model_rdf.links,
@@ -188,7 +189,6 @@ impl ZooModel {
                 Ok(FileReference::Path(documentation_path.clone()))
             })?
         };
-        let config = serde_yaml::Mapping::new();
         let timestamp = iso8601_timestamp::Timestamp::now_utc();
         let weights = self.weights.rdf_dump(&mut writer)?;
 
@@ -198,7 +198,7 @@ impl ZooModel {
             id: None,
             attachments,
             cite: self.cite,
-            config,
+            config: self.config,
             git_repo: self.git_repo,
             icon,
             links: self.links,

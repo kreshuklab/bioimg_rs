@@ -16,6 +16,7 @@ use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::icon_widget::IconWidgetValue;
 use crate::widgets::image_widget_2::SpecialImageWidget;
+use crate::widgets::json_editor_widget::JsonObjectEditorWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::notice_widget::NotificationsWidget;
 use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
@@ -51,7 +52,7 @@ pub struct AppState1 {
     pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
     pub attachments_widget: StagingVec<AttachmentsWidget>,
     pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
-    //config
+    pub custom_config_widget: StagingOpt<JsonObjectEditorWidget>, //FIXME
     pub staging_git_repo: StagingOpt<StagingUrl>,
     pub icon_widget: StagingOpt<IconWidget>,
     //links
@@ -91,6 +92,13 @@ impl ValueWidget for AppState1{
         self.staging_authors.set_value(zoo_model.authors.into_inner());
         self.attachments_widget.set_value(zoo_model.attachments);
         self.staging_citations.set_value(zoo_model.cite.into_inner());
+        self.custom_config_widget.set_value(
+            if zoo_model.config.is_empty(){
+                None
+            } else {
+                Some(zoo_model.config)
+            }
+        );
         self.staging_git_repo.set_value(zoo_model.git_repo.map(|val| Arc::new(val)));
         self.icon_widget.set_value(zoo_model.icon.map(IconWidgetValue::from));
         self.staging_maintainers.set_value(zoo_model.maintainers);
@@ -117,6 +125,7 @@ impl Default for AppState1 {
             staging_authors: StagingVec::default(),
             attachments_widget: StagingVec::default(),
             staging_citations: StagingVec::default(),
+            custom_config_widget: Default::default(),
             staging_git_repo: Default::default(),
             icon_widget: Default::default(),
             staging_maintainers: StagingVec::default(),
@@ -261,6 +270,13 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    ui.strong("Custom configs: ");
+                    self.custom_config_widget.draw_and_parse(ui, egui::Id::from("Custom configs"));
+                    // let citation_results = self.staging_citations.state();
+                });
+                ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
                     ui.strong("Git Repo: ");
                     self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
                     // let git_repo_result = self.staging_git_repo.state();
@@ -366,6 +382,10 @@ impl eframe::App for AppState1 {
                                     covers,
                                     attachments,
                                     cite: non_empty_cites,
+                                    config: self.custom_config_widget.state().cloned()
+                                        .transpose()
+                                        .map_err(|_| GuiError::new("Check custom configs for errors".into()))?
+                                        .unwrap_or(serde_json::Map::default()),
                                     git_repo: self.staging_git_repo.state()
                                         .transpose()
                                         .map_err(|_| GuiError::new("Check git repo field for errors".into()))?

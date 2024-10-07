@@ -56,7 +56,7 @@ pub struct ModelRdfV0_5 {
     /// (Packaging a resource means downloading/copying important linked files and creating a ZIP archive that contains
     /// an altered rdf.yaml file with local references to the downloaded files.)
     #[serde(default)]
-    pub config: serde_yaml::Mapping,
+    pub config: serde_json::Map<String, serde_json::Value>,
 
     /// A URL to the Git repository where the resource is being developed
     #[serde(default)]

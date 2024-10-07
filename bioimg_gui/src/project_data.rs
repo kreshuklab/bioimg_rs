@@ -521,7 +521,8 @@ pub struct AppState1RawData{
     pub staging_authors: Vec<CollapsibleWidgetRawData<AuthorWidget>>,
     pub attachments_widget: Vec<FileSourceWidgetRawData>,
     pub staging_citations: Vec<CollapsibleWidgetRawData<CiteEntryWidget>>,
-    //config
+    #[serde(default)] // added after AppState1RawData
+    pub custom_config_widget: Option<JsonObjectEditorWidgetRawData>,
     pub staging_git_repo: Option<String>,
     pub icon_widget: Option<IconWidgetRawData>,
     //links
