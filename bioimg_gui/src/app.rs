@@ -402,7 +402,12 @@ impl eframe::App for AppState1 {
                                         .map_err(|_| GuiError::new("Check git repo field for errors".into()))?
                                         .map(|val| val.as_ref().clone()),
                                     icon: self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors".into()))?,
-                                    links: Vec::<String>::new(),// FIXME: grab from widget,
+                                    links: self.links_widget.state()
+                                            .collect_result()
+                                            .map_err(|e| GuiError::new("Check links for errors".into()))?
+                                            .into_iter()
+                                            .map(|s| s.clone())
+                                            .collect(),
                                     maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors".into()))?,
                                     tags,
                                     version: self.staging_version.state()
