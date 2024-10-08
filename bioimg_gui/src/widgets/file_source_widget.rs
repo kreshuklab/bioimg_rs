@@ -121,7 +121,7 @@ impl StatefulWidget for LocalFileSourceWidget{
                 }
                 match self{
                     Self::Empty => {
-                        ui.weak("Empty");
+                        // ui.weak("Empty");
                         None
                     },
                     Self::Failed(err) => {
