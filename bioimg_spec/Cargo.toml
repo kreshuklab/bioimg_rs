@@ -1,8 +1,11 @@
 [package]
 name = "bioimg_spec"
-version = "0.1.0"
-edition = "2021"
-rust-version="1.79"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [lib]
 name = "bioimg_spec"

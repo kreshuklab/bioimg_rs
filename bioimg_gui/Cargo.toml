@@ -1,9 +1,11 @@
 [package]
 name = "bioimg_gui"
-version = "0.1.8"
-authors = ["Tomaz Vieira<tom.fogaca@gmail.com>"]
-edition = "2021"
-rust-version="1.79"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 egui = "0.27.0"

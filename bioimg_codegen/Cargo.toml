@@ -1,9 +1,11 @@
 [package]
 name = "bioimg_codegen"
-version = "0.0.0"
-authors = ["Tomaz Vieira <tom.fogaca@gmail.com>"]
-edition = "2021"
-publish = false
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [lib]
 proc-macro = true
@@ -11,5 +13,4 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1.0.78"
 quote = "1.0.35"
-serde = { version = "1.0.203", features = ["derive"] }
 syn = { version = "2.0.52", features = ["full"] }
