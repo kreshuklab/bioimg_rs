@@ -525,7 +525,8 @@ pub struct AppState1RawData{
     pub custom_config_widget: Option<JsonObjectEditorWidgetRawData>,
     pub staging_git_repo: Option<String>,
     pub icon_widget: Option<IconWidgetRawData>,
-    //links
+    #[serde(default)] // added after AppState1RawData
+    pub links_widget: Vec<String>,
     pub staging_maintainers: Vec<CollapsibleWidgetRawData<MaintainerWidget>>,
     pub staging_tags: Vec<String>,
     pub staging_version: Option<VersionWidgetRawData>,

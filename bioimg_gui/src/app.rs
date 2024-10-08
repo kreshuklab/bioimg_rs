@@ -18,6 +18,7 @@ use crate::widgets::icon_widget::IconWidgetValue;
 use crate::widgets::image_widget_2::SpecialImageWidget;
 use crate::widgets::json_editor_widget::JsonObjectEditorWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
+use crate::widgets::model_links_widget::ModelLinksWidget;
 use crate::widgets::notice_widget::NotificationsWidget;
 use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
@@ -55,7 +56,7 @@ pub struct AppState1 {
     pub custom_config_widget: StagingOpt<JsonObjectEditorWidget>, //FIXME
     pub staging_git_repo: StagingOpt<StagingUrl>,
     pub icon_widget: StagingOpt<IconWidget>,
-    //links
+    pub links_widget: ModelLinksWidget,
     pub staging_maintainers: StagingVec<CollapsibleWidget<MaintainerWidget>>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
     pub staging_version: StagingOpt<VersionWidget>,
@@ -101,6 +102,7 @@ impl ValueWidget for AppState1{
         );
         self.staging_git_repo.set_value(zoo_model.git_repo.map(|val| Arc::new(val)));
         self.icon_widget.set_value(zoo_model.icon.map(IconWidgetValue::from));
+        self.links_widget.set_value(zoo_model.links);
         self.staging_maintainers.set_value(zoo_model.maintainers);
         self.staging_tags.set_value(zoo_model.tags);
         self.staging_version.set_value(zoo_model.version);
@@ -128,6 +130,7 @@ impl Default for AppState1 {
             custom_config_widget: Default::default(),
             staging_git_repo: Default::default(),
             icon_widget: Default::default(),
+            links_widget: Default::default(),
             staging_maintainers: StagingVec::default(),
             staging_tags: StagingVec::default(),
             staging_version: Default::default(),
@@ -287,6 +290,14 @@ impl eframe::App for AppState1 {
                     ui.strong("Icon: ");
                     group_frame(ui, |ui| {
                         self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
+                    });
+                });
+                ui.add_space(10.0);
+
+                ui.horizontal_top(|ui| {
+                    ui.strong("Model Zoo Links: ");
+                    group_frame(ui, |ui| {
+                        self.links_widget.draw_and_parse(ui, egui::Id::from("Model Zoo Links"));
                     });
                 });
                 ui.add_space(10.0);
