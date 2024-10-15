@@ -47,7 +47,7 @@ enum PackingStatus {
 #[derive(Restore)]
 pub struct AppState1 {
     pub staging_name: StagingString<ResourceName>,
-    pub staging_description: StagingString<BoundedString<1, 1024>>,
+    pub staging_description: StagingString<BoundedString<0, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     pub model_id_widget: StagingOpt<StagingString<ResourceId>>,
     pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
