@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use bioimg_runtime as rt;
@@ -221,6 +221,17 @@ impl AppState1{
             interface: model_interface,
         })
     }
+
+    fn save_project(&self, path: &Path) -> Result<String, String>{
+        let writer = std::fs::File::options()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path).map_err(|err| format!("Could not open project file for writing: {err}"))?;
+        AppStateRawData::Version1(self.dump()).save(writer)
+            .map_err(|err| format!("Could not serialize project to bytes: {err}"))
+            .map(|_| format!("Saved project to {}", path.to_string_lossy()))
+    }
 }
 
 
@@ -249,17 +260,7 @@ impl eframe::App for AppState1 {
                         let Some(path) = rfd::FileDialog::new().set_file_name("MyProject.bmb").save_file() else {
                             break 'save_project;
                         };
-                        let result = || -> Result<String, String>{
-                            println!("Trying to open {path:?} for writing");
-                            let writer = std::fs::File::options()
-                                .write(true)
-                                .create(true)
-                                .truncate(true)
-                                .open(&path).map_err(|err| format!("Could not open project file for writing: {err}"))?;
-                            AppStateRawData::Version1(self.dump()).save(writer)
-                                .map_err(|err| format!("Could not serialize project to bytes: {err}"))
-                                .map(|_| format!("Saved project to {}", path.to_string_lossy()))
-                        }();
+                        let result = self.save_project(&path);
                         self.notifications_widget.push_message(result);
                     }}
                     if ui.button("Load Project").clicked() { 'load_project: {
