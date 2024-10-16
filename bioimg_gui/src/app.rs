@@ -445,17 +445,14 @@ impl eframe::App for AppState1 {
                             let Some(path) = rfd::FileDialog::new().save_file() else {
                                 break 'done PackingStatus::Done;
                             };
-                            {
-                                let notification_message = format!("Packing into {}...", path.to_string_lossy());
-                                let next_state = PackingStatus::Packing {
-                                    path: path.clone(),
-                                    task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
-                                        let file = std::fs::File::create(path)?;
-                                        zoo_model.pack_into(file)
-                                    }),
-                                };
-                                self.notifications_widget.push_message(Ok(notification_message));
-                                next_state
+                            let notification_message = format!("Packing into {}...", path.to_string_lossy());
+                            self.notifications_widget.push_message(Ok(notification_message));
+                            PackingStatus::Packing {
+                                path: path.clone(),
+                                task: poll_promise::Promise::spawn_thread("dumping_to_zip", move || {
+                                    let file = std::fs::File::create(path)?;
+                                    zoo_model.pack_into(file)
+                                }),
                             }
                         }
                         PackingStatus::Packing { path, task } => match task.try_take() {
