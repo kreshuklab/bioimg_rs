@@ -149,6 +149,80 @@ impl Default for AppState1 {
     }
 }
 
+impl AppState1{
+    pub fn create_model(&self) -> Result<ZooModel>{
+        let model_interface = self.model_interface_widget.state()
+            .as_ref()
+            .map(|interf| interf.clone())
+            .map_err(|_| GuiError::new("Check model interface for errors"))?;
+
+        let covers: Vec<_> = self.cover_images.state().into_iter()
+            .map(|cover_img_res|{
+                cover_img_res
+                    .map(|val| val.clone())
+                    .map_err(|_| GuiError::new("Check cover images for errors"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let attachments = self.attachments_widget.state()
+            .collect_result()
+            .map_err(|_| GuiError::new("Check model attachments for errors"))?;
+
+        let cite = self.staging_citations.state().collect_result().map_err(|_| GuiError::new("Check cites for errors"))?;
+        let non_empty_cites = NonEmptyList::try_from(cite)
+            .map_err(|_| GuiError::new("Cites are empty"))?;
+
+        let tags: Vec<rdf::Tag> = self.staging_tags.state()
+            .into_iter()
+            .map(|res_ref| res_ref.cloned())
+            .collect::<Result<Vec<_>>>()
+            .map_err(|_| GuiError::new("Check tags for errors"))?;
+
+        let authors = NonEmptyList::try_from(
+            self.staging_authors.state().collect_result().map_err(|_| GuiError::new("Check authors for errors"))?
+        ).map_err(|_| GuiError::new("Empty authors"))?;
+
+        Ok(ZooModel {
+            description: self.staging_description.state()
+                .cloned()
+                .map_err(|_| GuiError::new("Check resource text description for errors"))?,
+            covers,
+            attachments,
+            cite: non_empty_cites,
+            config: self.custom_config_widget.state().cloned()
+                .transpose()
+                .map_err(|_| GuiError::new("Check custom configs for errors"))?
+                .unwrap_or(serde_json::Map::default()),
+            git_repo: self.staging_git_repo.state()
+                .transpose()
+                .map_err(|_| GuiError::new("Check git repo field for errors"))?
+                .map(|val| val.as_ref().clone()),
+            icon: self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors"))?,
+            links: self.links_widget.state()
+                    .collect_result()
+                    .map_err(|_| GuiError::new("Check links for errors"))?
+                    .into_iter()
+                    .map(|s| s.clone())
+                    .collect(),
+            maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors"))?,
+            tags,
+            version: self.staging_version.state()
+                .transpose()
+                .map_err(|_| GuiError::new("Review resource version field"))?
+                .cloned(),
+            authors,
+            documentation: self.staging_documentation.state().to_owned(),
+            license: self.staging_license.state(),
+            name: self.staging_name.state()
+                .cloned()
+                .map_err(|_| GuiError::new("Check resoure name for errors"))?,
+            id: self.model_id_widget.state().transpose().map_err(|_| GuiError::new("Check model id for errors"))?.cloned(),
+            weights: self.weights_widget.state().map_err(|_| GuiError::new("Check model weights for errors"))?.as_ref().clone(),
+            interface: model_interface,
+        })
+    }
+}
+
 
 impl eframe::App for AppState1 {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {
@@ -354,79 +428,7 @@ impl eframe::App for AppState1 {
                             if !save_button_clicked {
                                 break 'done PackingStatus::Done;
                             }
-                            let zoo_model_res = (|| -> Result<ZooModel>{
-                                let model_interface = self.model_interface_widget.state()
-                                    .as_ref()
-                                    .map(|interf| interf.clone())
-                                    .map_err(|_| GuiError::new("Check model interface for errors"))?;
-
-                                let covers: Vec<_> = self.cover_images.state().into_iter()
-                                    .map(|cover_img_res|{
-                                        cover_img_res
-                                            .map(|val| val.clone())
-                                            .map_err(|_| GuiError::new("Check cover images for errors"))
-                                    })
-                                    .collect::<Result<Vec<_>, _>>()?;
-
-                                let attachments = self.attachments_widget.state()
-                                    .collect_result()
-                                    .map_err(|_| GuiError::new("Check model attachments for errors"))?;
-
-                                let cite = self.staging_citations.state().collect_result().map_err(|_| GuiError::new("Check cites for errors"))?;
-                                let non_empty_cites = NonEmptyList::try_from(cite)
-                                    .map_err(|_| GuiError::new("Cites are empty"))?;
-
-                                let tags: Vec<rdf::Tag> = self.staging_tags.state()
-                                    .into_iter()
-                                    .map(|res_ref| res_ref.cloned())
-                                    .collect::<Result<Vec<_>>>()
-                                    .map_err(|_| GuiError::new("Check tags for errors"))?;
-
-                                let authors = NonEmptyList::try_from(
-                                    self.staging_authors.state().collect_result().map_err(|_| GuiError::new("Check authors for errors"))?
-                                ).map_err(|_| GuiError::new("Empty authors"))?;
-
-                                Ok(ZooModel {
-                                    description: self.staging_description.state()
-                                        .cloned()
-                                        .map_err(|_| GuiError::new("Check resource text description for errors"))?,
-                                    covers,
-                                    attachments,
-                                    cite: non_empty_cites,
-                                    config: self.custom_config_widget.state().cloned()
-                                        .transpose()
-                                        .map_err(|_| GuiError::new("Check custom configs for errors"))?
-                                        .unwrap_or(serde_json::Map::default()),
-                                    git_repo: self.staging_git_repo.state()
-                                        .transpose()
-                                        .map_err(|_| GuiError::new("Check git repo field for errors"))?
-                                        .map(|val| val.as_ref().clone()),
-                                    icon: self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors"))?,
-                                    links: self.links_widget.state()
-                                            .collect_result()
-                                            .map_err(|e| GuiError::new("Check links for errors"))?
-                                            .into_iter()
-                                            .map(|s| s.clone())
-                                            .collect(),
-                                    maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors"))?,
-                                    tags,
-                                    version: self.staging_version.state()
-                                        .transpose()
-                                        .map_err(|_| GuiError::new("Review resource version field"))?
-                                        .cloned(),
-                                    authors,
-                                    documentation: self.staging_documentation.state().to_owned(),
-                                    license: self.staging_license.state(),
-                                    name: self.staging_name.state()
-                                        .cloned()
-                                        .map_err(|_| GuiError::new("Check resoure name for errors"))?,
-                                    id: self.model_id_widget.state().transpose().map_err(|_| GuiError::new("Check model id for errors"))?.cloned(),
-                                    weights: self.weights_widget.state().map_err(|_| GuiError::new("Check model weights for errors"))?.as_ref().clone(),
-                                    interface: model_interface,
-                                })
-                            })();
-
-                            let zoo_model = match zoo_model_res{
+                            let zoo_model = match self.create_model(){
                                 Ok(zoo_model) => {
                                     self.notifications_widget.push_message(Ok(format!("Model saved successfully")));
                                     zoo_model
