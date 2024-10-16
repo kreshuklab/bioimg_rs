@@ -222,15 +222,32 @@ impl AppState1{
         })
     }
 
-    fn save_project(&self, path: &Path) -> Result<String, String>{
+    fn save_project(&self, project_file: &Path) -> Result<String, String>{
         let writer = std::fs::File::options()
             .write(true)
             .create(true)
             .truncate(true)
-            .open(path).map_err(|err| format!("Could not open project file for writing: {err}"))?;
+            .open(project_file).map_err(|err| format!("Could not open project file for writing: {err}"))?;
         AppStateRawData::Version1(self.dump()).save(writer)
             .map_err(|err| format!("Could not serialize project to bytes: {err}"))
-            .map(|_| format!("Saved project to {}", path.to_string_lossy()))
+            .map(|_| format!("Saved project to {}", project_file.to_string_lossy()))
+    }
+
+    fn load_project(&mut self, project_file: &Path) -> Result<(), String>{
+        let reader = std::fs::File::open(&project_file).map_err(|err| format!("Could not open project file: {err}"))?;
+        let proj_data = match AppStateRawData::load(reader){
+            Err(ProjectLoadError::FutureVersion{found_version}) => return Err(format!(
+                "Found project data version {found_version}, but this program only supports project data up to {}\n\
+                You can try downloading the newest version at https://github.com/kreshuklab/bioimg_rs/releases",
+                AppStateRawData::highest_supported_version(),
+            )),
+            Err(err) => return Err(format!("Could not load project file at {}: {err}", project_file.to_string_lossy())),
+            Ok(proj_data) => proj_data,
+        };
+        match proj_data{
+            AppStateRawData::Version1(ver1) => self.restore(ver1),
+        }
+        Ok(())
     }
 }
 
@@ -268,23 +285,7 @@ impl eframe::App for AppState1 {
                         let Some(path) = rfd::FileDialog::new().add_filter("bioimage model builder", &["bmb"]).pick_file() else {
                             break 'load_project;
                         };
-                        let result = || -> Result<(), String>{
-                            let reader = std::fs::File::open(&path).map_err(|err| format!("Could not open project file: {err}"))?;
-                            let proj_data = match AppStateRawData::load(reader){
-                                Err(ProjectLoadError::FutureVersion{found_version}) => return Err(format!(
-                                    "Found project data version {found_version}, but this program only supports project data up to {}\n\
-                                    You can try downloading the newest version at https://github.com/kreshuklab/bioimg_rs/releases",
-                                    AppStateRawData::highest_supported_version(),
-                                )),
-                                Err(err) => return Err(format!("Could not load project file at {}: {err}", path.to_string_lossy())),
-                                Ok(proj_data) => proj_data,
-                            };
-                            match proj_data{
-                                AppStateRawData::Version1(ver1) => self.restore(ver1),
-                            }
-                            Ok(())
-                        }();
-                        if let Err(err) = result{
+                        if let Err(err) = self.load_project(&path){
                             self.notifications_widget.push_message(Err(err));
                         }
                     }}
