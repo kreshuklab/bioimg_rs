@@ -66,37 +66,74 @@ where
         Stg::Value<'p>: 'p;
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
+        enum Action{
+            Nothing,
+            Remove(usize),
+            MoveUp(usize),
+            MoveDown(usize),
+        }
+
+        
+        let mut action: Action = Action::Nothing;
         ui.vertical(|ui| {
+            let current_num_items = self.staging.len();
             self.staging.iter_mut().enumerate().for_each(|(idx, staging_item)| {
-                let item_label = format!("{} #{}", Conf::ITEM_NAME, idx + 1);
-                let render_item = |ui: &mut egui::Ui| {
+                let mut render_item_header = |ui: &mut egui::Ui|{
+                    ui.horizontal(|ui|{
+                        ui.add_enabled_ui(current_num_items > Conf::MIN_NUM_ITEMS, |ui| {
+                            if ui.button("🗙").clicked(){
+                                action = Action::Remove(idx);
+                            }
+                        });
+                        ui.small(format!("{} #{}", Conf::ITEM_NAME, idx + 1));
+                        ui.spacing_mut().item_spacing.x = 0.0;
+                        ui.add_enabled_ui(idx > 0, |ui| {
+                            if ui.button("⬆").clicked(){
+                                action = Action::MoveUp(idx);
+                            }
+                        });
+                        ui.add_enabled_ui(idx != current_num_items.saturating_sub(1), |ui| {
+                            if ui.button("⬇").clicked(){
+                                action = Action::MoveDown(idx);
+                            }
+                        });
+                    })
+                };
+
+                let mut render_item = |ui: &mut egui::Ui| {
                     if Conf::INLINE_ITEM{
                         ui.horizontal(|ui|{
-                            ui.small(item_label);
+                            render_item_header(ui);
                             staging_item.draw_and_parse(ui, id.with(idx));
                         });
                     }else{
-                        ui.small(item_label);
+                        render_item_header(ui);
                         staging_item.draw_and_parse(ui, id.with(idx));
                     }
                 };
+
                 if Conf::GROUP_FRAME{
                     group_frame(ui, render_item);
                 }else{
                     render_item(ui);
                 }
             });
+
             ui.horizontal(|ui| {
                 if ui.button(format!("+ Add {}", Conf::ITEM_NAME)).clicked() {
                     self.staging.resize_with(self.staging.len() + 1, Stg::default);
                 }
-                ui.add_enabled_ui(self.staging.len() > Conf::MIN_NUM_ITEMS, |ui|{
-                    if ui.button(format!("- Remove {}", Conf::ITEM_NAME)).clicked() {
-                        self.staging.resize_with(self.staging.len() - 1, Stg::default);
-                    }
-                });
             });
         });
+
+        match action{
+            Action::Nothing => (),
+            Action::Remove(idx) => {
+                self.staging.remove(idx);
+            },
+            Action::MoveUp(idx) => self.staging.swap(idx - 1, idx),
+            Action::MoveDown(idx) => self.staging.swap(idx, idx + 1),
+        }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
