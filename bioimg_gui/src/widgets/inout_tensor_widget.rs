@@ -23,6 +23,9 @@ use crate::widgets::staging_vec::ItemWidgetConf;
 
 #[derive(Restore)]
 pub struct InputTensorWidget {
+    #[restore_default]
+    adjust_num_axes_on_file_selected: bool,
+    
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub is_optional: bool,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
@@ -38,6 +41,7 @@ pub struct InputTensorWidget {
 impl Default for InputTensorWidget{
     fn default() -> Self {
         Self{
+            adjust_num_axes_on_file_selected: false,
             id_widget: Default::default(),
             is_optional: Default::default(),
             description_widget: Default::default(),
@@ -88,7 +92,15 @@ impl SummarizableWidget for InputTensorWidget{
 
 impl InputTensorWidget{
     pub fn update(&mut self){
-        if let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
+        'auto_adjust_axes: {
+            let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() else {
+                self.adjust_num_axes_on_file_selected = true;
+                break 'auto_adjust_axes;
+            };
+            if !self.adjust_num_axes_on_file_selected{
+                break 'auto_adjust_axes;
+            }
+            self.adjust_num_axes_on_file_selected = false;
             if self.id_widget.raw.is_empty() {
                 self.id_widget.raw = path
                     .file_stem()
@@ -108,13 +120,18 @@ impl InputTensorWidget{
                 axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
                 self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
             }
-        };
-
-        self.parsed = || -> Result<InputSlot<Arc<NpyArray>>> {
+        }
+        self.parsed = || -> Result<InputSlot<ArcNpyArray>> {
             let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
                 return Err(GuiError::new("Test tensor is missing"));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+            let sample_shape = gui_npy_array.shape();
+            if sample_shape.len() != axes.len(){
+                return Err(GuiError::new(format!(
+                    "Example tensor has {} dimensions but there are {} axes defined", sample_shape.len(), axes.len()
+                )))
+            }
             let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
             let meta_msg = rdfinput::InputTensorMetadataMsg{
                 id: self.id_widget.state()?.clone(),
@@ -174,6 +191,9 @@ impl StatefulWidget for InputTensorWidget {
 
 #[derive(Restore)]
 pub struct OutputTensorWidget {
+    #[restore_default]
+    adjust_num_axes_on_file_selected: bool,
+    
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<OutputAxisWidget>>,
@@ -188,6 +208,7 @@ pub struct OutputTensorWidget {
 impl Default for OutputTensorWidget{
     fn default() -> Self {
         Self{
+            adjust_num_axes_on_file_selected: false,
             id_widget: Default::default(),
             description_widget: Default::default(),
             axes_widget: Default::default(),
@@ -236,7 +257,15 @@ impl SummarizableWidget for OutputTensorWidget{
 
 impl OutputTensorWidget{
     pub fn update(&mut self){
-        if let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() {
+        'auto_adjust_axes: {
+            let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() else {
+                self.adjust_num_axes_on_file_selected = true;
+                break 'auto_adjust_axes;
+            };
+            if !self.adjust_num_axes_on_file_selected{
+                break 'auto_adjust_axes;
+            }
+            self.adjust_num_axes_on_file_selected = false;
             if self.id_widget.raw.is_empty() {
                 self.id_widget.raw = path
                     .file_stem()
@@ -256,12 +285,18 @@ impl OutputTensorWidget{
                 axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
                 self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
             }
-        };
-        self.parsed = || -> Result<OutputSlot<Arc<NpyArray>>> {
+        }
+        self.parsed = || -> Result<OutputSlot<ArcNpyArray>> {
             let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
                 return Err(GuiError::new("Test tensor is missing"));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+            let sample_shape = gui_npy_array.shape();
+            if sample_shape.len() != axes.len(){
+                return Err(GuiError::new(format!(
+                    "Example tensor has {} dimensions but there are {} axes defined", sample_shape.len(), axes.len()
+                )))
+            }
             let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
             let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
                 id: self.id_widget.state()?.clone(),
