@@ -431,16 +431,12 @@ impl eframe::App for AppState1 {
                                 break 'done PackingStatus::Done;
                             }
                             let zoo_model = match self.create_model(){
-                                Ok(zoo_model) => {
-                                    self.notifications_widget.push_message(Ok(format!("Model saved successfully")));
-                                    zoo_model
-                                }
+                                Ok(zoo_model) => zoo_model,
                                 Err(err) => {
                                     self.notifications_widget.push_message(Err(err.to_string()));
                                     break 'done PackingStatus::Done;
                                 }
                             };
-
                             ui.ctx().request_repaint();
                             let Some(path) = rfd::FileDialog::new().save_file() else {
                                 break 'done PackingStatus::Done;
