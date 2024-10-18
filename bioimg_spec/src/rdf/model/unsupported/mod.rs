@@ -22,7 +22,7 @@ impl Display for Version_0_4_X_OrEarlier{
 impl TryFrom<Version> for Version_0_4_X_OrEarlier{
     type Error = LegacyVersionParsingError;
     fn try_from(value: Version) -> Result<Self, Self::Error> {
-        if value.major == 0 && value.minor <=4{
+        if value < Version::version_0_5_0() {
             return Ok(Self(value))
         }
         return Err(LegacyVersionParsingError::VersionTooHigh { found: value })

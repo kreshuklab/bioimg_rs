@@ -1,93 +1,40 @@
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
+use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
-pub enum VersionParsingError {
-    #[error("Version must have 3 fields, found {found}")]
-    WrongNumberOfComponents { found: usize },
-    #[error("Could not parse version field: {0}")]
-    ParseIntError(ParseIntError),
-    #[error("Expected version '{expected}', found '{found}'")]
-    UnexpectedVersion { expected: Version, found: Version },
-    #[error("Unexpected version number {found}; expecting {expecting}")]
-    UnexpectedVersionNumber{found: Version, expecting: String},
-}
-impl From<ParseIntError> for VersionParsingError {
-    fn from(value: ParseIntError) -> Self {
-        return Self::ParseIntError(value);
-    }
+#[derive(thiserror::Error, Debug)]
+#[error("Error parsing version: {reason}")]
+pub struct VersionParsingError {
+    reason: String,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[serde(try_from = "VersionMsg")]
-#[serde(into = "String")]
-pub struct Version {
-    pub major: usize,
-    pub minor: usize,
-    pub patch: usize,
-}
-impl Ord for Version{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.major.cmp(&other.major){
-            std::cmp::Ordering::Equal => (),
-            out => return out
-        }
-        match self.minor.cmp(&other.minor){
-            std::cmp::Ordering::Equal => (),
-            out => return out
-        }
-        return self.patch.cmp(&other.patch)
-    }
-}
-impl PartialOrd for Version{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl Display for Version {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let self_string: String = self.clone().into();
-        write!(f, "{self_string}",)
-    }
-}
-impl FromStr for Version{
-    type Err = VersionParsingError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::try_from(s)
-    }
-}
-impl TryFrom<&str> for Version {
-    type Error = VersionParsingError;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let mut parts = value
-            .split(".")
-            .map(|comp| comp.parse::<usize>())
-            .collect::<Result<Vec<_>, _>>()?;
-        match parts.len(){
-            0 => return Err(VersionParsingError::WrongNumberOfComponents { found: 0 }),
-            1..=3 => while parts.len() < 3{
-                parts.push(0)
-            },
-            num_comps => return Err(VersionParsingError::WrongNumberOfComponents { found: num_comps })
-        }
-        let three_parts: [usize; 3] = parts
-            .try_into()
-            .map_err(|parts: Vec<usize>| VersionParsingError::WrongNumberOfComponents { found: parts.len() })?;
-        return Ok(Version { major: three_parts[0], minor: three_parts[1], patch: three_parts[2] });
-    }
-}
-impl TryFrom<String> for Version {
-    type Error = VersionParsingError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        return <Self as TryFrom<&str>>::try_from(&value);
-    }
-}
+#[derive(
+    PartialOrd, Ord, Clone, Debug, PartialEq, Eq,
+    serde::Deserialize, serde::Serialize,
+    derive_more::Display, derive_more::Deref, derive_more::FromStr,
+)]
+#[serde(try_from="VersionMsg")]
+#[serde(into="String")]
+pub struct Version(versions::Version);
 
-impl Into<String> for Version {
-    fn into(self) -> String {
-        format!("{}.{}.{}", self.major, self.minor, self.patch)
+impl Version{
+    pub fn major_minor_patch(major: u32, minor: u32, patch: u32) -> Self{
+        Version(versions::Version{
+            chunks: versions::Chunks(vec![
+                versions::Chunk::Numeric(major),
+                versions::Chunk::Numeric(minor),
+                versions::Chunk::Numeric(patch),
+            ]),
+            ..Default::default()
+        })
+    }
+    pub fn version_0_5_3() -> Version{
+        Self::major_minor_patch(0, 5, 3)
+    }
+    pub fn version_0_5_0() -> Version{
+        Self::major_minor_patch(0, 5, 0)
+    }
+    pub fn version_0_6_0() -> Version{
+        Self::major_minor_patch(0, 6, 0)
     }
 }
 
@@ -96,15 +43,33 @@ impl Into<String> for Version {
 pub enum VersionMsg{
     Text(String),
     Float(f32),
+    Int(u32),
+}
+
+impl TryFrom<String> for Version{
+    type Error = VersionParsingError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match versions::Version::from_str(&value){
+            Err(e) => Err(VersionParsingError{reason: e.to_string()}),
+            Ok(v) => Ok(Version(v))
+        }
+    }
 }
 
 impl TryFrom<VersionMsg> for Version{
     type Error = VersionParsingError;
     fn try_from(value: VersionMsg) -> Result<Self, Self::Error> {
         match value{
-            VersionMsg::Text(s) => Self::try_from(s),
+            VersionMsg::Text(s) => Self::try_from(s.to_owned()),
             VersionMsg::Float(f) => Self::try_from(f.to_string()),
+            VersionMsg::Int(i) => Self::try_from(i.to_string()),
         }
+    }
+}
+
+impl From<Version> for String{
+    fn from(value: Version) -> Self {
+        value.0.to_string()
     }
 }
 
@@ -115,31 +80,26 @@ pub struct Version_0_5_x(Version);
 
 impl Version_0_5_x{
     pub fn new() -> Self{
-        Self(Version{major: 0, minor: 5, patch: 3})
+        Self(Version::version_0_5_3())
     }
 }
 
 impl TryFrom<Version> for Version_0_5_x {
     type Error = VersionParsingError;
     fn try_from(version: Version) -> Result<Self, Self::Error> {
-        if version.major == 0 && version.minor == 5 {
-            Ok(Self(version))
-        } else {
-            Err(VersionParsingError::UnexpectedVersionNumber{found: version, expecting: format!("0.5.*")})
+        if  version < Version::version_0_5_0() {
+            return Err(VersionParsingError { reason: format!("Version is too low: {version}") })
         }
+        if  version >= Version::version_0_6_0() {
+            return Err(VersionParsingError { reason: format!("Version is too high: {version}") })
+        }
+        Ok(Self(version))
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-#[allow(non_camel_case_types)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, derive_more::Display)]
 #[serde(try_from = "Version")]
 pub struct FutureRdfVersion(Version);
-
-impl Display for FutureRdfVersion{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum FutureRdfVersionParsingError{
@@ -150,7 +110,7 @@ pub enum FutureRdfVersionParsingError{
 impl TryFrom<Version> for FutureRdfVersion{
     type Error = FutureRdfVersionParsingError;
     fn try_from(value: Version) -> Result<Self, Self::Error> {
-        match value.cmp(&Version{major: 0, minor: 5, patch: 3}){
+        match value.cmp(&Version::version_0_5_3()){
             std::cmp::Ordering::Greater => Ok(Self(value)),
             std::cmp::Ordering::Equal | std::cmp::Ordering::Less => Err(Self::Error::VersionTooLow { found: value })
         }
@@ -165,39 +125,7 @@ fn test_version_parsing() {
 
     assert_eq!(
         serde_json::from_value::<Version>(raw_version).unwrap(),
-        Version { major: 1, minor: 2, patch: 3 }
+        Version::major_minor_patch(1, 2, 3)
     );
-    assert_eq!(
-        Version::try_from("1.2"),
-        Err(VersionParsingError::WrongNumberOfComponents { found: 2 })
-    );
-    assert_eq!(
-        Version::try_from("1.2.bla"),
-        Err(VersionParsingError::ParseIntError(
-            "bla".parse::<u32>().expect_err("should fail parsing")
-        ))
-    );
-}
-
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Copy)]
-#[serde(try_from = "Version")]
-#[serde(into = "Version")]
-pub struct LiteralVersion<const MAJOR: usize, const MINOR: usize, const PATCH: usize>;
-
-impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> Into<Version> for LiteralVersion<MAJOR, MINOR, PATCH> {
-    fn into(self) -> Version {
-        return Version { major: MAJOR, minor: MINOR, patch: PATCH };
-    }
-}
-
-impl<const MAJOR: usize, const MINOR: usize, const PATCH: usize> TryFrom<Version> for LiteralVersion<MAJOR, MINOR, PATCH> {
-    type Error = VersionParsingError;
-
-    fn try_from(value: Version) -> Result<Self, Self::Error> {
-        if value.major == MAJOR && value.minor == MINOR && value.patch == PATCH {
-            Ok(Self)
-        } else {
-            Err(VersionParsingError::UnexpectedVersion { expected: Self.into(), found: value })
-        }
-    }
+    Version::try_from("1.2.bla".to_owned()).expect_err("Should have failed to parse this verison");
 }
