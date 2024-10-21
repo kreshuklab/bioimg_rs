@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
@@ -11,13 +10,13 @@ use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::error_display::{show_error, show_if_error};
-use super::file_widget::FileWidget;
 use super::posstprocessing_widget::PostprocessingWidget;
 use super::preprocessing_widget::PreprocessingWidget;
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
 use super::input_axis_widget::InputAxisWidget;
 use super::output_axis_widget::OutputAxisWidget;
+use super::test_tensor_widget::TestTensorWidget;
 use super::{Restore, StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
 
@@ -30,7 +29,7 @@ pub struct InputTensorWidget {
     pub is_optional: bool,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<InputAxisWidget>>,
-    pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
+    pub test_tensor_widget: TestTensorWidget,
     pub preprocessing_widget: StagingVec<CollapsibleWidget<PreprocessingWidget>>,
 
     #[restore_on_update]
@@ -60,10 +59,7 @@ impl ValueWidget for InputTensorWidget{
         self.preprocessing_widget.set_value(value.tensor_meta.preprocessing().clone()); //FIXME: clone
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
-        self.test_tensor_widget = FileWidget::Finished {
-            path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
-            value: Ok(value.test_tensor)
-        }
+        self.test_tensor_widget.set_value(value.test_tensor);
     }
 }
 
@@ -93,7 +89,7 @@ impl SummarizableWidget for InputTensorWidget{
 impl InputTensorWidget{
     pub fn update(&mut self){
         'auto_adjust_axes: {
-            let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() else {
+            let TestTensorWidget::Loaded { path, data: gui_npy_arr } = &self.test_tensor_widget else {
                 self.adjust_num_axes_on_file_selected = true;
                 break 'auto_adjust_axes;
             };
@@ -102,10 +98,12 @@ impl InputTensorWidget{
             }
             self.adjust_num_axes_on_file_selected = false;
             if self.id_widget.raw.is_empty() {
-                self.id_widget.raw = path
-                    .file_stem()
-                    .map(|osstr| String::from(osstr.to_string_lossy()))
-                    .unwrap_or(String::default());
+                if let Some(path) = path{
+                    self.id_widget.raw = path
+                        .file_stem()
+                        .map(|osstr| String::from(osstr.to_string_lossy()))
+                        .unwrap_or(String::default());
+                }
             }
             let sample_shape = gui_npy_arr.shape();
             let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
@@ -122,7 +120,7 @@ impl InputTensorWidget{
             }
         }
         self.parsed = || -> Result<InputSlot<ArcNpyArray>> {
-            let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+            let TestTensorWidget::Loaded { data: gui_npy_array, .. } = &self.test_tensor_widget else {
                 return Err(GuiError::new("Test tensor is missing"));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
@@ -156,7 +154,7 @@ impl StatefulWidget for InputTensorWidget {
             ui.horizontal(|ui| {
                 ui.strong("Test Tensor: ");
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
-                if matches!(self.test_tensor_widget.state(), FileWidget::Empty) {
+                if matches!(self.test_tensor_widget, TestTensorWidget::Empty) {
                     show_error(ui, "Missing a npy test tensor");
                 }
             });
@@ -197,7 +195,7 @@ pub struct OutputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<OutputAxisWidget>>,
-    pub test_tensor_widget: FileWidget<Result<ArcNpyArray>>,
+    pub test_tensor_widget: TestTensorWidget,
     pub postprocessing_widget: StagingVec<CollapsibleWidget<PostprocessingWidget>>,
 
     #[restore_on_update]
@@ -226,10 +224,7 @@ impl ValueWidget for OutputTensorWidget{
         self.postprocessing_widget.set_value(value.tensor_meta.postprocessing().clone());
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
-        self.test_tensor_widget = FileWidget::Finished {
-            path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
-            value: Ok(value.test_tensor)
-        };
+        self.test_tensor_widget.set_value(value.test_tensor);
     }
 }
 
@@ -258,7 +253,7 @@ impl SummarizableWidget for OutputTensorWidget{
 impl OutputTensorWidget{
     pub fn update(&mut self){
         'auto_adjust_axes: {
-            let FileWidget::Finished { path, value: Ok(gui_npy_arr) } = self.test_tensor_widget.state() else {
+            let TestTensorWidget::Loaded { path, data: gui_npy_arr } = &self.test_tensor_widget else {
                 self.adjust_num_axes_on_file_selected = true;
                 break 'auto_adjust_axes;
             };
@@ -267,10 +262,12 @@ impl OutputTensorWidget{
             }
             self.adjust_num_axes_on_file_selected = false;
             if self.id_widget.raw.is_empty() {
-                self.id_widget.raw = path
-                    .file_stem()
-                    .map(|osstr| String::from(osstr.to_string_lossy()))
-                    .unwrap_or(String::default());
+                if let Some(path) = path{
+                    self.id_widget.raw = path
+                        .file_stem()
+                        .map(|osstr| String::from(osstr.to_string_lossy()))
+                        .unwrap_or(String::default());
+                }
             }
             let sample_shape = gui_npy_arr.shape();
             let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
@@ -287,7 +284,7 @@ impl OutputTensorWidget{
             }
         }
         self.parsed = || -> Result<OutputSlot<ArcNpyArray>> {
-            let FileWidget::Finished { value: Ok(gui_npy_array), .. } = self.test_tensor_widget.state() else {
+            let TestTensorWidget::Loaded { data: gui_npy_array, .. } = &self.test_tensor_widget else {
                 return Err(GuiError::new("Test tensor is missing"));
             };
             let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
@@ -320,7 +317,7 @@ impl StatefulWidget for OutputTensorWidget {
             ui.horizontal(|ui| {
                 ui.strong("Test Tensor: ");
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
-                if matches!(self.test_tensor_widget.state(), FileWidget::Empty) {
+                if matches!(self.test_tensor_widget, TestTensorWidget::Empty) {
                     show_error(ui, "Missing a npy test tensor");
                 }
             });

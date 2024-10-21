@@ -45,6 +45,12 @@ pub enum FileWidgetRawData{
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub enum TestTensorWidgetRawData{
+    Empty,
+    Loaded{path: Option<PathBuf>, data: Vec<u8>},
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum LocalFileSourceWidgetRawData{
     Empty,
     AboutToLoad{path: String, inner_path: Option<String>}
@@ -250,7 +256,7 @@ pub struct InputTensorWidgetRawData {
     pub is_optional: bool,
     pub description_widget: String,
     pub axes_widget: Vec<CollapsibleWidgetRawData<InputAxisWidget>>,
-    pub test_tensor_widget: FileWidgetRawData,
+    pub test_tensor_widget: TestTensorWidgetRawData,
     pub preprocessing_widget: Vec<CollapsibleWidgetRawData<PreprocessingWidget>>,
 }
 
@@ -456,7 +462,7 @@ pub struct OutputTensorWidgetRawData {
     pub id_widget: String,
     pub description_widget: String,
     pub axes_widget: Vec<CollapsibleWidgetRawData<OutputAxisWidget>>,
-    pub test_tensor_widget: FileWidgetRawData,
+    pub test_tensor_widget: TestTensorWidgetRawData,
     pub postprocessing_widget: Vec<CollapsibleWidgetRawData<PostprocessingWidget>>,
 }
 
