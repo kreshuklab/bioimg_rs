@@ -484,11 +484,11 @@ impl eframe::App for AppState1 {
                 .resizable(false)
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
-                        if ui.button("No").clicked() {
+                        if ui.button("No").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                             self.show_confirmation_dialog = false;
                             self.close_confirmed = false;
                         }
-                        if ui.button("Yes").clicked() {
+                        if ui.button("Yes").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)){
                             self.show_confirmation_dialog = false;
                             self.close_confirmed = true;
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
