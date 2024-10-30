@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bioimg_runtime as rt;
+use indoc::indoc;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
@@ -110,13 +111,13 @@ impl StatefulWidget for WeightsDescrBaseWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
-                ui.strong("Source: ");
+                ui.strong("Source: ").on_hover_text("The file containing the serialized weights and biases");
                 group_frame(ui, |ui|{
                     self.source_widget.draw_and_parse(ui, id.with("source"));
                 });
             });
             ui.horizontal(|ui|{
-                ui.strong("Authors: ");
+                ui.strong("Authors: ").on_hover_text("The people who trained these weights and biases");
                 self.authors_widget.draw_and_parse(ui, id.with("authors"));
             });
         });
@@ -155,7 +156,9 @@ impl StatefulWidget for KerasHdf5WeightsWidget{
         ui.vertical(|ui|{
             self.base_widget.draw_and_parse(ui, id.with("base"));
             ui.horizontal(|ui|{
-                ui.strong("Tensor Flow Version: ");
+                ui.strong("Tensor Flow Version: ").on_hover_text(
+                    "Version of the tensor flow library used when training these weights and biases"
+                );
                 self.tensorflow_version_widget.draw_and_parse(ui, id.with("tfversion"));
             });
         });
@@ -193,7 +196,7 @@ impl StatefulWidget for TorchscriptWeightsWidget{
         ui.vertical(|ui|{
             self.base_widget.draw_and_parse(ui, id.with("base"));
             ui.horizontal(|ui|{
-                ui.strong("Pytorch Version: ");
+                ui.strong("Pytorch Version: ").on_hover_text("The pytorch library version used when training these weights and biases");
                 self.pytorch_version_widget.draw_and_parse(ui, id.with("ptversion"));
             });
         });

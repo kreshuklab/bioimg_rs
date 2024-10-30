@@ -76,7 +76,9 @@ impl StatefulWidget for PytorchArchWidget{
             match self.mode_widget.value{
                 PytorchArchMode::FromLib => {
                     ui.horizontal(|ui|{
-                        ui.strong("Import from: ");
+                        ui.strong("Import from: ").on_hover_text(
+                            "A python module path where this model resides"
+                        );
                         self.import_from_widget.draw_and_parse(ui, id.with("import".as_ptr()));
                         if !self.import_from_widget.raw.is_empty(){
                             ui.weak(format!(
@@ -89,7 +91,7 @@ impl StatefulWidget for PytorchArchWidget{
                 },
                 PytorchArchMode::FromFile => {
                     ui.horizontal(|ui|{
-                        ui.strong("Source File: ");
+                        ui.strong("Source File: ").on_hover_text("The source file where where the model code resides");
                         group_frame(ui, |ui|{
                             self.source_widget.draw_and_parse(ui, id.with("source".as_ptr()));
                         })
@@ -97,11 +99,15 @@ impl StatefulWidget for PytorchArchWidget{
                 }
             }
             ui.horizontal(|ui|{
-                ui.strong("Callable: ");
+                ui.strong("Callable: ").on_hover_text("A callable symbol inside the module from the 'Inmport From' field");
                 self.callable_widget.draw_and_parse(ui, id.with("callable".as_ptr()));
             });
             ui.horizontal(|ui|{
-                ui.strong("Keyword Arguments: ");
+                let callable_name = match self.callable_widget.state(){
+                    Ok(identifier) => identifier.to_string(),
+                    Err(_) => "the function in the 'Callable' field above".to_owned(),
+                };
+                ui.strong("Keyword Arguments: ").on_hover_text(format!("Keyword arguments to be passed to {callable_name}"));
                 self.kwargs_widget.draw_and_parse(ui, id.with("kwargs".as_ptr()));
             });
         });
