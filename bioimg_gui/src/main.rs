@@ -15,7 +15,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Bioimage Model Builder",
         native_options,
-        Box::new(|_cc| Box::new(bioimg_gui::app::AppState1::default())),
+        Box::new(|_cc| Ok(Box::new(bioimg_gui::app::AppState1::default()))),
     )
 }
 

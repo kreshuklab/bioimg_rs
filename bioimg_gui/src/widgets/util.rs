@@ -17,6 +17,7 @@ impl DynamicImageExt for image::DynamicImage {
                 magnification: egui::TextureFilter::Linear,
                 minification: egui::TextureFilter::Nearest,
                 wrap_mode: egui::TextureWrapMode::ClampToEdge,
+                mipmap_mode: None,
             },
         )
     }

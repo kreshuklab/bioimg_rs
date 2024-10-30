@@ -52,13 +52,15 @@ impl NotificationsWidget{
             return
         }
         let now = Instant::now();
-        let area = egui::containers::Area::new(id)
-            .movable(false)
+        let area = egui::Window::new("Notifications")
+            .id(id)
+            .title_bar(false)
+            .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO)
             .order(egui::Order::Foreground)
-            .constrain(true)
             .movable(false)
-            .anchor(egui::Align2::LEFT_TOP, egui::Vec2::ZERO);
-            // .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO);
+            .collapsible(false)
+            .resizable(true)
+            .interactable(true);
         let area_resp = area.show(ui.ctx(), |ui| {
             let frame = egui::Frame::popup(&ui.ctx().style())
                 .rounding(egui::Rounding::default())
@@ -78,6 +80,8 @@ impl NotificationsWidget{
                 });
             });
         });
-        self.stop_fade = area_resp.response.contains_pointer();
+        if let Some(inner_response) = area_resp{
+            self.stop_fade = inner_response.response.contains_pointer();
+        }
     }
 }

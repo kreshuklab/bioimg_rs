@@ -1,5 +1,7 @@
 use std::{borrow::Borrow, fmt::Display};
 
+use egui::popup::PopupCloseBehavior::CloseOnClickOutside;
+
 use super::{Restore, StatefulWidget, ValueWidget};
 
 pub struct SearchableEntry<T>{
@@ -113,7 +115,7 @@ where
         } else {
             egui::AboveOrBelow::Above
         };
-        egui::popup::popup_above_or_below_widget(ui, popup_id, &button_response, above_or_below, |ui| {
+        egui::popup::popup_above_or_below_widget(ui, popup_id, &button_response, above_or_below, CloseOnClickOutside, |ui| {
             ui.set_min_width(200.0); // if you want to control the size
             ui.vertical(|ui|{
                 let header_height = if SHOW_SEARCH{
