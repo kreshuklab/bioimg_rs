@@ -37,6 +37,7 @@ zip = { workspace = true, default-features = true }
 uuid = { version = "1.8.0", features = ["v4"] }
 bioimg_codegen = { path = "../bioimg_codegen" }
 bson = "2.11.0"
+indoc = "2.0.5"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

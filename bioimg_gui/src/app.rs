@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use indoc::indoc;
+
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf::{self, ResourceId, ResourceName};
@@ -300,56 +302,73 @@ impl eframe::App for AppState1 {
                 ui.heading("Model Properties");
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Name: ");
+                    ui.strong("Name: ").on_hover_text(
+                        "A human-friendly name of the resource description. \
+                        May only contains letters, digits, underscore, minus, parentheses and spaces."
+                    );
                     self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
                     let _name_result = self.staging_name.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Description: ");
+                    ui.strong("Description: ").on_hover_text("A brief description of the model.");
                     self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
                     let _description_result = self.staging_description.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Cover Images: ");
+                    ui.strong("Cover Images: ").on_hover_text(
+                        "Images to be shown to users on the model zoo, preferrably showing what the input \
+                        and output look like."
+                    );
                     self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
                     // let cover_img_results = self.cover_images.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Model Id: ");
+                    ui.strong("Model Id: ").on_hover_text(
+                        "A model zoo id of the form <adjective>-<animal>, like 'affable-shark'.\
+                        If you're creating a model from scratch, leave this empty and an id will be generated \
+                        for you when you upload your model to the zoo."
+                    );;
                     self.model_id_widget.draw_and_parse(ui, egui::Id::from("Model Id"));
                     // let cover_img_results = self.cover_images.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Authors: ");
+                    ui.strong("Authors: ").on_hover_text(
+                        "The authors are the creators of this resource description and the primary points of contact."
+                    );
                     self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
                     // let author_results = self.staging_authors.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Attachments: ");
+                    ui.strong("Attachments: ").on_hover_text(
+                        "Any other files that are relevant to your model can be listed as 'attachments'"
+                    );
                     self.attachments_widget.draw_and_parse(ui, egui::Id::from("Attachments"));
                     // let author_results = self.staging_authors.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Cite: ");
+                    ui.strong("Cite: ").on_hover_text("How this model should be cited in other publications.");
                     self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
                     // let citation_results = self.staging_citations.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Custom configs: ");
+                    ui.weak("Custom configs: ").on_hover_text(
+                        "A JSON value representing any extra, 'proprietary' parameters your model might need during runtime. \
+                        This field is still available for legacy reasons and its use is strongly discouraged"
+                    );
                     self.custom_config_widget.draw_and_parse(ui, egui::Id::from("Custom configs"));
                     // let citation_results = self.staging_citations.state();
                 });
@@ -363,7 +382,7 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Icon: ");
+                    ui.strong("Icon: ").on_hover_text("An icon for illustration, e.g. on bioimage.io");
                     group_frame(ui, |ui| {
                         self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                     });
@@ -371,7 +390,7 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Model Zoo Links: ");
+                    ui.strong("Model Zoo Links: ").on_hover_text("IDs of other bioimage.io resources");
                     group_frame(ui, |ui| {
                         self.links_widget.draw_and_parse(ui, egui::Id::from("Model Zoo Links"));
                     });
@@ -379,42 +398,66 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Maintainers: ");
+                    ui.strong("Maintainers: ").on_hover_text(
+                        "Maintainers of this resource. If not specified, 'authors' are considered maintainers \
+                        and at least one of them must to specify their `github_user` name"
+                    );
                     self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Tags: ");
+                    ui.strong("Tags: ").on_hover_text("Tags to help search and classifying your model in the model zoo");
                     self.staging_tags.draw_and_parse(ui, egui::Id::from("Tags"));
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Resource Version: ");
+                    ui.strong("Resource Version: ").on_hover_text(
+                        "The version of this model, following SermVer 2.0. If you upload an updated version of
+                        this model, you should bump this version to differentiate it from the previous uploads"
+                    );
                     self.staging_version.draw_and_parse(ui, egui::Id::from("Version"));
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Documentation (markdown): ");
+                    ui.strong("Documentation (markdown): ").on_hover_text(
+                        "All model documentation should be written here. This field accepts Markdown syntax"
+                    );
                     self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
                 });
 
                 ui.horizontal(|ui| {
-                    ui.strong("License: ");
+                    ui.strong("License: ").on_hover_text("A standard software licence, specifying how this model can be used and for what purposes.");
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 });
 
                 ui.horizontal(|ui| {
-                    ui.strong("Model Interface: ");
+                    ui.strong("Model Interface: ").on_hover_text(indoc!("
+                        During runtime, the model weights (specified further down) will be fed with input data. This input data must be \
+                        in a particular shape, order, and of a particular type to be accepted by the overall Zoo Model.
+
+                        This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights.
+
+                        The data comming out of the model weights is then further postprocessed (as specified in the 'postprocessing' \
+                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields.
+                    "));
                     group_frame(ui, |ui| {
                         self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
                     });
                 });
 
                 ui.horizontal(|ui| {
-                    ui.strong("Model Weights: ");
+                    ui.strong("Model Weights: ").on_hover_text(indoc!("
+                        The serialized weights and biases underlying this model.
+
+                        Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
+                        intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
+                        arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
+                        Further, pytorch state dicts essentially require client applications to either be written in Python or \
+                        to ship the Python interpreter embedded into them.
+                    "));
                     group_frame(ui, |ui| {
                         self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
                     });
@@ -422,7 +465,9 @@ impl eframe::App for AppState1 {
                 });
 
                 ui.horizontal(|ui| {
-                    let save_button_clicked = ui.button("Save Model").clicked();
+                    let save_button_clicked = ui.button("Save Model")
+                        .on_hover_text("Save this model to a .zip file, ready to be used or uploaded to the Model Zoo")
+                        .clicked();
                     self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));
 
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
