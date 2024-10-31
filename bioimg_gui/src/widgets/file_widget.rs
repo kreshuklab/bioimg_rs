@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::{Path, PathBuf}, sync::Arc};
+use std::{path::{Path, PathBuf}, sync::Arc};
 
 use crate::{project_data::FileWidgetRawData, result::{GuiError, Result}};
 use super::{error_display::show_error, Restore, StatefulWidget, ValueWidget};
@@ -23,16 +23,6 @@ pub enum FileWidget<V: Send + 'static> {
     },
 }
 
-impl<V: Send + 'static> FileWidget<V>{
-    pub fn loaded_value(&self) -> Option<&V> {
-        if let Self::Finished { value, .. } = self {
-            Some(value)
-        } else {
-            None
-        }
-    }
-}
-
 impl<T: Send + 'static> Restore for FileWidget<T>{
     type RawData = FileWidgetRawData;
     fn dump(&self) -> Self::RawData {
@@ -47,28 +37,6 @@ impl<T: Send + 'static> Restore for FileWidget<T>{
         *self = match raw{
             FileWidgetRawData::Empty => Self::Empty,
             FileWidgetRawData::AboutToLoad { path } => Self::AboutToLoad { path: Arc::from(path.as_ref()) }
-        }
-    }
-}
-
-impl<T, E> FileWidget<Result<T, E>>
-where
-    T: Send + 'static,
-    E: Send + 'static + Display,
-{
-    pub fn ok(&self) -> Result<&T, GuiError>{
-        match self{
-            Self::Empty => Err(GuiError::new("No file selected".to_owned())),
-            Self::AboutToLoad{ .. } | Self::Loading { .. } => Err(GuiError::new("File not loaded yet".to_owned())),
-            Self::Finished { value, .. } => value.as_ref().map_err(|err| GuiError::new(format!("{}", err)))
-        }
-    }
-
-    pub fn ok_mut(&mut self) -> Result<&mut T, GuiError>{
-        match self{
-            Self::Empty => Err(GuiError::new("No file selected".to_owned())),
-            Self::AboutToLoad{ .. } | Self::Loading { .. } => Err(GuiError::new("File not loaded yet".to_owned())),
-            Self::Finished { value, .. } => value.as_mut().map_err(|err| GuiError::new(format!("{}", err)))
         }
     }
 }
