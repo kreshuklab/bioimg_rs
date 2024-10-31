@@ -1,4 +1,4 @@
-use std::io::{Read, Seek, Write};
+use std::{fmt::Display, io::{Read, Seek, Write}, str::FromStr};
 
 use bioimg_spec::rdf;
 use zip::ZipArchive;
@@ -24,6 +24,20 @@ pub enum CondaEnvLoadingError{
 #[derive(Clone)]
 pub struct CondaEnv{
     pub raw: serde_yaml::Mapping,
+}
+
+impl FromStr for CondaEnv{
+    type Err = CondaEnvParsingError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw: serde_yaml::Mapping = serde_yaml::from_str(s)?;
+        Ok(Self{ raw })
+    }
+}
+
+impl Display for CondaEnv{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_yaml::to_string(&self.raw).unwrap())
+    }
 }
 
 impl CondaEnv{

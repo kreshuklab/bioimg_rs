@@ -16,6 +16,11 @@ impl CodeLanguage for MarkdwownLang {
     const NAME: &'static str = "md";
 }
 
+pub struct YamlLang;
+impl CodeLanguage for YamlLang {
+    const NAME: &'static str = "yaml";
+}
+
 pub struct CodeEditorWidget<LANG: CodeLanguage> {
     pub raw: String,
     marker: PhantomData<LANG>,

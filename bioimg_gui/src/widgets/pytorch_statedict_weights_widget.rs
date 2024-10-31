@@ -1,11 +1,9 @@
-use std::{path::PathBuf, sync::Arc};
-
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_runtime as rt;
 
 use crate::{project_data::PytorchArchModeRawData, result::Result};
-use super::{file_source_widget::FileSourceWidget, file_widget::FileWidget, json_editor_widget::JsonObjectEditorWidget, search_and_pick_widget::SearchAndPickWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, version_widget::VersionWidget, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
+use super::{conda_env_editor_widget::CondaEnvEditorWidget, file_source_widget::FileSourceWidget, json_editor_widget::JsonObjectEditorWidget, search_and_pick_widget::SearchAndPickWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, version_widget::VersionWidget, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Clone, strum::AsRefStr, strum::VariantArray, strum::VariantNames, Default, strum::Display)]
 pub enum PytorchArchMode{
@@ -148,7 +146,7 @@ pub struct PytorchStateDictWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub architecture_widget: PytorchArchWidget,
     pub version_widget: VersionWidget,
-    pub dependencies_widget: StagingOpt<FileWidget<Result<rt::CondaEnv>>>,
+    pub dependencies_widget: StagingOpt<CondaEnvEditorWidget>,
 }
 
 impl ValueWidget for PytorchStateDictWidget{
@@ -158,10 +156,7 @@ impl ValueWidget for PytorchStateDictWidget{
         self.base_widget.set_value(value.weights);
         self.architecture_widget.set_value(value.architecture);
         self.version_widget.set_value(value.pytorch_version);
-        self.dependencies_widget.0 = value.dependencies.map(|deps| FileWidget::Finished {
-            path: Arc::from(PathBuf::from("None").as_ref()), //FIXME
-            value: Ok(deps)
-        })
+        self.dependencies_widget.set_value(value.dependencies);
     }
 }
 
@@ -182,7 +177,7 @@ impl StatefulWidget for PytorchStateDictWidget{
                 self.version_widget.draw_and_parse(ui, id.with("ver".as_ptr()));
             });
             ui.horizontal(|ui|{
-                ui.strong("Environment File: ").on_hover_text("A conda environment file to be used with this model");
+                ui.strong("Conda Environment: ").on_hover_text("A conda environment to be used with this model");
                 self.dependencies_widget.draw_and_parse(ui, id.with("env".as_ptr()));
             });
         });
@@ -190,7 +185,7 @@ impl StatefulWidget for PytorchStateDictWidget{
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(rt::model_weights::PytorchStateDictWeights{
-            dependencies: self.dependencies_widget.state().map(|file_state| file_state.ok()).transpose()?.cloned(),
+            dependencies: self.dependencies_widget.state().transpose()?.cloned(),
             weights: self.base_widget.state()?,
             architecture: self.architecture_widget.state()?,
             pytorch_version: self.version_widget.state()?.clone(),

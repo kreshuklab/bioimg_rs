@@ -208,6 +208,11 @@ pub struct JsonObjectEditorWidgetRawData{
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub struct CondaEnvEditorWidgetRawData{
+    pub code_editor_widget: CodeEditorWidgetRawData,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum PytorchArchModeRawData{
     FromFile,
     FromLib
@@ -227,7 +232,7 @@ pub struct PytorchStateDictWidgetRawData{
     pub base_widget: WeightsDescrBaseWidgetRawData,
     pub architecture_widget: PytorchArchWidgetRawData,
     pub version_widget: VersionWidgetRawData,
-    pub dependencies_widget: Option<FileWidgetRawData>,
+    pub dependencies_widget: Option<CondaEnvEditorWidgetRawData>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
