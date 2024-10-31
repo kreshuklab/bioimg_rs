@@ -13,6 +13,7 @@ use crate::project_data::{AppStateRawData, ProjectLoadError};
 use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
+use crate::widgets::code_editor_widget::MarkdwownLang;
 use crate::widgets::collapsible_widget::CollapsibleWidget;
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
@@ -63,7 +64,7 @@ pub struct AppState1 {
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
     pub staging_version: StagingOpt<VersionWidget>,
 
-    pub staging_documentation: CodeEditorWidget,
+    pub staging_documentation: CodeEditorWidget<MarkdwownLang>,
     pub staging_license: SearchAndPickWidget<rdf::LicenseId>,
     //badges
     pub model_interface_widget: ModelInterfaceWidget,

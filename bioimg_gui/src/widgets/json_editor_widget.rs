@@ -1,8 +1,8 @@
 use crate::{project_data::JsonObjectEditorWidgetRawData, result::Result};
-use super::{code_editor_widget::CodeEditorWidget, error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
+use super::{code_editor_widget::{CodeEditorWidget, JsonLanguage}, error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
 
 pub struct JsonObjectEditorWidget{
-    pub code_editor_widget: CodeEditorWidget,
+    pub code_editor_widget: CodeEditorWidget<JsonLanguage>,
     pub parsed: Result<serde_json::Map<String, serde_json::Value>>
 }
 
@@ -40,7 +40,7 @@ impl Default for JsonObjectEditorWidget{
         let default_value = serde_json::Map::new();
         Self{
             code_editor_widget: {
-                let mut widget: CodeEditorWidget = Default::default();
+                let mut widget: CodeEditorWidget<JsonLanguage> = Default::default();
                 widget.raw = serde_json::to_string(&default_value).unwrap();
                 widget
             },
