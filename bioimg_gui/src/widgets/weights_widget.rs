@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use bioimg_runtime as rt;
-use indoc::indoc;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{

@@ -293,7 +293,7 @@ impl eframe::App for AppState1 {
                     }}
                 });
                 ui.add_space(16.0);
-                egui::widgets::global_dark_light_mode_buttons(ui);
+                egui::widgets::global_theme_preference_buttons(ui);
             });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -333,7 +333,7 @@ impl eframe::App for AppState1 {
                         "A model zoo id of the form <adjective>-<animal>, like 'affable-shark'.\
                         If you're creating a model from scratch, leave this empty and an id will be generated \
                         for you when you upload your model to the zoo."
-                    );;
+                    );
                     self.model_id_widget.draw_and_parse(ui, egui::Id::from("Model Id"));
                     // let cover_img_results = self.cover_images.state();
                 });
