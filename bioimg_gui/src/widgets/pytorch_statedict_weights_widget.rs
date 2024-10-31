@@ -70,41 +70,51 @@ impl StatefulWidget for PytorchArchWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
-                ui.strong("Mode: ");
+                ui.strong("Mode: ").on_hover_text(
+                    "Is this model supposed to be loaded directly from a file or python-imported as a module?"
+                );
                 self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
             });
-            match self.mode_widget.value{
+            let callable_tooltip = match self.mode_widget.value{
                 PytorchArchMode::FromLib => {
                     ui.horizontal(|ui|{
                         ui.strong("Import from: ").on_hover_text(
-                            "A python module path where this model resides"
+                            "A python module path where this model resides. E.g.: my_package.my_module"
                         );
                         self.import_from_widget.draw_and_parse(ui, id.with("import".as_ptr()));
-                        if !self.import_from_widget.raw.is_empty(){
-                            ui.weak(format!(
-                                "Will be interpreted as 'from {} import {}'",
-                                self.import_from_widget.raw,
-                                self.callable_widget.raw,
-                            ));
-                        }
                     });
+                    "A callable python symbol inside the module from the 'Import From' field"
                 },
                 PytorchArchMode::FromFile => {
                     ui.horizontal(|ui|{
-                        ui.strong("Source File: ").on_hover_text("The source file where where the model code resides");
+                        ui.strong("Source File: ").on_hover_text("The source file where the model python code resides");
                         group_frame(ui, |ui|{
                             self.source_widget.draw_and_parse(ui, id.with("source".as_ptr()));
                         })
                     });
+                    "A callable python symbol inside the file from the 'Source File' field"
                 }
-            }
+            };
             ui.horizontal(|ui|{
-                ui.strong("Callable: ").on_hover_text("A callable symbol inside the module from the 'Inmport From' field");
+                ui.strong("Callable: ").on_hover_text(callable_tooltip);
                 self.callable_widget.draw_and_parse(ui, id.with("callable".as_ptr()));
             });
+            if matches!(self.mode_widget.value, PytorchArchMode::FromLib) && !self.import_from_widget.raw.is_empty(){
+                ui.horizontal(|ui|{
+                    ui.weak("Will be interpreted as");
+                    ui.label(
+                        egui::RichText::new("from").color(egui::Color32::ORANGE).family(egui::FontFamily::Monospace)
+                    );
+                    ui.monospace(&self.import_from_widget.raw);
+                    ui.label(
+                        egui::RichText::new("import").color(egui::Color32::ORANGE).family(egui::FontFamily::Monospace)
+                    );
+                    ui.monospace(&self.callable_widget.raw);
+                });
+            }
             ui.horizontal(|ui|{
                 let callable_name = match self.callable_widget.state(){
-                    Ok(identifier) => identifier.to_string(),
+                    Ok(identifier) => format!("'{identifier}'"),
                     Err(_) => "the function in the 'Callable' field above".to_owned(),
                 };
                 ui.strong("Keyword Arguments: ").on_hover_text(format!("Keyword arguments to be passed to {callable_name}"));
@@ -168,11 +178,11 @@ impl StatefulWidget for PytorchStateDictWidget{
                 })
             });
             ui.horizontal(|ui|{
-                ui.strong("Pytorch Version: ");
+                ui.strong("Pytorch Version: ").on_hover_text("The pytorch version used when training these weights");
                 self.version_widget.draw_and_parse(ui, id.with("ver".as_ptr()));
             });
             ui.horizontal(|ui|{
-                ui.strong("Environment File: ");
+                ui.strong("Environment File: ").on_hover_text("A conda environment file to be used with this model");
                 self.dependencies_widget.draw_and_parse(ui, id.with("env".as_ptr()));
             });
         });
