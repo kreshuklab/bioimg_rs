@@ -143,7 +143,7 @@ impl ValueWidget for PytorchStateDictWidget{
         self.architecture_widget.set_value(value.architecture);
         self.version_widget.set_value(value.pytorch_version);
         self.dependencies_widget.0 = value.dependencies.map(|deps| FileWidget::Finished {
-            path: Arc::from(PathBuf::from("None").as_ref()), //FIXME
+            path: Arc::from(PathBuf::from("None").as_path()), //FIXME
             value: Ok(deps)
         })
     }

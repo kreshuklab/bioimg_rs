@@ -44,7 +44,7 @@ fn test_model_upload(){
     let response = send_bytes(start.as_ref().clone()).expect("Could not start login");
     let expecting_browser_interaction = start.try_advance(&response).expect("Could not advance to login in progress");
 
-    let (login_url, auth_in_progress) = expecting_browser_interaction.advance();
+    let (login_url, auth_in_progress) = expecting_browser_interaction.advance(Seconds(3600));
     println!("Login here: {login_url}");
 
     let resp = send_bytes(auth_in_progress.as_ref().clone()).expect("Could not fetch token?");

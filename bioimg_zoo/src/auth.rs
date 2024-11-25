@@ -160,10 +160,13 @@ pub struct AuthNeedsBrowserLogin{
 }
 
 impl AuthNeedsBrowserLogin{
-    pub fn advance(self) -> (HttpUrl, AuthInProgress){
+    pub fn login_url(&self) -> &HttpUrl{
+        &self.login_url
+    }
+    pub fn advance(self, timeout: Seconds) -> (HttpUrl, AuthInProgress){
         return (
             self.login_url,
-            AuthInProgress::new(self.key, Seconds(3600)),
+            AuthInProgress::new(self.key, timeout),
         )
     }
 }
@@ -172,7 +175,7 @@ impl AuthNeedsBrowserLogin{
 pub struct AuthInProgress(http::Request<Vec<u8>>);
 
 impl AuthInProgress{
-    pub fn new(key: String, token_fetch_timeout: Seconds) -> Self{
+    fn new(key: String, token_fetch_timeout: Seconds) -> Self{
         Self(
             http::Request::builder()
                 .method(http::Method::POST)

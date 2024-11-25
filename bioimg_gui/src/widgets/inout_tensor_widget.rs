@@ -57,7 +57,7 @@ impl ValueWidget for InputTensorWidget{
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget = FileWidget::Finished {
-            path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
+            path: Arc::from(PathBuf::from("__dummy__").as_path()), //FIXME
             value: Ok(value.test_tensor)
         }
     }
@@ -206,7 +206,7 @@ impl ValueWidget for OutputTensorWidget{
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget = FileWidget::Finished {
-            path: Arc::from(PathBuf::from("__dummy__").as_ref()), //FIXME
+            path: Arc::from(PathBuf::from("__dummy__").as_path()), //FIXME
             value: Ok(value.test_tensor)
         };
     }

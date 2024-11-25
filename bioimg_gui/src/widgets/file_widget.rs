@@ -46,7 +46,7 @@ impl<T: Send + 'static> Restore for FileWidget<T>{
     fn restore(&mut self, raw: Self::RawData) {
         *self = match raw{
             FileWidgetRawData::Empty => Self::Empty,
-            FileWidgetRawData::AboutToLoad { path } => Self::AboutToLoad { path: Arc::from(path.as_ref()) }
+            FileWidgetRawData::AboutToLoad { path } => Self::AboutToLoad { path: Arc::from(path.as_path()) }
         }
     }
 }
@@ -94,7 +94,7 @@ impl<PF: ParsedFile> FileWidget<PF> {
 
 impl<T: ParsedFile> FileWidget<T>{
     pub fn set_path(&mut self, path: PathBuf){
-        *self = Self::AboutToLoad { path: Arc::from(path.as_ref()) }; //FIXME: don't use pathbuf?
+        *self = Self::AboutToLoad { path: Arc::from(path.as_path()) }; //FIXME: don't use pathbuf?
     }
 }
 
