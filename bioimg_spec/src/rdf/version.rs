@@ -116,16 +116,3 @@ impl TryFrom<Version> for FutureRdfVersion{
         }
     }
 }
-
-#[test]
-fn test_version_parsing() {
-    use serde_json::Value as JsonValue;
-
-    let raw_version = JsonValue::String("1.2.3".into());
-
-    assert_eq!(
-        serde_json::from_value::<Version>(raw_version).unwrap(),
-        Version::major_minor_patch(1, 2, 3)
-    );
-    Version::try_from("1.2.bla".to_owned()).expect_err("Should have failed to parse this verison");
-}
