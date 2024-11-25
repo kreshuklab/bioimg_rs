@@ -4,6 +4,7 @@ use bioimg_zoo::client::{Client, ClientMethod};
 use bioimg_zoo::auth::{AuthStart, Seconds};
 use bioimg_zoo::collection::{CollectionConfig, CollectionJson, ZooNicknameGenerator};
 
+#[ignore]
 #[test]
 fn test_model_upload(){
     fn send_bytes<T: AsRef<[u8]>>(req: http::Request<T>) -> Result<http::Response<Vec<u8>>, String>{
