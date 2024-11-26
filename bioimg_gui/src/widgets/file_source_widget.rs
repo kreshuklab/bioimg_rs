@@ -50,7 +50,7 @@ impl Restore for LocalFileSourceWidget{
                 *self = Self::Empty;
             },
             Self::RawData::AboutToLoad{path, inner_path} => {
-                *self = Self::AboutToLoad { path: Arc::from(PathBuf::from(path).as_ref()) , inner_path }
+                *self = Self::AboutToLoad { path: Arc::from(PathBuf::from(path).as_path()) , inner_path }
             }
         }
     } 

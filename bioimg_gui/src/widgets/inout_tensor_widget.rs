@@ -24,7 +24,7 @@ use crate::widgets::staging_vec::ItemWidgetConf;
 pub struct InputTensorWidget {
     #[restore_default]
     adjust_num_axes_on_file_selected: bool,
-    
+
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub is_optional: bool,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
@@ -191,7 +191,7 @@ impl StatefulWidget for InputTensorWidget {
 pub struct OutputTensorWidget {
     #[restore_default]
     adjust_num_axes_on_file_selected: bool,
-    
+
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<OutputAxisWidget>>,

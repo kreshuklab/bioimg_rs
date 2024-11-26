@@ -35,7 +35,7 @@ pub struct PytorchArchWidget{
     pub mode_widget: SearchAndPickWidget<PytorchArchMode>,
     pub callable_widget: StagingString<rdf::Identifier>,
     pub kwargs_widget: JsonObjectEditorWidget,
-    
+
     pub import_from_widget: StagingString<String>,
     pub source_widget: FileSourceWidget,
 }

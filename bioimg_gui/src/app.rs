@@ -29,6 +29,7 @@ use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
+use crate::widgets::zoo_widget::ZooLoginWidget;
 use crate::widgets::ValueWidget;
 use crate::widgets::Restore;
 use crate::widgets::{
@@ -71,6 +72,8 @@ pub struct AppState1 {
     ////
     pub weights_widget: WeightsWidget,
 
+    #[restore_default]
+    pub zoo_login_widget: ZooLoginWidget,
     #[restore_default]
     pub notifications_widget: NotificationsWidget,
     #[restore_default]
@@ -145,6 +148,7 @@ impl Default for AppState1 {
             model_packing_status: PackingStatus::default(),
             weights_widget: Default::default(),
             notifications_widget: NotificationsWidget::new(),
+            zoo_login_widget: Default::default(),
 
             close_confirmed: false,
             show_confirmation_dialog: false,
@@ -263,6 +267,9 @@ impl eframe::App for AppState1 {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
+                ui.menu_button("Zoo", |ui|{
+                    self.zoo_login_widget.draw_and_parse(ui, egui::Id::from("zoo login"));
+                });
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {
                         ui.close_menu();

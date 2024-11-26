@@ -13,3 +13,14 @@ ehttp = "0.5.0"
 serde = { workspace = true }
 serde_json = { workspace = true } 
 thiserror = { workspace = true }
+http = { workspace = true }
+camino = { version="1.1.9", features = ["serde1"]}
+derive_more = { version = "1.0.0", features = ["as_ref", "deref", "display"]}
+rand = { version = "0.8.5" }
+base64 = "0.22.1"
+murl = {path = "../../murl"}
+
+
+[dev-dependencies]
+ureq = { version = "2.10.1", features = ["http-crate"] }
+colored = "2.1.0"
