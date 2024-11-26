@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use bioimg_spec::rdf::HttpUrl;
-use bioimg_zoo::auth::{AuthInProgress, AuthNeedsBrowserLogin, AuthStart, Seconds, UserToken};
+use bioimg_zoo::auth::{AuthInProgress, AuthStart, Seconds, UserToken};
 
 use crate::result::GuiError;
 
-use super::{error_display::show_error, StatefulWidget};
+use super::StatefulWidget;
 
 type BytesResponse = http::Response<Vec<u8>>;
 
@@ -38,7 +38,7 @@ fn send_reader<R: std::io::Read>(req: http::Request<R>) -> Result<http::Response
         .into();
     if !resp.status().is_success(){
         let payload = String::from_utf8_lossy(resp.body());
-        println!("Error!!\n{}", payload);
+        eprintln!("Error!!\n{}", payload);
         return Err(format!("Request failed with result {}\n{payload}", resp.status()))
     }
     Ok(resp)
@@ -48,8 +48,12 @@ fn send_reader<R: std::io::Read>(req: http::Request<R>) -> Result<http::Response
 enum ZooLoginState{
     Start(AuthStart),
     FetchingLoginUrl{state: AuthStart, request_task: std::thread::JoinHandle<ReqResult>},
-    NeedsBrowserLogin(AuthNeedsBrowserLogin),
-    AuthInProgress{login_url: HttpUrl, state: AuthInProgress, request_task: std::thread::JoinHandle<ReqResult>},
+    AuthInProgress{
+        login_url: HttpUrl,
+        state: AuthInProgress,
+        opened_web_browser: bool,
+        request_task: std::thread::JoinHandle<ReqResult>
+    },
     Authenticated(Arc<UserToken>),
 
     Failed(GuiError)
@@ -89,13 +93,25 @@ impl ZooLoginWidget{
                     Err(reason) => break 'advancing_start ZooLoginState::Failed(GuiError::new(reason.to_string()))
                 };
                 match state.try_advance(&response){
-                    Ok(new_state) => ZooLoginState::NeedsBrowserLogin(new_state),
+                    Ok(needs_browser_interaction) => {
+                        let (login_url, auth_in_progress) = needs_browser_interaction.advance(Seconds(3600));
+                        let req: http::Request<_> = auth_in_progress.as_ref().clone();
+                        eprintln!("Login here: {}", login_url.to_string());
+                        ZooLoginState::AuthInProgress {
+                            login_url,
+                            state: auth_in_progress,
+                            request_task: std::thread::spawn(move ||{
+                                send_bytes(req)
+                            }),
+                            opened_web_browser: false,
+                        }
+                    },
                     Err((_current_state, reason)) => ZooLoginState::Failed(GuiError::new(reason.to_string()))
                 }
             },
-            ZooLoginState::AuthInProgress { login_url, state, request_task } => 'fetching_token: {
+            ZooLoginState::AuthInProgress { login_url, state, request_task, opened_web_browser } => 'fetching_token: {
                 if ! request_task.is_finished(){
-                    break 'fetching_token ZooLoginState::AuthInProgress { login_url, state, request_task }
+                    break 'fetching_token ZooLoginState::AuthInProgress { login_url, state, request_task, opened_web_browser }
                 }
                 let response = match request_task.join().unwrap(){ //FIXME: report failure to join?
                     Ok(resp) => resp,
@@ -150,33 +166,21 @@ impl StatefulWidget for ZooLoginWidget{
                     ui.ctx().request_repaint();
                     ZooLoginState::FetchingLoginUrl{state, request_task}
                 },
-                ZooLoginState::NeedsBrowserLogin(state) => 'needs_browser_login: {
-                    let link_clicked = ui.horizontal(|ui|{
-                        ui.add_enabled_ui(false, |ui| ui.button("start login"));
-                        ui.weak("Please login here: ");
-                        eprintln!("{}", state.login_url());
-                        ui.hyperlink(state.login_url()).clicked()
-                    }).inner;
-                    if !link_clicked{
-                        break 'needs_browser_login ZooLoginState::NeedsBrowserLogin(state)
-                    }
-                    let (login_url, auth_in_progress) = state.advance(Seconds(3600));
-                    let req: http::Request<_> = auth_in_progress.as_ref().clone();
-                    ZooLoginState::AuthInProgress {
-                        login_url,
-                        state: auth_in_progress,
-                        request_task: std::thread::spawn(move ||{
-                            send_bytes(req)
-                        })
-                    }
-                },
-                ZooLoginState::AuthInProgress { login_url, state, request_task } => {
+                ZooLoginState::AuthInProgress { login_url, state, request_task, mut opened_web_browser } => {
+                    opened_web_browser = opened_web_browser || {
+                        ui.ctx().open_url(egui::OpenUrl {
+                            url: login_url.to_string(),
+                            new_tab: true,
+                        });
+                        true
+                    };
                     ui.horizontal(|ui|{
                         ui.add_enabled_ui(false, |ui| ui.button("start login"));
-                        ui.weak("Waiting for login / fetching token...");
+                        ui.weak("Please login ");
+                        ui.hyperlink_to("here", login_url.to_string());
                     });
                     ui.ctx().request_repaint();
-                    ZooLoginState::AuthInProgress { login_url, state, request_task }
+                    ZooLoginState::AuthInProgress { login_url, state, request_task, opened_web_browser }
                 },
                 ZooLoginState::Authenticated(user_token) => 'authenticated: {
                     let restart_login_clicked = ui.horizontal(|ui|{
@@ -191,7 +195,7 @@ impl StatefulWidget for ZooLoginWidget{
                     ZooLoginState::Authenticated(user_token)
                 },
             };
-            ui.separator();
+            let upload_enabled = self.state().is_ok();
             match self.state(){
                 Ok(user_token) => {
                     ui.add_enabled_ui(true, |ui|{
