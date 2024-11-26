@@ -26,7 +26,7 @@ pub enum GithubUserParsingError{
     UserIdParsing(#[from] ParseIntError),
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(try_from="String")]
 pub struct GithubUser{
     id: u64,
@@ -62,12 +62,12 @@ impl TryFrom<String> for GithubUser{
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct Claims{
     sub: GithubUser,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone)]
 #[serde(try_from = "String")]
 pub struct UserToken{
     raw: String,
