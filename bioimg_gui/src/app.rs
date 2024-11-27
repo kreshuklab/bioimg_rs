@@ -300,7 +300,10 @@ impl eframe::App for AppState1 {
                         );
                         return
                     };
-                    if !ui.add(upload_button).clicked() || !packing_task.is_finished() {
+                    if !packing_task.is_finished() {
+                        ui.add_enabled_ui(false, |ui|{
+                            ui.add(upload_button).on_disabled_hover_text("Uploading model...");
+                        });
                         self.zoo_model_creation_task = Some(packing_task);
                         return;
                     }
