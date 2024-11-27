@@ -168,6 +168,12 @@ impl ZooModel{
 }
 
 impl ZooModel {
+    pub fn pack_into_tmp(self) -> Result<std::fs::File, ModelPackingError>{
+        let mut tmp_file = tempfile::tempfile()?;
+        self.pack_into(&mut tmp_file)?;
+        tmp_file.rewind()?;
+        Ok(tmp_file)
+    }
     pub fn pack_into<Sink: Write + Seek>(self, sink: Sink) -> Result<(), ModelPackingError> {
         let mut writer = ModelZipWriter::new(sink);
 

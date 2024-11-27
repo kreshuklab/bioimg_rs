@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::thread::JoinHandle;
 
+use bioimg_zoo::collection::ZooNickname;
 use indoc::indoc;
 
 use bioimg_runtime as rt;
@@ -29,7 +31,7 @@ use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
-use crate::widgets::zoo_widget::ZooLoginWidget;
+use crate::widgets::zoo_widget::{upload_model, ZooLoginWidget};
 use crate::widgets::ValueWidget;
 use crate::widgets::Restore;
 use crate::widgets::{
@@ -74,6 +76,9 @@ pub struct AppState1 {
 
     #[restore_default]
     pub zoo_login_widget: ZooLoginWidget,
+    #[restore_default]
+    pub zoo_model_creation_task: Option<JoinHandle<Result<ZooNickname>>>,
+
     #[restore_default]
     pub notifications_widget: NotificationsWidget,
     #[restore_default]
@@ -149,6 +154,7 @@ impl Default for AppState1 {
             weights_widget: Default::default(),
             notifications_widget: NotificationsWidget::new(),
             zoo_login_widget: Default::default(),
+            zoo_model_creation_task: Default::default(),
 
             close_confirmed: false,
             show_confirmation_dialog: false,
@@ -269,6 +275,43 @@ impl eframe::App for AppState1 {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("Zoo", |ui|{
                     self.zoo_login_widget.draw_and_parse(ui, egui::Id::from("zoo login"));
+
+                    let upload_button = egui::Button::new("⬆ Upload Model");
+                    let Ok(user_token) = self.zoo_login_widget.state() else {
+                        ui.add_enabled_ui(false, |ui|{
+                            ui.add(upload_button).on_disabled_hover_text("Please login first");
+                        });
+                        return;
+                    };
+                    let Some(packing_task) = self.zoo_model_creation_task.take() else {
+                        if !ui.add(upload_button).clicked(){
+                            return;
+                        }
+                        let model = match self.create_model(){
+                            Ok(model) => model,
+                            Err(err) => {
+                                self.notifications_widget.push_message(Err(err.to_string()));
+                                return;
+                            }
+                        };
+                        let user_token = user_token.as_ref().clone();
+                        self.zoo_model_creation_task = Some(
+                            std::thread::spawn(|| upload_model(user_token, model))
+                        );
+                        return
+                    };
+                    if !ui.add(upload_button).clicked() || !packing_task.is_finished() {
+                        self.zoo_model_creation_task = Some(packing_task);
+                        return;
+                    }
+                    match packing_task.join().unwrap(){
+                        Ok(nickname) => self.notifications_widget.push_message(
+                            Ok(format!("Model successfully uploaded: {nickname}"))
+                        ),
+                        Err(upload_err) => self.notifications_widget.push_message(
+                            Err(format!("Could not upload model: {upload_err}"))
+                        ),
+                    };
                 });
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {

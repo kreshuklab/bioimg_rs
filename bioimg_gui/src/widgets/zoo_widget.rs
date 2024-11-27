@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
+use crate::request::{send_bytes, send_reader};
+use crate::result::Result;
+use bioimg_runtime::zoo_model::ZooModel;
 use bioimg_spec::rdf::HttpUrl;
 use bioimg_zoo::auth::{AuthInProgress, AuthStart, Seconds, UserToken};
+use bioimg_zoo::collection::{CollectionConfig, CollectionJson, ZooNickname, ZooNicknameGenerator};
+use bioimg_zoo::client::ClientMethod;
 
 use crate::result::GuiError;
 
@@ -10,40 +15,6 @@ use super::StatefulWidget;
 type BytesResponse = http::Response<Vec<u8>>;
 
 type ReqResult = Result<BytesResponse, String>;
-
-fn send_bytes<T: AsRef<[u8]>>(req: http::Request<T>) -> Result<http::Response<Vec<u8>>, String>{
-    let (http_parts, body) = req.into_parts();
-    let reader_req = http::Request::from_parts(http_parts, std::io::Cursor::new(body));
-    send_reader(reader_req)
-}
-
-fn send_reader<R: std::io::Read>(req: http::Request<R>) -> Result<http::Response<Vec<u8>>, String>{
-    eprintln!("Requesting {}", req.uri().to_string());
-    let (http_parts, body) = req.into_parts();
-    let request: ureq::Request = http_parts.into();
-    let resp: http::Response<Vec<u8>> = request.send(body)
-        .map_err(|err| {
-            eprintln!("Ok, so something went wrong!!!!!!!!!!!!!!!!!!!!!!!");
-            let ureq::Error::Status(status, resp) = err else {
-                eprintln!(">>>>>>> iit was transport error");
-                return "Some transport error".to_owned();
-            };
-            let mut reader = resp.into_reader();
-            let mut buf = vec![];
-            reader.read_to_end(&mut buf).unwrap();
-            let s = String::from_utf8_lossy(&buf);
-            eprintln!(">>>>>>> iit was something else {status}: {s}");
-            s.to_string()
-        })?
-        .into();
-    if !resp.status().is_success(){
-        let payload = String::from_utf8_lossy(resp.body());
-        eprintln!("Error!!\n{}", payload);
-        return Err(format!("Request failed with result {}\n{payload}", resp.status()))
-    }
-    Ok(resp)
-}
-
 
 enum ZooLoginState{
     Start(AuthStart),
@@ -135,9 +106,10 @@ impl StatefulWidget for ZooLoginWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         self.update();
         ui.vertical(|ui|{
+            let button = egui::Button::new("👤 Login");
             self.state = match std::mem::take(&mut self.state){
                 ZooLoginState::Start(state) => {
-                    if ui.button("start login").clicked(){
+                    if ui.add(button).clicked(){
                         ZooLoginState::fetching_login_url()
                     }else{
                         ZooLoginState::Start(state)
@@ -145,7 +117,7 @@ impl StatefulWidget for ZooLoginWidget{
                 },
                 ZooLoginState::Failed(state) => {
                     let clicked = ui.horizontal(|ui|{
-                        let clicked = ui.button("start login").clicked();
+                        let clicked = ui.add(button).clicked();
                         ui.label(egui::RichText::new("login failed").color(egui::Color32::RED))
                             .on_hover_ui(|ui|{
                                 ui.label(state.to_string());
@@ -160,7 +132,7 @@ impl StatefulWidget for ZooLoginWidget{
                 },
                 ZooLoginState::FetchingLoginUrl{state, request_task} => {
                     ui.horizontal(|ui|{
-                        ui.add_enabled_ui(false, |ui| ui.button("start login"));
+                        ui.add_enabled_ui(false, |ui| ui.add(button));
                         ui.weak("Requesting login URL...");
                     });
                     ui.ctx().request_repaint();
@@ -175,8 +147,8 @@ impl StatefulWidget for ZooLoginWidget{
                         true
                     };
                     ui.horizontal(|ui|{
-                        ui.add_enabled_ui(false, |ui| ui.button("start login"));
-                        ui.weak("Please login ");
+                        ui.add_enabled_ui(false, |ui| ui.add(button));
+                        ui.weak("Please login");
                         ui.hyperlink_to("here", login_url.to_string());
                     });
                     ui.ctx().request_repaint();
@@ -184,8 +156,8 @@ impl StatefulWidget for ZooLoginWidget{
                 },
                 ZooLoginState::Authenticated(user_token) => 'authenticated: {
                     let restart_login_clicked = ui.horizontal(|ui|{
-                        let clicked = ui.button("restart login").clicked();
-                        ui.weak("Login successful");
+                        let clicked = ui.add(button).clicked();
+                        ui.weak("Logged in");
                         clicked
                     }).inner;
                     if restart_login_clicked{
@@ -195,21 +167,6 @@ impl StatefulWidget for ZooLoginWidget{
                     ZooLoginState::Authenticated(user_token)
                 },
             };
-            let upload_enabled = self.state().is_ok();
-            match self.state(){
-                Ok(user_token) => {
-                    ui.add_enabled_ui(true, |ui|{
-                        ui.button("⬆ Upload model to Zoo");
-                    });
-                },
-                Err(_) => {
-                    ui.add_enabled_ui(false, |ui|{
-                        ui.button("⬆ Upload model to Zoo").on_hover_ui(|ui|{
-                            ui.label("Please login first");
-                        });
-                    });
-                },
-            }
         });
     }
 
@@ -220,4 +177,54 @@ impl StatefulWidget for ZooLoginWidget{
             _ => Err(GuiError::new("Auth not ready yet")), //FIXME:
         }
     }
+}
+
+pub fn upload_model(user_token: UserToken, model: ZooModel) -> Result<ZooNickname>{
+    let mut file_to_upload = model.pack_into_tmp()?;
+
+    let collection_config: CollectionConfig = {
+        let req = CollectionConfig::request();
+        let collection_config_resp = send_bytes(req).unwrap();
+        CollectionConfig::parse_response(&collection_config_resp).unwrap()
+    };
+    let collection_json: CollectionJson = {
+        let req = CollectionJson::request();
+        let collection_json_resp = send_bytes(req).unwrap();
+        CollectionJson::parse_response(&collection_json_resp).unwrap()
+    };
+    let nickname_generator = ZooNicknameGenerator::new(collection_config, collection_json);
+    let nickname = (0..50)
+        .filter_map(|_| nickname_generator.generate_zoo_nickname())
+        .next().unwrap();
+
+    let client = bioimg_zoo::client::Client::new(user_token);
+
+    let presigned_url = {
+        let resp_signed_url = send_bytes(
+            client.presigned_url_request(&nickname, Seconds(3600), ClientMethod::PutObject)
+        ).map_err(GuiError::new)?;
+        let url = client.parse_presigned_url_resp(&resp_signed_url)?;
+        eprintln!("==>> And this is the signed url for PUT: {url}. Now lets try putting something in it");
+        url
+    };
+
+    {
+        let put_req = client.write_to_bucket_request(&presigned_url, &mut file_to_upload);
+        let resp = send_reader(put_req).unwrap();
+        let upload_resp_str = String::from_utf8(resp.into_body()).unwrap();
+        eprintln!("==>> And here's the response: {upload_resp_str}")
+    }
+
+    {
+        let resp_signed_url = send_bytes(client.presigned_url_request(&nickname, Seconds(3600), ClientMethod::GetObject)).unwrap();
+        let presigned_url = client.parse_presigned_url_resp(&resp_signed_url).unwrap();
+        eprintln!("==>> And this is the signed GET url: {presigned_url}");
+
+        eprintln!("Trying to stage it....");
+        let req = client.stage_model_request(&nickname, &presigned_url);
+        let resp = send_bytes(req).unwrap();
+        let resp_str = String::from_utf8(resp.into_body()).unwrap();
+        eprintln!("==>> And here's the STAGING response: {resp_str}");
+    }
+    Ok(nickname)
 }

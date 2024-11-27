@@ -79,8 +79,6 @@ impl Client{
     }
 
     pub fn stage_model_request(&self, nickname: &ZooNickname, presigned_url: &PresignedUrl) -> http::Request<[u8;0]>{
-        let hypha_workspace = self.user_token.to_hypha_workspace_name();
-
         let url = murl::Url{
             scheme: murl::Scheme::Https,
             host: murl::Host{
