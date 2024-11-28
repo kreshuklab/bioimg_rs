@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
@@ -50,6 +51,20 @@ enum PackingStatus {
     },
 }
 
+pub struct NotificationsChannel{
+    sender: Sender<Result<String, String>>,
+    receiver: Receiver<Result<String, String,>>
+}
+
+impl Default for NotificationsChannel{
+    fn default() -> Self {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        Self{
+            sender, receiver
+        }
+    }
+}
+
 #[derive(Restore)]
 pub struct AppState1 {
     pub staging_name: StagingString<ResourceName>,
@@ -81,6 +96,8 @@ pub struct AppState1 {
 
     #[restore_default]
     pub notifications_widget: NotificationsWidget,
+    #[restore_default]
+    pub notifications_channel: NotificationsChannel,
     #[restore_default]
     model_packing_status: PackingStatus,
     #[restore_default]
@@ -153,6 +170,7 @@ impl Default for AppState1 {
             model_packing_status: PackingStatus::default(),
             weights_widget: Default::default(),
             notifications_widget: NotificationsWidget::new(),
+            notifications_channel: Default::default(),
             zoo_login_widget: Default::default(),
             zoo_model_creation_task: Default::default(),
 
@@ -295,8 +313,12 @@ impl eframe::App for AppState1 {
                             }
                         };
                         let user_token = user_token.as_ref().clone();
+                        let sender = self.notifications_channel.sender.clone();
+                        let on_progress = move |msg: String|{
+                            sender.send(Ok(msg)).unwrap(); //FIXME: is there anything sensible to do if this fails?
+                        };
                         self.zoo_model_creation_task = Some(
-                            std::thread::spawn(|| upload_model(user_token, model))
+                            std::thread::spawn(|| upload_model(user_token, model, on_progress))
                         );
                         return
                     };
@@ -522,6 +544,10 @@ impl eframe::App for AppState1 {
                     let save_button_clicked = ui.button("Save Model")
                         .on_hover_text("Save this model to a .zip file, ready to be used or uploaded to the Model Zoo")
                         .clicked();
+
+                    while let Ok(msg) = self.notifications_channel.receiver.try_recv(){
+                        self.notifications_widget.push_message(msg);
+                    }
                     self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));
 
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {

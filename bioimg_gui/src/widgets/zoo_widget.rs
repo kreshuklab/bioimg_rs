@@ -14,7 +14,7 @@ use super::StatefulWidget;
 
 type BytesResponse = http::Response<Vec<u8>>;
 
-type ReqResult = Result<BytesResponse, String>;
+type ReqResult = Result<BytesResponse, ureq::Error>;
 
 enum ZooLoginState{
     Start(AuthStart),
@@ -179,7 +179,11 @@ impl StatefulWidget for ZooLoginWidget{
     }
 }
 
-pub fn upload_model(user_token: UserToken, model: ZooModel) -> Result<ZooNickname>{
+pub fn upload_model(
+    user_token: UserToken,
+    model: ZooModel,
+    on_progress: impl Fn(String),
+) -> Result<ZooNickname>{
     let mut file_to_upload = model.pack_into_tmp()?;
 
     let collection_config: CollectionConfig = {
@@ -196,21 +200,26 @@ pub fn upload_model(user_token: UserToken, model: ZooModel) -> Result<ZooNicknam
     let nickname = (0..50)
         .filter_map(|_| nickname_generator.generate_zoo_nickname())
         .next().unwrap();
+    on_progress(format!("Chosen model nickname: {nickname}"));
 
     let client = bioimg_zoo::client::Client::new(user_token);
 
     let presigned_url = {
+        on_progress(format!("Requesting a storage URL..."));
         let resp_signed_url = send_bytes(
             client.presigned_url_request(&nickname, Seconds(3600), ClientMethod::PutObject)
-        ).map_err(GuiError::new)?;
+        )?;
         let url = client.parse_presigned_url_resp(&resp_signed_url)?;
+        on_progress(format!("Got storage pressigned URL"));
         eprintln!("==>> And this is the signed url for PUT: {url}. Now lets try putting something in it");
         url
     };
 
     {
         let put_req = client.write_to_bucket_request(&presigned_url, &mut file_to_upload);
-        let resp = send_reader(put_req).unwrap();
+        on_progress(format!("Uploading model '{nickname}' to zoo"));
+        let resp = send_reader(put_req)?;
+        on_progress(format!("Model '{nickname}' successfully uploaded"));
         let upload_resp_str = String::from_utf8(resp.into_body()).unwrap();
         eprintln!("==>> And here's the response: {upload_resp_str}")
     }
@@ -222,7 +231,9 @@ pub fn upload_model(user_token: UserToken, model: ZooModel) -> Result<ZooNicknam
 
         eprintln!("Trying to stage it....");
         let req = client.stage_model_request(&nickname, &presigned_url);
-        let resp = send_bytes(req).unwrap();
+        on_progress(format!("Staging model {nickname}"));
+        let resp = send_bytes(req)?;
+        on_progress(format!("Successfully staged model {nickname}. It will be available on the zoo once it's reviewed"));
         let resp_str = String::from_utf8(resp.into_body()).unwrap();
         eprintln!("==>> And here's the STAGING response: {resp_str}");
     }
