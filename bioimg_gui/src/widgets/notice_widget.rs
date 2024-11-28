@@ -33,7 +33,7 @@ pub struct NotificationsWidget{
 
 impl NotificationsWidget{
     pub fn new() -> Self{
-        Self{messages: VecDeque::new(), stop_fade: false}
+        Self::default()
     }
     pub fn push_message(&mut self, message_text: Result<String, String>){
         let (text, color) = match message_text{
