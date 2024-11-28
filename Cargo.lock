@@ -2201,6 +2201,8 @@ dependencies = [
 [[package]]
 name = "murl"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f7f1e4eeea28e73d751867a64ef1267cb86e9725020d711daa2da307d39d628"
 dependencies = [
  "camino",
  "percent-encoding",
