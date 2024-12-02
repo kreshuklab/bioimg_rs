@@ -55,8 +55,17 @@ impl StatefulWidget for CondaEnvEditorWidget{
         ui.vertical(|ui|{
             self.code_editor_widget.draw_and_parse(ui, id.with("code".as_ptr()));
             self.update(); //FIXME: move update out of draw
-            let r = rattler_conda_types::EnvironmentYaml::from_yaml_str(&self.code_editor_widget.raw);
-            show_if_error(ui, &r);
+
+            #[cfg(target_arch="wasm32")]
+            {
+                show_if_error(ui, &self.parsed);
+            }
+
+            #[cfg(not(target_arch="wasm32"))]
+            {
+                let r = rattler_conda_types::EnvironmentYaml::from_yaml_str(&self.code_editor_widget.raw);
+                show_if_error(ui, &r);
+            }
         });
     }
 
