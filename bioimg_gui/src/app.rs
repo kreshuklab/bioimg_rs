@@ -51,12 +51,16 @@ enum PackingStatus {
     },
 }
 
-pub struct NotificationsChannel{
-    sender: Sender<Result<String, String>>,
-    receiver: Receiver<Result<String, String,>>
+pub enum TaskResult{
+    Notification(Result<String, String>),
 }
 
-impl Default for NotificationsChannel{
+pub struct TaskChannel{
+    sender: Sender<TaskResult>,
+    receiver: Receiver<TaskResult>
+}
+
+impl Default for TaskChannel{
     fn default() -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         Self{
@@ -97,7 +101,7 @@ pub struct AppState1 {
     #[restore_default]
     pub notifications_widget: NotificationsWidget,
     #[restore_default]
-    pub notifications_channel: NotificationsChannel,
+    pub notifications_channel: TaskChannel,
     #[restore_default]
     model_packing_status: PackingStatus,
     #[restore_default]
@@ -315,7 +319,7 @@ impl eframe::App for AppState1 {
                         let user_token = user_token.as_ref().clone();
                         let sender = self.notifications_channel.sender.clone();
                         let on_progress = move |msg: String|{
-                            sender.send(Ok(msg)).unwrap(); //FIXME: is there anything sensible to do if this fails?
+                            sender.send(TaskResult::Notification(Ok(msg))).unwrap(); //FIXME: is there anything sensible to do if this fails?
                         };
                         self.zoo_model_creation_task = Some(
                             std::thread::spawn(|| upload_model(user_token, model, on_progress))
@@ -546,7 +550,9 @@ impl eframe::App for AppState1 {
                         .clicked();
 
                     while let Ok(msg) = self.notifications_channel.receiver.try_recv(){
-                        self.notifications_widget.push_message(msg);
+                        match msg{
+                            TaskResult::Notification(msg) => self.notifications_widget.push_message(msg),
+                        }
                     }
                     self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));
 
