@@ -30,8 +30,8 @@ pub enum ModelPackingError {
     RdfSerializationError(#[from] serde_json::Error),
     #[error("Could not write yaml file to zip: {0}")]
     SerdeYamlError(#[from] serde_yaml::Error),
-    #[error("{0}")]
-    HttpError(#[from] ureq::Error),
+    #[error("Http error: {reason}")]
+    HttpErro{reason: String},
     #[error("Unexpected status ({status})when requesting {url}")]
     UnexpectedHttpStatus{status: u16, url: HttpUrl},
 }

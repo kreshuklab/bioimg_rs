@@ -271,6 +271,9 @@ dependencies = [
  "thiserror 1.0.69",
  "ureq",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
  "zip 2.2.1",
 ]
 

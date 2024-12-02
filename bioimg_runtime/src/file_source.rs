@@ -10,8 +10,8 @@ pub enum FileSourceError{
     IoError(#[from] std::io::Error),
     #[error("IO error trying to read {path}: {inner}")]
     ZipError{inner: zip::result::ZipError, path: String},
-    #[error("Error downloading file: {0}")]
-    HttpError(#[from] ureq::Error)
+    #[error("Error downloading file: {reason}")]
+    HttpError{reason: String}
 }
 
 #[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -61,8 +61,14 @@ impl FileSource{
                     let mut archived_file = archive.by_name(inner_path.as_ref())?;
                     std::io::copy(&mut archived_file, writer)?
                 },
+                #[cfg(target_arch = "wasm32")]
+                Self::HttpUrl(_http_url) => {
+                    panic!("can't download in wasm yet. This'd need to be async")
+                }
+                #[cfg(not(target_arch = "wasm32"))]
                 Self::HttpUrl(http_url) => {
-                    let response = ureq::get(http_url.as_str()).call()?;
+                    let response = ureq::get(http_url.as_str()).call()
+                        .map_err(|e| ModelPackingError::HttpErro { reason: e.to_string()})?;
                     eprintln!("Requesting {http_url} returned result {}", response.status());
                     if response.status() / 100 != 2{
                         return Err(ModelPackingError::UnexpectedHttpStatus {
@@ -128,9 +134,15 @@ impl FileSource{
                     .read_to_end(buf)?;
                 Ok(bytes_read)
             },
+            #[cfg(target_arch = "wasm32")]
+            Self::HttpUrl(_http_url) => {
+                panic!("Can't download on wasm yet. This'd need to be async")
+            },
+            #[cfg(not(target_arch = "wasm32"))]
             Self::HttpUrl(http_url) => {
                 let mut response_reader = ureq::get(http_url.as_str())
-                .call()?
+                .call()
+                .map_err(|e| FileSourceError::HttpError { reason: e.to_string()})?
                 .into_reader();
                 Ok(response_reader.read_to_end(buf)?)
             }
