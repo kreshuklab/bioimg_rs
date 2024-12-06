@@ -4,7 +4,7 @@ use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
 use zip::ZipArchive;
 
-use crate::zip_archive_ext::RdfFileReferenceExt;
+use crate::zip_archive_ext::{RdfFileReferenceExt, SharedZipArchive};
 use crate::{zip_archive_ext::RdfFileReferenceReadError, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
 
 #[derive(Clone)]
@@ -81,14 +81,18 @@ pub enum CoverImageLoadingError{
 }
 
 impl CoverImage{
-    pub fn try_load<R: Read + Seek>(
+    pub fn try_load(
         rdf_cover: rdf::CoverImageSource,
-        archive: &mut ZipArchive<R>
+        archive: &SharedZipArchive,
     ) -> Result<Self, CoverImageLoadingError>{
-        let mut image_bytes = Vec::<u8>::new();
-        rdf_cover.try_get_reader(archive)?.read_to_end(&mut image_bytes)?;
-        let image = image::io::Reader::new(Cursor::new(image_bytes)).with_guessed_format()?.decode()?;
-        Ok(CoverImage::try_from(Arc::new(image))?)
+        let a = rdf_cover.try_read(archive, |entry|{
+            let mut image_bytes = Vec::<u8>::new();
+            entry.read_to_end(&mut image_bytes)?;
+            let cursor = Cursor::new(image_bytes);
+            let image = image::io::Reader::new(cursor).with_guessed_format()?.decode()?;
+            Ok(CoverImage::try_from(Arc::new(image))?)
+        })?;
+        return a
     }
 }
 

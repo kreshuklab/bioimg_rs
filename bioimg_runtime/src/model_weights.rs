@@ -1,10 +1,9 @@
-use std::{io::{Read, Seek, Write}, path::Path};
+use std::io::{Seek, Write};
 
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
-use zip::ZipArchive;
 
-use crate::{conda_env::CondaEnvLoadingError, zip_archive_ext::RdfFileReferenceReadError};
+use crate::{conda_env::CondaEnvLoadingError, zip_archive_ext::{RdfFileReferenceReadError, SharedZipArchive}};
 use crate::{conda_env::CondaEnv, file_source::FileSourceError, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError, FileSource};
 
 #[derive(thiserror::Error, Debug)]
@@ -103,30 +102,29 @@ impl ModelWeights{
         }).unwrap())
     }
 
-    pub fn try_from_rdf<R: Read + Seek>(
+    pub fn try_from_rdf(
         weights_rdf: modelrdf::WeightsDescr,
-        zip_file_path: &Path,
-        zip_archive: &mut ZipArchive<R>,
+        archive: SharedZipArchive,
     ) -> Result<Self, ModelWeightsLoadingError>{
         let weights = weights_rdf.into_inner();
         Ok(Self{
             keras_hdf5: weights.keras_hdf5
-                .map(|rdf| KerasHdf5Weights::try_from_rdf(rdf, zip_file_path))
+                .map(|rdf| KerasHdf5Weights::try_from_rdf(rdf, archive.clone()))
                 .transpose()?,
             onnx: weights.onnx
-                .map(|rdf| OnnxWeights::try_from_rdf(rdf, zip_file_path))
+                .map(|rdf| OnnxWeights::try_from_rdf(rdf, archive.clone()))
                 .transpose()?,
             pytorch_state_dict: weights.pytorch_state_dict
-                .map(|rdf| PytorchStateDictWeights::try_from_rdf(rdf, zip_file_path, zip_archive))
+                .map(|rdf| PytorchStateDictWeights::try_from_rdf(rdf, archive.clone()))
                 .transpose()?,
             tensorflow_js: weights.tensorflow_js
-                .map(|rdf| TensorflowJsWeights::try_from_rdf(rdf, zip_file_path))
+                .map(|rdf| TensorflowJsWeights::try_from_rdf(rdf, archive.clone()))
                 .transpose()?,
             tensorflow_saved_model_bundle: weights.tensorflow_saved_model_bundle
-                .map(|rdf| TensorflowSavedModelBundleWeights::try_from_rdf(rdf, zip_file_path, zip_archive))
+                .map(|rdf| TensorflowSavedModelBundleWeights::try_from_rdf(rdf, archive.clone()))
                 .transpose()?,
             torchscript: weights.torchscript
-                .map(|rdf| TorchscriptWeights::try_from_rdf(rdf, zip_file_path))
+                .map(|rdf| TorchscriptWeights::try_from_rdf(rdf, archive))
                 .transpose()?,
         })
     }
@@ -162,11 +160,11 @@ impl WeightsBase{
 
     fn try_from_rdf(
         rdf_weights_base: modelrdf::WeightsDescrBase,
-        zip_file_path: &Path,
+        archive: SharedZipArchive,
     ) -> Result<Self, ModelWeightsLoadingError>{
         Ok(Self{
             authors: rdf_weights_base.authors,
-            source: FileSource::from_rdf_file_reference(zip_file_path, &rdf_weights_base.source)?
+            source: FileSource::from_rdf_file_reference(archive, &rdf_weights_base.source)?
         })
     }
 }
@@ -188,9 +186,9 @@ impl KerasHdf5Weights{
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::KerasHdf5WeightsDescr, zip_file_path: &Path
+        rdf: modelrdf::KerasHdf5WeightsDescr, archive: SharedZipArchive
     ) -> Result<Self, ModelWeightsLoadingError>{
-        let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
+        let weights = WeightsBase::try_from_rdf(rdf.base, archive)?;
         Ok(Self{
             weights,
             tensorflow_version: rdf.tensorflow_version,
@@ -216,9 +214,9 @@ impl OnnxWeights{
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::OnnxWeightsDescr, zip_file_path: &Path
+        rdf: modelrdf::OnnxWeightsDescr, archive: SharedZipArchive
     ) -> Result<Self, ModelWeightsLoadingError>{
-        let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
+        let weights = WeightsBase::try_from_rdf(rdf.base, archive)?;
         Ok(Self{
             weights,
             opset_version: rdf.opset_version,
@@ -258,11 +256,11 @@ impl PytorchArch{
         }
     }
 
-    pub fn try_from_rdf(zip_path: &Path, rdf: modelrdf::PytorchArchitectureDescr) -> Result<Self, ModelWeightsLoadingError>{
+    pub fn try_from_rdf(archive: SharedZipArchive, rdf: modelrdf::PytorchArchitectureDescr) -> Result<Self, ModelWeightsLoadingError>{
         match rdf{
             modelrdf::PytorchArchitectureDescr::FromFileDescr(from_file) => {
                 Ok(Self::FromFile {
-                    file_source: FileSource::from_rdf_file_descr(zip_path, &from_file.file_descr)?,
+                    file_source: FileSource::from_rdf_file_descr(archive, &from_file.file_descr)?,
                     callable: from_file.callable,
                     kwargs: from_file.kwargs,
                 })
@@ -296,18 +294,17 @@ impl PytorchStateDictWeights{
         })
     }
 
-    pub fn try_from_rdf<R: Read + Seek>(
+    pub fn try_from_rdf(
         rdf: modelrdf::PytorchStateDictWeightsDescr,
-        zip_file_path: &Path,
-        zip_archive: &mut ZipArchive<R>,
+        archive: SharedZipArchive,
     ) -> Result<Self, ModelWeightsLoadingError>{
-        let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
+        let weights = WeightsBase::try_from_rdf(rdf.base, archive.clone())?;
         Ok(Self{
             weights,
-            architecture: PytorchArch::try_from_rdf(zip_file_path, rdf.architecture)?,
+            architecture: PytorchArch::try_from_rdf(archive.clone(), rdf.architecture)?,
             pytorch_version: rdf.pytorch_version,
             dependencies: rdf.dependencies
-                .map(|value| CondaEnv::try_load_rdf(value, zip_archive))
+                .map(|value| CondaEnv::try_load_rdf(value, &archive))
                 .transpose()?
         })
     }
@@ -332,9 +329,9 @@ impl TensorflowJsWeights{
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::TensorflowJsWeightsDescr, zip_file_path: &Path
+        rdf: modelrdf::TensorflowJsWeightsDescr, archive: SharedZipArchive,
     ) -> Result<Self, ModelWeightsLoadingError>{
-        let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
+        let weights = WeightsBase::try_from_rdf(rdf.base, archive)?;
         Ok(Self{
             weights,
             tensorflow_version: rdf.tensorflow_version,
@@ -363,17 +360,16 @@ impl TensorflowSavedModelBundleWeights{
         })
     }
 
-    pub fn try_from_rdf<R: Read + Seek>(
+    pub fn try_from_rdf(
         rdf: modelrdf::TensorflowSavedModelBundleWeightsDescr,
-        zip_file_path: &Path,
-        zip_archive: &mut ZipArchive<R>,
+        archive: SharedZipArchive,
     ) -> Result<Self, ModelWeightsLoadingError>{
-        let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
+        let weights = WeightsBase::try_from_rdf(rdf.base, archive.clone())?;
         Ok(Self{
             weights,
             tensorflow_version: rdf.tensorflow_version,
             dependencies: rdf.dependencies
-                .map(|value| CondaEnv::try_load_rdf(value, zip_archive))
+                .map(|value| CondaEnv::try_load_rdf(value, &archive))
                 .transpose()?
         })
     }
@@ -397,9 +393,9 @@ impl TorchscriptWeights {
 
     pub fn try_from_rdf(
         rdf: modelrdf::TorchscriptWeightsDescr,
-        zip_file_path: &Path,
+        archive: SharedZipArchive,
     ) -> Result<Self, ModelWeightsLoadingError>{
-        let weights = WeightsBase::try_from_rdf(rdf.base, zip_file_path)?;
+        let weights = WeightsBase::try_from_rdf(rdf.base, archive)?;
         Ok(Self{
             weights,
             pytorch_version: rdf.pytorch_version,

@@ -3,6 +3,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use bioimg_runtime::zip_archive_ext::{SeekReadSend, SharedZipArchive, ZipArchiveIdentifier};
 use bioimg_zoo::collection::ZooNickname;
 use indoc::indoc;
 
@@ -11,6 +12,7 @@ use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf::{self, ResourceId, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
+use zip::ZipArchive;
 
 use crate::project_data::{AppStateRawData, ProjectLoadError};
 use crate::result::{GuiError, Result, VecResultExt};
@@ -53,6 +55,7 @@ enum PackingStatus {
 
 pub enum TaskResult{
     Notification(Result<String, String>),
+    ModelImport(Box<rt::zoo_model::ZooModel>),
 }
 
 pub struct TaskChannel{
@@ -345,15 +348,37 @@ impl eframe::App for AppState1 {
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {
                         ui.close_menu();
-                        if let Some(model_path) = rfd::FileDialog::new().add_filter("bioimage model", &["zip"],).pick_file() {
-                            match rt::zoo_model::ZooModel::try_load(&model_path){
-                                Err(err) => self.notifications_widget.push_message(
-                                    Err(format!("Could not import model {}: {err}", model_path.to_string_lossy()))
-                                ),
-                                Ok(zoo_model) => self.set_value(zoo_model)
+                        let sender = self.notifications_channel.sender.clone();
+
+                        #[cfg(target_arch="wasm32")]
+                        wasm_bindgen_futures::spawn_local(async move {
+                            if let Some(file) = rfd::AsyncFileDialog::new().add_filter("bioimage model", &["zip"],).pick_file().await {
+                                let contents = file.read().await;
+                                let reader: Box<dyn SeekReadSend + 'static> = Box::new(std::io::Cursor::new(contents));
+                                let archive = ZipArchive::new(reader).unwrap();
+                                let shared_archive = SharedZipArchive::new(
+                                    ZipArchiveIdentifier::Name(file.file_name()),
+                                    archive
+                                );
+                                let message = match rt::zoo_model::ZooModel::try_load_archive(shared_archive){
+                                    Err(err) => TaskResult::Notification(Err(format!("Could not import model: {err}"))),
+                                    Ok(zoo_model) => TaskResult::ModelImport(Box::new(zoo_model)),
+                                };
+                                sender.send(message).unwrap();
                             }
+                        });
+
+                        #[cfg(not(target_arch="wasm32"))]
+                        if let Some(model_path) = rfd::FileDialog::new().add_filter("bioimage model", &["zip"],).pick_file() {
+                            let model_path_str = model_path.to_string_lossy();
+                            let message = match rt::zoo_model::ZooModel::try_load(&model_path){
+                                Err(err) => TaskResult::Notification(Err(format!("Could not import model {model_path_str}: {err}"))),
+                                Ok(zoo_model) => TaskResult::ModelImport(Box::new(zoo_model)),
+                            };
+                            sender.send(message).unwrap();
                         }
                     }
+                    #[cfg(not(target_arch="wasm32"))]
                     if ui.button("Save Project").clicked() { 'save_project: {
                         ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().set_file_name("MyProject.bmb").save_file() else {
@@ -362,6 +387,7 @@ impl eframe::App for AppState1 {
                         let result = self.save_project(&path);
                         self.notifications_widget.push_message(result);
                     }}
+                    #[cfg(not(target_arch="wasm32"))]
                     if ui.button("Load Project").clicked() { 'load_project: {
                         ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().add_filter("bioimage model builder", &["bmb"]).pick_file() else {
@@ -552,6 +578,7 @@ impl eframe::App for AppState1 {
                     while let Ok(msg) = self.notifications_channel.receiver.try_recv(){
                         match msg{
                             TaskResult::Notification(msg) => self.notifications_widget.push_message(msg),
+                            TaskResult::ModelImport(model) => self.set_value(*model),
                         }
                     }
                     self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));

@@ -13,6 +13,7 @@ use ndarray_npy::ReadNpyError;
 use crate::axis_size_resolver::{ResolvedAxisSizeExt, SlotResolver};
 use crate::file_source::FileSourceError;
 use crate::npy_array::NpyArray;
+use crate::zip_archive_ext::SharedZipArchive;
 use crate::zip_writer_ext::ModelZipWriter;
 use crate::zoo_model::ModelPackingError;
 use crate::FileSource;
@@ -72,10 +73,10 @@ impl InputSlot<Arc<NpyArray>> {
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::InputTensorDescr, zip_path: &Path
+        rdf: modelrdf::InputTensorDescr, archive: SharedZipArchive
     ) -> Result<Self, ModelInterfaceLoadingError>{
         let mut test_tensor_raw_data = vec![];
-        FileSource::from_rdf_file_descr(zip_path, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
+        FileSource::from_rdf_file_descr(archive, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
         //FIXME: there's another copy inside try_load, i think
         let test_tensor = NpyArray::try_load(&mut test_tensor_raw_data.as_slice())?;
 
@@ -147,10 +148,10 @@ impl OutputSlot<Arc<NpyArray>> {
     }
 
     pub fn try_from_rdf(
-        rdf: modelrdf::OutputTensorDescr, zip_path: &Path
+        rdf: modelrdf::OutputTensorDescr, archive: SharedZipArchive,
     ) -> Result<Self, ModelInterfaceLoadingError>{
         let mut test_tensor_raw_data = vec![];
-        FileSource::from_rdf_file_descr(zip_path, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
+        FileSource::from_rdf_file_descr(archive, &rdf.test_tensor)?.read_to_end(&mut test_tensor_raw_data)?;
         //FIXME: there's another copy inside try_load, i think
         let test_tensor = NpyArray::try_load(&mut test_tensor_raw_data.as_slice())?;
         Ok(Self{

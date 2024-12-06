@@ -1,9 +1,11 @@
-use std::{fmt::Display, io::{Read, Seek, Write}, str::FromStr};
+use std::{fmt::Display, io::{Seek, Write}, str::FromStr};
+
 
 use bioimg_spec::rdf;
-use zip::ZipArchive;
 
-use crate::{zip_archive_ext::{RdfFileReferenceExt, RdfFileReferenceReadError}, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};
+use crate::zip_archive_ext::{RdfFileReferenceReadError, SharedZipArchive};
+use crate::zoo_model::ModelPackingError;
+use crate::zip_writer_ext::ModelZipWriter;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CondaEnvParsingError{
@@ -15,10 +17,14 @@ pub enum CondaEnvParsingError{
 
 #[derive(thiserror::Error, Debug)]
 pub enum CondaEnvLoadingError{
+    #[error("Could not load conda env from zip archive: {0}")]
+    ZipError(#[from] zip::result::ZipError),
     #[error(transparent)]
     ParsingError(#[from] CondaEnvParsingError),
     #[error(transparent)]
     RdfFileReferenceReadError(#[from] RdfFileReferenceReadError),
+    #[error("Url file reference not supported yet")]
+    UrlFileReferenceNotSupportedYet,
 }
 
 #[derive(Clone)]
@@ -47,11 +53,18 @@ impl CondaEnv{
         })
     }
 
-    pub fn try_load_rdf<R: Read + Seek>(
-        rdf: rdf::FileDescription<rdf::EnvironmentFile>, zip_archive: &mut ZipArchive<R>
+    pub fn try_load_rdf(
+        descr: rdf::FileDescription<rdf::EnvironmentFile>, zip_archive: &SharedZipArchive
     ) -> Result<Self, CondaEnvLoadingError>{
-        let reader = rdf.source.try_get_reader(zip_archive)?;
-        Ok(CondaEnv::try_load(reader)?)
+        let file_ref: &rdf::FileReference = &descr.source;
+        let inner_path: String = match file_ref{
+            rdf::FileReference::Url(_) => return Err(CondaEnvLoadingError::UrlFileReferenceNotSupportedYet),
+            rdf::FileReference::Path(path) => path.into(),
+        };
+        let conda_env = zip_archive.with_entry(&inner_path, |entry|{
+            CondaEnv::try_load(entry)
+        })??;
+        Ok(conda_env)
     }
 }
 
