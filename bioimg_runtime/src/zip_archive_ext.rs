@@ -1,4 +1,4 @@
-use std::{fmt::Display, io::{Read, Seek}, path::{Path, PathBuf}, sync::{Arc, Mutex}};
+use std::{fmt::{Debug, Display}, io::{Read, Seek}, path::{Path, PathBuf}, sync::{Arc, Mutex}};
 
 use bioimg_spec::rdf;
 // use zip::{read::ZipFile, ZipArchive};
@@ -9,7 +9,7 @@ impl<T: Seek + Read + Send> SeekReadSend for T{}
 
 type AnyZipArchive = zip::ZipArchive<Box<dyn SeekReadSend + 'static>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ZipArchiveIdentifier{
     Path(PathBuf),
     Name(String),
@@ -28,6 +28,12 @@ impl Display for ZipArchiveIdentifier{
 pub struct SharedZipArchive{
     identif: ZipArchiveIdentifier,
     archive: Arc<Mutex<AnyZipArchive>>,
+}
+
+impl Debug for SharedZipArchive{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SharedZipArchive{{ identif: {:?} }}", self.identif)
+    }
 }
 
 impl PartialEq for SharedZipArchive{

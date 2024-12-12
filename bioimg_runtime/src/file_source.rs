@@ -14,7 +14,7 @@ pub enum FileSourceError{
     HttpError{reason: String}
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FileSource{
     LocalFile{path: Arc<Path>},
     FileInZipArchive{archive: SharedZipArchive, inner_path: Arc<str>},
