@@ -1,13 +1,7 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
 use super::{
-    collapsible_widget::{CollapsibleWidget, SummarizableWidget},
-    staging_opt::StagingOpt,
-    staging_string::StagingString,
-    staging_vec::ItemWidgetConf,
-    Restore,
-    StatefulWidget,
-    ValueWidget,
+    collapsible_widget::{CollapsibleWidget, SummarizableWidget}, labels::{self, orcid_label}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, Restore, StatefulWidget, ValueWidget
 };
 use crate::result::Result;
 
@@ -81,7 +75,7 @@ impl StatefulWidget for AuthorWidget {
             self.name_widget.draw_and_parse(ui, id.with("Name"));
             ui.end_row();
 
-            ui.strong("Affiliation: ").on_hover_text("The company, institute or entity for which the author works, if any.");
+            labels::affiliation_label(ui);
             self.affiliation_widget.draw_and_parse(ui, id.with("Affiliation"));
             ui.end_row();
 
@@ -89,36 +83,11 @@ impl StatefulWidget for AuthorWidget {
             self.email_widget.draw_and_parse(ui, id.with("Email"));
             ui.end_row();
 
-            ui.strong("Github User: ").on_hover_ui(|ui|{
-                ui.vertical(|ui|{
-                    ui.label("The Author's github user, if any, without the '@' symbol.");
-                    match self.github_user_widget.0.as_ref().map(|s| &s.raw){
-                        None  => {
-                            ui.label("A valid user should be able to be inspected at https://api.github.com/users/AUTHOR_USERNAME_HERE");
-                        },
-                        Some(username) => 'link_to_username: {
-                            if username.is_empty(){
-                                ui.label("A valid user should be able to be inspected at https://api.github.com/users/AUTHOR_USERNAME_HERE");
-                                break 'link_to_username
-                            }
-                            ui.horizontal(|ui|{
-                                ui.label("A valid user should be able to be inspected at");
-                                ui.hyperlink(format!("https://api.github.com/users/{username}"));
-                            });
-                        }
-                    }
-                });
-            });
+            labels::github_user_label(ui, self.github_user_widget.0.as_ref().map(|s| s.raw.as_str()));
             self.github_user_widget.draw_and_parse(ui, id.with("Github User"));
             ui.end_row();
 
-            ui.strong("Orcid: ").on_hover_ui(|ui| {
-                ui.horizontal(|ui|{
-                    ui.label("The author's");
-                    ui.hyperlink_to("ORCID number", "https://orcid.org/");
-                    ui.label(" if they have one");
-                });
-            });
+            orcid_label(ui, "author");
             self.orcid_widget.draw_and_parse(ui, id.with("Orcid"));
             ui.end_row();
         });
