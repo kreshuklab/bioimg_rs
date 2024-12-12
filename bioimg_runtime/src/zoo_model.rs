@@ -3,10 +3,10 @@ use std::{
 };
 
 use bioimg_spec::rdf::{
-    FileReference, FsPath, HttpUrl, LicenseId, ResourceId, ResourceName, Version
+    model::unsupported::{UnsupportedFutureModel, UnsupportedLegacyModel, Version_0_5_4_OrLater}, FileReference, FsPath, HttpUrl, LicenseId, ResourceId, ResourceName, Version
 };
 use bioimg_spec::rdf;
-use bioimg_spec::rdf::version::{FutureRdfVersion, Version_0_5_x};
+use bioimg_spec::rdf::version::Version_0_5_x;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 use bioimg_spec::rdf::model::RdfTypeModel;
 use bioimg_spec::rdf::model::unsupported::Version_0_4_X_OrEarlier;
@@ -76,10 +76,12 @@ pub enum ModelLoadingError{
     InputTensorParsingError(#[from] modelrdf::input_tensor::InputTensorParsingError),
     #[error("Invalid input/output configurtation: {0}")]
     TensorValidationError(#[from] TensorValidationError),
-    #[error("Unsupported legacy model version: {version}")]
-    UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier},
-    #[error("Rdf version is too new for this application: {format_version}")]
-    FutureModel{format_version: FutureRdfVersion},
+    #[error("Unsupported legacy model version: {version}. The earliest supported version is {earliest_supported}")]
+    UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier, earliest_supported: Version},
+    #[error("Rdf version is too new for this application: {format_version}. The latest supported version is {latest_supported}")]
+    FutureModel{format_version: Version_0_5_4_OrLater, latest_supported: Version},
+    #[error("Bad rdf: {inner}")]
+    BadModel{inner: serde_yaml::Error},
     #[error("Unrecognized rdf data (found version {format_version:?})")]
     UnrecognizedRdf{format_version: Option<String>},
 }
@@ -113,10 +115,10 @@ impl ZooModel{
     }
 
     pub fn try_load_archive(archive: SharedZipArchive) -> Result<Self, ModelLoadingError>{
-        let model_rdf: modelrdf::ModelRdf = 'model_rdf: {
+        let model_rdf_yaml: serde_yaml::Value = 'model_rdf: {
             for file_name in ["rdf.yaml", "bioimageio.yaml"]{
                 let zip_res = archive.with_entry(file_name, |entry|{
-                    let read_result = serde_yaml::from_reader::<_, modelrdf::ModelRdf>(entry);
+                    let read_result: Result<serde_yaml::Value, _> = serde_yaml::from_reader(entry);
                     read_result
                 });
                 let model_rdf = match zip_res{
@@ -130,11 +132,23 @@ impl ZooModel{
             }
             return Err(ModelLoadingError::RdfYamlNotFound)
         };
-        let model_rdf = match model_rdf{
-            modelrdf::ModelRdf::Legacy(legacy_model) => return Err(ModelLoadingError::UnsupportedLegacyModel { version: legacy_model.format_version }),
-            modelrdf::ModelRdf::V05(modern_model) => modern_model,
-            modelrdf::ModelRdf::Future { format_version } => return Err(ModelLoadingError::FutureModel { format_version }),
-            modelrdf::ModelRdf::Unrecognized { format_version } => return Err(ModelLoadingError::UnrecognizedRdf { format_version })
+        let model_rdf = match ModelRdfV0_5::deserialize(&model_rdf_yaml){
+            Ok(model_rdf) => model_rdf,
+            Err(v5_err) => {
+                if let Ok(legacy_model) = UnsupportedLegacyModel::deserialize(&model_rdf_yaml){
+                    return Err(ModelLoadingError::UnsupportedLegacyModel {
+                        version: legacy_model.format_version,
+                        earliest_supported: Version_0_5_x::earliest_supported_version(),
+                    })
+                }
+                if let Ok(future_model) = UnsupportedFutureModel::deserialize(&model_rdf_yaml){
+                    return Err(ModelLoadingError::FutureModel{
+                        format_version: future_model.format_version,
+                        latest_supported: Version_0_5_x::latest_supported_version(),
+                    })
+                }
+                return Err(ModelLoadingError::BadModel { inner: v5_err })
+            }
         };
 
         let covers: Vec<CoverImage> = model_rdf.covers.into_iter()
