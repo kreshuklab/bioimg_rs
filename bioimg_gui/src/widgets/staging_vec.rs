@@ -81,19 +81,19 @@ where
                 let mut render_item_header = |ui: &mut egui::Ui|{
                     ui.horizontal(|ui|{
                         ui.add_enabled_ui(current_num_items > Conf::MIN_NUM_ITEMS, |ui| {
-                            if ui.button("🗙").clicked(){
+                            if ui.button("🗙").on_hover_text(format!("Remove this {}", Conf::ITEM_NAME)).clicked(){
                                 action = Action::Remove(idx);
                             }
                         });
                         ui.small(format!("{} #{}", Conf::ITEM_NAME, idx + 1));
                         ui.spacing_mut().item_spacing.x = 0.0;
                         ui.add_enabled_ui(idx > 0, |ui| {
-                            if ui.button("⬆").clicked(){
+                            if ui.button("⬆").on_hover_text(format!("Move this {} up", Conf::ITEM_NAME)).clicked(){
                                 action = Action::MoveUp(idx);
                             }
                         });
                         ui.add_enabled_ui(idx != current_num_items.saturating_sub(1), |ui| {
-                            if ui.button("⬇").clicked(){
+                            if ui.button("⬇").on_hover_text(format!("Move this {} down", Conf::ITEM_NAME)).clicked(){
                                 action = Action::MoveDown(idx);
                             }
                         });
