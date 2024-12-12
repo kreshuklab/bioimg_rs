@@ -479,14 +479,19 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Git Repo: ");
+                    ui.strong("Git Repo: ").on_hover_text(
+                        "A URL to the git repository with the source code that produced this model"
+                    );
                     self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
                     // let git_repo_result = self.staging_git_repo.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Icon: ").on_hover_text("An icon for illustration, e.g. on bioimage.io");
+                    ui.strong("Icon: ").on_hover_text(indoc!("
+                        An icon for quick identification on bioimage.io.
+                        This can either be an emoji or a small square image."
+                    ));
                     group_frame(ui, |ui| {
                         self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                     });
@@ -517,10 +522,17 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Resource Version: ").on_hover_text(
-                        "The version of this model, following SermVer 2.0. If you upload an updated version of
-                        this model, you should bump this version to differentiate it from the previous uploads"
-                    );
+                    ui.strong("Resource Version: ").on_hover_ui(|ui|{
+                        ui.horizontal(|ui|{
+                            ui.label("The version of this model, following");
+                            ui.hyperlink_to("SermVer 2.0", "https://semver.org/#semantic-versioning-200");
+                        });
+
+                        ui.label(indoc!("
+                            If you upload an updated version of this model to the zoo, you should bump this version \
+                            to differentiate it from the previous uploads"
+                        ));
+                    });
                     self.staging_version.draw_and_parse(ui, egui::Id::from("Version"));
                 });
                 ui.add_space(10.0);
@@ -545,8 +557,8 @@ impl eframe::App for AppState1 {
                         This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights.
 
                         The data comming out of the model weights is then further postprocessed (as specified in the 'postprocessing' \
-                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields.
-                    "));
+                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields."
+                    ));
                     group_frame(ui, |ui| {
                         self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
                     });
@@ -560,8 +572,8 @@ impl eframe::App for AppState1 {
                         intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
                         arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
                         Further, pytorch state dicts essentially require client applications to either be written in Python or \
-                        to ship the Python interpreter embedded into them.
-                    "));
+                        to ship the Python interpreter embedded into them."
+                    ));
                     group_frame(ui, |ui| {
                         self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
                     });
