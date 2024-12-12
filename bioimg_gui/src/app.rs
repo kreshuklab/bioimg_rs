@@ -509,7 +509,7 @@ impl eframe::App for AppState1 {
                 ui.horizontal_top(|ui| {
                     ui.strong("Maintainers: ").on_hover_text(
                         "Maintainers of this resource. If not specified, 'authors' are considered maintainers \
-                        and at least one of them must to specify their `github_user` name"
+                        and at least one of them must specify their `github_user` name."
                     );
                     self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
                 });

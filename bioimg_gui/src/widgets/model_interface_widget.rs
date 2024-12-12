@@ -65,11 +65,11 @@ impl StatefulWidget for ModelInterfaceWidget {
         self.update();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Inputs: ");
+                ui.strong("Inputs: ").on_hover_text("Describes the input tensors this model expects");
                 self.inputs_widget.draw_and_parse(ui, id.with("in"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Outputs: ");
+                ui.strong("Outputs: ").on_hover_text("Describes the output tensors that are produced by this model");
                 self.outputs_widget.draw_and_parse(ui, id.with("out"));
             });
 
