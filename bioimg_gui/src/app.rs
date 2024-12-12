@@ -3,7 +3,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use bioimg_runtime::zip_archive_ext::{SeekReadSend, SharedZipArchive, ZipArchiveIdentifier};
 use bioimg_zoo::collection::ZooNickname;
 use indoc::indoc;
 
@@ -12,7 +11,6 @@ use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
 use bioimg_spec::rdf::{self, ResourceId, ResourceName};
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
-use zip::ZipArchive;
 
 use crate::project_data::{AppStateRawData, ProjectLoadError};
 use crate::result::{GuiError, Result, VecResultExt};
