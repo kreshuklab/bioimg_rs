@@ -1,5 +1,5 @@
 use std::{
-    io::{Read, Seek, Write}, path::{Path, PathBuf}, sync::{Arc, Mutex}
+    io::{Read, Seek, Write}, path::{Path, PathBuf}, sync::Arc
 };
 
 use bioimg_spec::rdf::{
@@ -16,13 +16,12 @@ use bioimg_spec::rdf::file_reference::FsPathComponent;
 use bioimg_spec::rdf::author::Author2;
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
-use zip::ZipArchive;
+use serde::Deserialize;
 
 use crate::{zip_archive_ext::{SharedZipArchive, ZipArchiveOpenError}, FileSource, Icon, ModelInterface, NpyArray, TensorValidationError};
 use crate::cover_image::CoverImageLoadingError;
 use crate::CoverImage;
 use crate::zip_writer_ext::ModelZipWriter;
-use crate::zip_archive_ext::SeekReadSend;
 use crate::npy_array::ArcNpyArray;
 use crate::model_weights::{ModelWeights, ModelWeightsLoadingError};
 use crate::model_interface::{InputSlot, ModelInterfaceLoadingError, OutputSlot};
