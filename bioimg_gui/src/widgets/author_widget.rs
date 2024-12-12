@@ -77,23 +77,48 @@ impl StatefulWidget for AuthorWidget {
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
         egui::Grid::new(id).num_columns(2).show(ui, |ui| {
-            ui.strong("Name: ");
+            ui.strong("Name: ").on_hover_text("The author's given name e.g. John Smith");
             self.name_widget.draw_and_parse(ui, id.with("Name"));
             ui.end_row();
 
-            ui.strong("Affiliation: ");
+            ui.strong("Affiliation: ").on_hover_text("The company, institute or entity for which the author works, if any.");
             self.affiliation_widget.draw_and_parse(ui, id.with("Affiliation"));
             ui.end_row();
 
-            ui.strong("Email: ");
+            ui.strong("Email: ").on_hover_text("An email address where the author could be reached");
             self.email_widget.draw_and_parse(ui, id.with("Email"));
             ui.end_row();
 
-            ui.strong("Github User: ");
+            ui.strong("Github User: ").on_hover_ui(|ui|{
+                ui.vertical(|ui|{
+                    ui.label("The Author's github user, if any, without the '@' symbol.");
+                    match self.github_user_widget.0.as_ref().map(|s| &s.raw){
+                        None  => {
+                            ui.label("A valid user should be able to be inspected at https://api.github.com/users/AUTHOR_USERNAME_HERE");
+                        },
+                        Some(username) => 'link_to_username: {
+                            if username.is_empty(){
+                                ui.label("A valid user should be able to be inspected at https://api.github.com/users/AUTHOR_USERNAME_HERE");
+                                break 'link_to_username
+                            }
+                            ui.horizontal(|ui|{
+                                ui.label("A valid user should be able to be inspected at");
+                                ui.hyperlink(format!("https://api.github.com/users/{username}"));
+                            });
+                        }
+                    }
+                });
+            });
             self.github_user_widget.draw_and_parse(ui, id.with("Github User"));
             ui.end_row();
 
-            ui.strong("Orcid: ");
+            ui.strong("Orcid: ").on_hover_ui(|ui| {
+                ui.horizontal(|ui|{
+                    ui.label("The author's");
+                    ui.hyperlink_to("ORCID number", "https://orcid.org/");
+                    ui.label(" if they have one");
+                });
+            });
             self.orcid_widget.draw_and_parse(ui, id.with("Orcid"));
             ui.end_row();
         });
