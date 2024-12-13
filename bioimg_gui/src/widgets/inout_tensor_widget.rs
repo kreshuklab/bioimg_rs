@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use indoc::indoc;
+
 use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
 use bioimg_runtime::npy_array::ArcNpyArray;
 use bioimg_runtime::NpyArray;
@@ -163,19 +165,34 @@ impl StatefulWidget for InputTensorWidget {
                 ui.add(egui::widgets::Checkbox::without_text(&mut self.is_optional));
             });
             ui.horizontal(|ui| {
-                ui.strong("Tensor Id: ");
+                ui.strong("Tensor Id: ").on_hover_text(indoc!(
+                    "The name of this input tensor. During inference, tensors are passed to the model as a \
+                    mapping of strings to tensors; The keys in this Mapping should be the tensor IDs \
+                    entered in fields like this one."
+                ));
                 self.id_widget.draw_and_parse(ui, id.with("Id"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Description: ");
+                ui.strong("Description: ").on_hover_text(indoc!("
+                    A human-readable description of this tensor to help users of the model produce \
+                    compliant inputs. E.g.: 'An xyz, float32 tensor with values between 0 and 1.0 representing \
+                    the likelyhood of a pixel being relevant'"
+                ));
                 self.description_widget.draw_and_parse(ui, id.with("Description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Axes: ");
+                ui.strong("Axes: ").on_hover_text(indoc!("
+                    A list of axis descriptions that determine how this tensor is to be interpreted. Notice \
+                    that the axis should be given in C-order, i.e., that last axis given is the one that changes \
+                    more quickly when going through the bytes of the tensor.
+                "));
                 self.axes_widget.draw_and_parse(ui, id.with("Axes"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Preprocessing: ");
+                ui.strong("Preprocessing: ").on_hover_text(indoc!("
+                    A list of preprocessing steps that will be applied to this input tensor before it is \
+                    fed to the model weights."
+                ));
                 self.preprocessing_widget.draw_and_parse(ui, id.with("preproc".as_ptr()));
             });
             show_if_error(ui, &self.parsed);

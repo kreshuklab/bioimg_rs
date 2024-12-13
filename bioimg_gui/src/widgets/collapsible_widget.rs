@@ -41,14 +41,14 @@ where
         frame.show(ui, |ui|{
             if self.is_closed{
                 ui.horizontal(|ui|{
-                    if ui.button("⏷").clicked(){
+                    if ui.button("⏷").on_hover_text("Expand widget").clicked(){
                         self.is_closed = false;
                     }
                     self.inner.summarize(ui, id.with("summary".as_ptr()));
                 });
             }else{
                 ui.horizontal(|ui|{
-                    if ui.button("⏶").clicked(){
+                    if ui.button("⏶").on_hover_text("Collapse widget").clicked(){
                         self.is_closed = true;
                     }
                     ui.vertical(|ui|{

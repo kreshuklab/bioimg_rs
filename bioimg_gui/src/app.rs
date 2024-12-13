@@ -51,12 +51,17 @@ enum PackingStatus {
     },
 }
 
-pub struct NotificationsChannel{
-    sender: Sender<Result<String, String>>,
-    receiver: Receiver<Result<String, String,>>
+pub enum TaskResult{
+    Notification(Result<String, String>),
+    ModelImport(Box<rt::zoo_model::ZooModel>),
 }
 
-impl Default for NotificationsChannel{
+pub struct TaskChannel{
+    sender: Sender<TaskResult>,
+    receiver: Receiver<TaskResult>
+}
+
+impl Default for TaskChannel{
     fn default() -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         Self{
@@ -97,7 +102,7 @@ pub struct AppState1 {
     #[restore_default]
     pub notifications_widget: NotificationsWidget,
     #[restore_default]
-    pub notifications_channel: NotificationsChannel,
+    pub notifications_channel: TaskChannel,
     #[restore_default]
     model_packing_status: PackingStatus,
     #[restore_default]
@@ -315,7 +320,7 @@ impl eframe::App for AppState1 {
                         let user_token = user_token.as_ref().clone();
                         let sender = self.notifications_channel.sender.clone();
                         let on_progress = move |msg: String|{
-                            sender.send(Ok(msg)).unwrap(); //FIXME: is there anything sensible to do if this fails?
+                            sender.send(TaskResult::Notification(Ok(msg))).unwrap(); //FIXME: is there anything sensible to do if this fails?
                         };
                         self.zoo_model_creation_task = Some(
                             std::thread::spawn(|| upload_model(user_token, model, on_progress))
@@ -341,15 +346,37 @@ impl eframe::App for AppState1 {
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {
                         ui.close_menu();
-                        if let Some(model_path) = rfd::FileDialog::new().add_filter("bioimage model", &["zip"],).pick_file() {
-                            match rt::zoo_model::ZooModel::try_load(&model_path){
-                                Err(err) => self.notifications_widget.push_message(
-                                    Err(format!("Could not import model {}: {err}", model_path.to_string_lossy()))
-                                ),
-                                Ok(zoo_model) => self.set_value(zoo_model)
+                        let sender = self.notifications_channel.sender.clone();
+
+                        #[cfg(target_arch="wasm32")]
+                        wasm_bindgen_futures::spawn_local(async move {
+                            if let Some(file) = rfd::AsyncFileDialog::new().add_filter("bioimage model", &["zip"],).pick_file().await {
+                                let contents = file.read().await;
+                                let reader: Box<dyn SeekReadSend + 'static> = Box::new(std::io::Cursor::new(contents));
+                                let archive = ZipArchive::new(reader).unwrap();
+                                let shared_archive = SharedZipArchive::new(
+                                    ZipArchiveIdentifier::Name(file.file_name()),
+                                    archive
+                                );
+                                let message = match rt::zoo_model::ZooModel::try_load_archive(shared_archive){
+                                    Err(err) => TaskResult::Notification(Err(format!("Could not import model: {err}"))),
+                                    Ok(zoo_model) => TaskResult::ModelImport(Box::new(zoo_model)),
+                                };
+                                sender.send(message).unwrap();
                             }
+                        });
+
+                        #[cfg(not(target_arch="wasm32"))]
+                        if let Some(model_path) = rfd::FileDialog::new().add_filter("bioimage model", &["zip"],).pick_file() {
+                            let model_path_str = model_path.to_string_lossy();
+                            let message = match rt::zoo_model::ZooModel::try_load(&model_path){
+                                Err(err) => TaskResult::Notification(Err(format!("Could not import model {model_path_str}: {err}"))),
+                                Ok(zoo_model) => TaskResult::ModelImport(Box::new(zoo_model)),
+                            };
+                            sender.send(message).unwrap();
                         }
                     }
+                    #[cfg(not(target_arch="wasm32"))]
                     if ui.button("Save Project").clicked() { 'save_project: {
                         ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().set_file_name("MyProject.bmb").save_file() else {
@@ -358,6 +385,7 @@ impl eframe::App for AppState1 {
                         let result = self.save_project(&path);
                         self.notifications_widget.push_message(result);
                     }}
+                    #[cfg(not(target_arch="wasm32"))]
                     if ui.button("Load Project").clicked() { 'load_project: {
                         ui.close_menu();
                         let Some(path) = rfd::FileDialog::new().add_filter("bioimage model builder", &["bmb"]).pick_file() else {
@@ -451,14 +479,19 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Git Repo: ");
+                    ui.strong("Git Repo: ").on_hover_text(
+                        "A URL to the git repository with the source code that produced this model"
+                    );
                     self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
                     // let git_repo_result = self.staging_git_repo.state();
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Icon: ").on_hover_text("An icon for illustration, e.g. on bioimage.io");
+                    ui.strong("Icon: ").on_hover_text(indoc!("
+                        An icon for quick identification on bioimage.io.
+                        This can either be an emoji or a small square image."
+                    ));
                     group_frame(ui, |ui| {
                         self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                     });
@@ -476,7 +509,7 @@ impl eframe::App for AppState1 {
                 ui.horizontal_top(|ui| {
                     ui.strong("Maintainers: ").on_hover_text(
                         "Maintainers of this resource. If not specified, 'authors' are considered maintainers \
-                        and at least one of them must to specify their `github_user` name"
+                        and at least one of them must specify their `github_user` name."
                     );
                     self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
                 });
@@ -489,10 +522,17 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
-                    ui.strong("Resource Version: ").on_hover_text(
-                        "The version of this model, following SermVer 2.0. If you upload an updated version of
-                        this model, you should bump this version to differentiate it from the previous uploads"
-                    );
+                    ui.strong("Resource Version: ").on_hover_ui(|ui|{
+                        ui.horizontal(|ui|{
+                            ui.label("The version of this model, following");
+                            ui.hyperlink_to("SermVer 2.0", "https://semver.org/#semantic-versioning-200");
+                        });
+
+                        ui.label(indoc!("
+                            If you upload an updated version of this model to the zoo, you should bump this version \
+                            to differentiate it from the previous uploads"
+                        ));
+                    });
                     self.staging_version.draw_and_parse(ui, egui::Id::from("Version"));
                 });
                 ui.add_space(10.0);
@@ -517,8 +557,8 @@ impl eframe::App for AppState1 {
                         This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights.
 
                         The data comming out of the model weights is then further postprocessed (as specified in the 'postprocessing' \
-                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields.
-                    "));
+                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields."
+                    ));
                     group_frame(ui, |ui| {
                         self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
                     });
@@ -532,8 +572,8 @@ impl eframe::App for AppState1 {
                         intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
                         arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
                         Further, pytorch state dicts essentially require client applications to either be written in Python or \
-                        to ship the Python interpreter embedded into them.
-                    "));
+                        to ship the Python interpreter embedded into them."
+                    ));
                     group_frame(ui, |ui| {
                         self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
                     });
@@ -546,7 +586,10 @@ impl eframe::App for AppState1 {
                         .clicked();
 
                     while let Ok(msg) = self.notifications_channel.receiver.try_recv(){
-                        self.notifications_widget.push_message(msg);
+                        match msg{
+                            TaskResult::Notification(msg) => self.notifications_widget.push_message(msg),
+                            TaskResult::ModelImport(model) => self.set_value(*model),
+                        }
                     }
                     self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));
 

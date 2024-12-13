@@ -5,9 +5,10 @@ use crate::{rdf::{model::axes::NonBatchAxisId, non_empty_list::NonEmptyList}, ut
 use super::{_default_to_1, _default_to_single_1, _default_to_single_0};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(untagged)]
 pub enum ScaleLinearDescr{
+    AlongAxis(ScaleLinearAlongAxisDescr),
     Simple(SimpleScaleLinearDescr),
-    AlongAxis(ScaleLinearAlongAxisDescr)
 }
 
 impl Display for ScaleLinearDescr{

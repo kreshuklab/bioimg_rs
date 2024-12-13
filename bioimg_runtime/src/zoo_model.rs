@@ -3,16 +3,29 @@ use std::{
 };
 
 use bioimg_spec::rdf::{
-    self, author::Author2, file_reference::FsPathComponent, maintainer::Maintainer, model::{
-        unsupported::Version_0_4_X_OrEarlier, ModelRdfV0_5, RdfTypeModel
-    }, non_empty_list::NonEmptyList, version::{FutureRdfVersion, Version_0_5_x}, FileReference, FsPath, HttpUrl, LicenseId, ResourceId, ResourceName, Version
+    model::unsupported::{UnsupportedFutureModel, UnsupportedLegacyModel, Version_0_5_4_OrLater}, FileReference, FsPath, HttpUrl, LicenseId, ResourceId, ResourceName, Version
 };
+use bioimg_spec::rdf;
+use bioimg_spec::rdf::version::Version_0_5_x;
+use bioimg_spec::rdf::non_empty_list::NonEmptyList;
+use bioimg_spec::rdf::model::RdfTypeModel;
+use bioimg_spec::rdf::model::unsupported::Version_0_4_X_OrEarlier;
+use bioimg_spec::rdf::model::ModelRdfV0_5;
+use bioimg_spec::rdf::maintainer::Maintainer;
+use bioimg_spec::rdf::file_reference::FsPathComponent;
+use bioimg_spec::rdf::author::Author2;
 use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
+use serde::Deserialize;
 
-use crate::{
-    cover_image::CoverImageLoadingError, icon::IconLoadingError, model_interface::{InputSlot, ModelInterfaceLoadingError, OutputSlot}, model_weights::{ModelWeights, ModelWeightsLoadingError}, npy_array::ArcNpyArray, zip_writer_ext::ModelZipWriter, CoverImage, FileSource, Icon, ModelInterface, NpyArray, TensorValidationError
-};
+use crate::{zip_archive_ext::{SharedZipArchive, ZipArchiveOpenError}, FileSource, Icon, ModelInterface, NpyArray, TensorValidationError};
+use crate::cover_image::CoverImageLoadingError;
+use crate::CoverImage;
+use crate::zip_writer_ext::ModelZipWriter;
+use crate::npy_array::ArcNpyArray;
+use crate::model_weights::{ModelWeights, ModelWeightsLoadingError};
+use crate::model_interface::{InputSlot, ModelInterfaceLoadingError, OutputSlot};
+use crate::icon::IconLoadingError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ModelPackingError {
@@ -30,8 +43,8 @@ pub enum ModelPackingError {
     RdfSerializationError(#[from] serde_json::Error),
     #[error("Could not write yaml file to zip: {0}")]
     SerdeYamlError(#[from] serde_yaml::Error),
-    #[error("{0}")]
-    HttpError(#[from] ureq::Error),
+    #[error("Http error: {reason}")]
+    HttpErro{reason: String},
     #[error("Unexpected status ({status})when requesting {url}")]
     UnexpectedHttpStatus{status: u16, url: HttpUrl},
 }
@@ -44,6 +57,8 @@ pub enum ModelLoadingError{
     RdfYamlNotFound,
     #[error("{0}")]
     ZipError(#[from] zip::result::ZipError),
+    #[error(transparent)]
+    ZipArchiveOpen(#[from] ZipArchiveOpenError),
     #[error("Could not parse model rdf as yaml: {0}")]
     YamlParsingError(#[from] serde_yaml::Error),
     #[error("Could not load a cover image: {0}")]
@@ -60,10 +75,12 @@ pub enum ModelLoadingError{
     InputTensorParsingError(#[from] modelrdf::input_tensor::InputTensorParsingError),
     #[error("Invalid input/output configurtation: {0}")]
     TensorValidationError(#[from] TensorValidationError),
-    #[error("Unsupported legacy model version: {version}")]
-    UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier},
-    #[error("Rdf version is too new for this application: {format_version}")]
-    FutureModel{format_version: FutureRdfVersion},
+    #[error("Unsupported legacy model version: {version}. The earliest supported version is {earliest_supported}")]
+    UnsupportedLegacyModel{version: Version_0_4_X_OrEarlier, earliest_supported: Version},
+    #[error("Rdf version is too new for this application: {format_version}. The latest supported version is {latest_supported}")]
+    FutureModel{format_version: Version_0_5_4_OrLater, latest_supported: Version},
+    #[error("Bad rdf: {inner}")]
+    BadModel{inner: serde_yaml::Error},
     #[error("Unrecognized rdf data (found version {format_version:?})")]
     UnrecognizedRdf{format_version: Option<String>},
 }
@@ -92,54 +109,78 @@ pub struct ZooModel {
 
 impl ZooModel{
     pub fn try_load(path: &Path) -> Result<Self, ModelLoadingError>{
-        let model_file = std::fs::File::open(path)?;
+        let archive = SharedZipArchive::open(path)?;
+        Self::try_load_archive(archive)
+    }
 
-        let mut archive = zip::ZipArchive::new(model_file)?;
-        let rdf_yaml = 'rdf_yaml: {
+    pub fn try_load_archive(archive: SharedZipArchive) -> Result<Self, ModelLoadingError>{
+        let model_rdf_yaml: serde_yaml::Value = 'model_rdf: {
             for file_name in ["rdf.yaml", "bioimageio.yaml"]{
-                if archive.file_names().find(|fname| *fname == file_name).is_some(){
-                    break 'rdf_yaml archive.by_name(file_name)
-                }
+                let zip_res = archive.with_entry(file_name, |entry|{
+                    let read_result: Result<serde_yaml::Value, _> = serde_yaml::from_reader(entry);
+                    read_result
+                });
+                let model_rdf = match zip_res{
+                    Ok(read_result) => read_result?,
+                    Err(zip_err) => match zip_err{
+                        zip::result::ZipError::FileNotFound => continue,
+                        err => return Err(ModelLoadingError::ZipError(err))
+                    }
+                };
+                break 'model_rdf model_rdf;
             }
             return Err(ModelLoadingError::RdfYamlNotFound)
-        }?;
-        let model_rdf: modelrdf::ModelRdf = serde_yaml::from_reader(rdf_yaml)?;
-        let model_rdf = match model_rdf{
-            modelrdf::ModelRdf::Legacy(legacy_model) => return Err(ModelLoadingError::UnsupportedLegacyModel { version: legacy_model.format_version }),
-            modelrdf::ModelRdf::V05(modern_model) => modern_model,
-            modelrdf::ModelRdf::Future { format_version } => return Err(ModelLoadingError::FutureModel { format_version }),
-            modelrdf::ModelRdf::Unrecognized { format_version } => return Err(ModelLoadingError::UnrecognizedRdf { format_version })
+        };
+        let model_rdf = match ModelRdfV0_5::deserialize(&model_rdf_yaml){
+            Ok(model_rdf) => model_rdf,
+            Err(v5_err) => {
+                if let Ok(legacy_model) = UnsupportedLegacyModel::deserialize(&model_rdf_yaml){
+                    return Err(ModelLoadingError::UnsupportedLegacyModel {
+                        version: legacy_model.format_version,
+                        earliest_supported: Version_0_5_x::earliest_supported_version(),
+                    })
+                }
+                if let Ok(future_model) = UnsupportedFutureModel::deserialize(&model_rdf_yaml){
+                    return Err(ModelLoadingError::FutureModel{
+                        format_version: future_model.format_version,
+                        latest_supported: Version_0_5_x::latest_supported_version(),
+                    })
+                }
+                return Err(ModelLoadingError::BadModel { inner: v5_err })
+            }
         };
 
         let covers: Vec<CoverImage> = model_rdf.covers.into_iter()
-            .map(|rdf_cover| CoverImage::try_load(rdf_cover, &mut archive))
+            .map(|rdf_cover| CoverImage::try_load(rdf_cover, &archive))
             .collect::<Result<_, _>>()?;
 
         let attachments: Vec<FileSource> = model_rdf.attachments.into_iter()
             .map(|att| match att.source{
                 rdf::FileReference::Url(_) => return Err(ModelLoadingError::UrlFileReferenceNotSupportedYet),
                 rdf::FileReference::Path(fs_path) => {
-                    Ok(FileSource::FileInZipArchive { outer_path: Arc::from(path), inner_path: Arc::from(String::from(fs_path).as_str()) })
+                    Ok(FileSource::FileInZipArchive { archive: archive.clone(), inner_path: Arc::from(String::from(fs_path).as_str()) })
                 }
             })
             .collect::<Result<_, _>>()?;
-        let icon = model_rdf.icon.map(|icon| Icon::try_load(icon, &mut archive)).transpose()?;
+        let icon = model_rdf.icon.map(|icon| Icon::try_load(icon, &archive)).transpose()?;
 
         let mut documentation = String::new();
         match model_rdf.documentation{
             rdf::FileReference::Url(_) => return Err(ModelLoadingError::UrlFileReferenceNotSupportedYet),
             FileReference::Path(path) => {
                 let path_string: String = path.into();
-                archive.by_name(&path_string)?.read_to_string(&mut documentation)?;
+                archive.with_entry(&path_string, |entry| {
+                    entry.read_to_string(&mut documentation)
+                })??;
             },
         }
-        let weights = ModelWeights::try_from_rdf(model_rdf.weights, path, &mut archive)?;
+        let weights = ModelWeights::try_from_rdf(model_rdf.weights, archive.clone())?;
 
         let input_slots: Vec<_> = model_rdf.inputs.into_inner().into_iter()
-            .map(|rdf| InputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path))
+            .map(|rdf| InputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, archive.clone()))
             .collect::<Result<_, _>>()?;
         let output_slots: Vec<_> = model_rdf.outputs.into_inner().into_iter()
-            .map(|rdf| OutputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, path))
+            .map(|rdf| OutputSlot::<Arc<NpyArray>>::try_from_rdf(rdf, archive.clone()))
             .collect::<Result<_, _>>()?;
 
         let model_interface = ModelInterface::try_build(input_slots, output_slots)?;

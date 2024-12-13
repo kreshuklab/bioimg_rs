@@ -33,9 +33,6 @@ impl Version{
     pub fn version_0_5_0() -> Version{
         Self::major_minor_patch(0, 5, 0)
     }
-    pub fn version_0_6_0() -> Version{
-        Self::major_minor_patch(0, 6, 0)
-    }
 }
 
 #[derive(serde::Deserialize)]
@@ -82,6 +79,12 @@ impl Version_0_5_x{
     pub fn new() -> Self{
         Self(Version::version_0_5_3())
     }
+    pub fn latest_supported_version() -> Version{
+        Version::version_0_5_3()
+    }
+    pub fn earliest_supported_version() -> Version{
+        Version::version_0_5_0()
+    }
 }
 
 impl TryFrom<Version> for Version_0_5_x {
@@ -90,29 +93,11 @@ impl TryFrom<Version> for Version_0_5_x {
         if  version < Version::version_0_5_0() {
             return Err(VersionParsingError { reason: format!("Version is too low: {version}") })
         }
-        if  version >= Version::version_0_6_0() {
-            return Err(VersionParsingError { reason: format!("Version is too high: {version}") })
+        if  version > Version::version_0_5_3() {
+            return Err(VersionParsingError {
+                reason: format!("Version is too high: {version}. Max supported rdf version is {}", Version::version_0_5_3())
+            })
         }
         Ok(Self(version))
-    }
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, derive_more::Display)]
-#[serde(try_from = "Version")]
-pub struct FutureRdfVersion(Version);
-
-#[derive(thiserror::Error, Debug)]
-pub enum FutureRdfVersionParsingError{
-    #[error("Version '{found}' is too low")]
-    VersionTooLow{found: Version}
-}
-
-impl TryFrom<Version> for FutureRdfVersion{
-    type Error = FutureRdfVersionParsingError;
-    fn try_from(value: Version) -> Result<Self, Self::Error> {
-        match value.cmp(&Version::version_0_5_3()){
-            std::cmp::Ordering::Greater => Ok(Self(value)),
-            std::cmp::Ordering::Equal | std::cmp::Ordering::Less => Err(Self::Error::VersionTooLow { found: value })
-        }
     }
 }

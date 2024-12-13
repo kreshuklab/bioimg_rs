@@ -1,13 +1,7 @@
 use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Orcid};
 
 use super::{
-    collapsible_widget::{CollapsibleWidget, SummarizableWidget},
-    staging_opt::StagingOpt,
-    staging_string::StagingString,
-    staging_vec::ItemWidgetConf,
-    Restore,
-    StatefulWidget,
-    ValueWidget,
+    collapsible_widget::{CollapsibleWidget, SummarizableWidget}, labels::{self, orcid_label}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, Restore, StatefulWidget, ValueWidget
 };
 use crate::result::Result;
 
@@ -77,23 +71,23 @@ impl StatefulWidget for AuthorWidget {
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
         egui::Grid::new(id).num_columns(2).show(ui, |ui| {
-            ui.strong("Name: ");
+            ui.strong("Name: ").on_hover_text("The author's given name e.g. John Smith");
             self.name_widget.draw_and_parse(ui, id.with("Name"));
             ui.end_row();
 
-            ui.strong("Affiliation: ");
+            labels::affiliation_label(ui);
             self.affiliation_widget.draw_and_parse(ui, id.with("Affiliation"));
             ui.end_row();
 
-            ui.strong("Email: ");
+            ui.strong("Email: ").on_hover_text("An email address where the author could be reached");
             self.email_widget.draw_and_parse(ui, id.with("Email"));
             ui.end_row();
 
-            ui.strong("Github User: ");
+            labels::github_user_label(ui, self.github_user_widget.0.as_ref().map(|s| s.raw.as_str()));
             self.github_user_widget.draw_and_parse(ui, id.with("Github User"));
             ui.end_row();
 
-            ui.strong("Orcid: ");
+            orcid_label(ui, "author");
             self.orcid_widget.draw_and_parse(ui, id.with("Orcid"));
             ui.end_row();
         });

@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
 
-use bioimg_runtime as rt;
+use bioimg_runtime::{self as rt, zip_archive_ext::{SharedZipArchive, ZipArchiveIdentifier}};
 
 use crate::{
     project_data::{FileSourceWidgetRawData, LocalFileSourceWidgetRawData},
@@ -25,7 +25,7 @@ pub enum LocalFileSourceWidget{
     LoadingExternal{path: Arc<Path>, promise: poll_promise::Promise<Box<Self>>},
     PickedNormalFile{path: Arc<Path>},
     PickedEmptyZip{path: Arc<Path>},
-    PickingInner{outer: Arc<Path>, inner_options_widget: SearchAndPickWidget<String>}
+    PickingInner{archive: SharedZipArchive, inner_options_widget: SearchAndPickWidget<String>}
 }
 
 impl Restore for LocalFileSourceWidget{
@@ -39,8 +39,14 @@ impl Restore for LocalFileSourceWidget{
             Self::LoadingExternal{path, ..} | Self::PickedNormalFile {path} | Self::PickedEmptyZip {path} => {
                 Self::RawData::AboutToLoad{path: path.to_string_lossy().into(), inner_path: None}
             },
-            Self::PickingInner { outer, inner_options_widget } => {
-                Self::RawData::AboutToLoad{path: outer.to_string_lossy().into(), inner_path: Some(inner_options_widget.value.clone())}
+            Self::PickingInner { archive, inner_options_widget, .. } => {
+                match archive.identifier(){
+                    ZipArchiveIdentifier::Path(path) => Self::RawData::AboutToLoad{
+                        path: path.to_string_lossy().into(),
+                        inner_path: Some(inner_options_widget.value.clone())
+                    },
+                    _ => Self::RawData::Empty,
+                }
             }
         }
     }
@@ -75,15 +81,20 @@ impl LocalFileSourceWidget{
                             Some(ext) if ext != "zip" => return Self::PickedNormalFile { path }.boxed(),
                             _ => ()
                         }
-                        let inner_options = || -> Result<Vec<String>> {
-                            let archive_file = std::fs::File::open(&path)?;
-                            let archive = zip::ZipArchive::new(archive_file)?;
-                            Ok(archive.file_names()
-                                .filter(|fname| !fname.ends_with('/') && !fname.ends_with('\\'))
-                                .map(|fname| fname.to_owned())
-                                .collect())
+                        let archive_and_inner_options = || -> Result<(SharedZipArchive, Vec<String>)> {
+                            let archive = SharedZipArchive::open(&path)?;
+                            let file_names: Vec<String> = archive.with_file_names(|file_names| {
+                                file_names
+                                    .filter(|fname| !fname.ends_with('/') && !fname.ends_with('\\'))
+                                    .map(|fname| fname.to_owned())
+                                    .collect()
+                            });
+                            Ok((
+                                archive,
+                                file_names,
+                            ))
                         }();
-                        let mut inner_options = match inner_options{
+                        let (archive, mut inner_options) = match archive_and_inner_options{
                             Ok(opts) => opts,
                             Err(err) => return Self::Failed(err).boxed(),
                         };
@@ -93,7 +104,7 @@ impl LocalFileSourceWidget{
                             Some(first) => inner_path.unwrap_or(first.clone())
                         };
                         Self::PickingInner {
-                            outer: path.clone(),
+                            archive,
                             inner_options_widget: SearchAndPickWidget::new(selected_inner_path, inner_options)
                         }.boxed()
                     })
@@ -140,8 +151,8 @@ impl StatefulWidget for LocalFileSourceWidget{
                         show_error(ui, format!("Empty zip file: {}", path.to_string_lossy()));
                         None
                     },
-                    Self::PickingInner{outer, inner_options_widget} => {
-                        ui.weak(outer.to_string_lossy());
+                    Self::PickingInner{archive, inner_options_widget, ..} => {
+                        ui.weak(archive.identifier().to_string());
                         Some(inner_options_widget)
                     }
                 }
@@ -160,12 +171,12 @@ impl StatefulWidget for LocalFileSourceWidget{
             Self::AboutToLoad{..} | Self::LoadingExternal{..} | Self::Empty | Self::PickedEmptyZip{..} => {
                 Err(GuiError::new("Empty"))
             },
-            Self::PickingInner{outer, inner_options_widget} => {
-                Ok(rt::FileSource::FileInZipArchive {
-                    outer_path: outer.clone(),
+            Self::PickingInner{archive, inner_options_widget, ..} => Ok(
+                rt::FileSource::FileInZipArchive {
+                    archive: archive.clone(),
                     inner_path: Arc::from(inner_options_widget.value.as_ref())
-                })
-            },
+                }
+            ),
             Self::PickedNormalFile{path} => {
                 Ok(rt::FileSource::LocalFile{path: path.clone()})
             },
@@ -217,11 +228,20 @@ impl ValueWidget for FileSourceWidget{
                 self.mode_widget.value = FileSourceWidgetMode::Local;
                 self.local_file_source_widget = LocalFileSourceWidget::AboutToLoad { path, inner_path: None};
             },
-            rt::FileSource::FileInZipArchive { outer_path, inner_path } => {
+            rt::FileSource::FileInZipArchive { inner_path, archive} => {
                 self.mode_widget.value = FileSourceWidgetMode::Local;
-                self.local_file_source_widget = LocalFileSourceWidget::AboutToLoad {
-                    path: outer_path,
-                    inner_path: Some(inner_path.as_ref().to_owned()),
+                self.local_file_source_widget = {
+                    let mut inner_options: Vec<String> = archive.with_file_names(|file_names| {
+                        file_names
+                            .filter(|fname| !fname.ends_with('/') && !fname.ends_with('\\'))
+                            .map(|fname| fname.to_owned())
+                            .collect()
+                    });
+                    inner_options.sort();
+                    LocalFileSourceWidget::PickingInner {
+                        archive,
+                        inner_options_widget: SearchAndPickWidget::new(inner_path.as_ref().to_owned(), inner_options),
+                    }
                 };
             },
             rt::FileSource::HttpUrl(url) => {

@@ -1,7 +1,3 @@
-
-use self::unsupported::UnsupportedLegacyModel;
-
-use super::version::FutureRdfVersion;
 use super::BoundedString;
 
 pub mod axes;
@@ -81,12 +77,3 @@ fn _now() -> iso8601_timestamp::Timestamp{
 
 pub type TensorTextDescription = BoundedString<0, 128>;
 pub type ModelRdfName = BoundedString<5, 1024>;
-
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
-pub enum ModelRdf{
-    Legacy(UnsupportedLegacyModel),
-    V05(ModelRdfV0_5),
-    Future{format_version: FutureRdfVersion},
-    Unrecognized{format_version: Option<String>},
-}
