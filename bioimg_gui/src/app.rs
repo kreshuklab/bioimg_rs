@@ -606,9 +606,16 @@ impl eframe::App for AppState1 {
                                 }
                             };
                             ui.ctx().request_repaint();
-                            let Some(path) = rfd::FileDialog::new().save_file() else {
+                            let Some(mut path) = rfd::FileDialog::new().save_file() else {
                                 break 'done PackingStatus::Done;
                             };
+                            if let Some(ext) = path.extension().map(|ex| ex.to_string_lossy()){
+                                if ext != "zip"{
+                                    self.notifications_widget.push_message(Err(format!("Model extension must be '.zip'. Provided '.{ext}'")));
+                                    break 'done PackingStatus::Done;
+                                }
+                            }
+                            path.set_extension("zip");
                             let notification_message = format!("Packing into {}...", path.to_string_lossy());
                             self.notifications_widget.push_message(Ok(notification_message));
                             PackingStatus::Packing {
