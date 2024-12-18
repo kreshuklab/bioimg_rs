@@ -6,6 +6,7 @@ use super::Restore;
 use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
 
 pub struct StagingFloat<T>{
+    pub min_size: f32,
     pub raw: String,
     pub parsed: Result<T>,
 }
@@ -23,6 +24,7 @@ impl<T> Restore for StagingFloat<T>{
 impl<T> Default for StagingFloat<T>{
     fn default() -> Self {
         Self{
+            min_size: 50.0,
             raw: String::new(),
             parsed: Err(GuiError::new("empty".to_owned()))
         }
@@ -39,7 +41,7 @@ where
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.horizontal(|ui|{
             ui.add(
-                egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }),
+                egui::TextEdit::singleline(&mut self.raw).desired_width(50.0)
             );
             self.parsed = T::from_str(&self.raw).map_err(|err| GuiError::from(err));
             show_if_error(ui, &self.parsed);
@@ -69,6 +71,6 @@ where
     pub fn new_with_raw(value: f32) -> Self{
         let raw = value.to_string();
         let parsed = T::from_str(&raw).map_err(|err| GuiError::from(err));
-        Self{raw, parsed}
+        Self{raw, parsed, ..Default::default()}
     }
 }
