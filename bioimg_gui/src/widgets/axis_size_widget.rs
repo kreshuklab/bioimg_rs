@@ -167,9 +167,12 @@ impl StatefulWidget for AnyAxisSizeWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.radio_value(&mut self.mode, AxisSizeMode::Fixed, "Fixed");
-                ui.radio_value(&mut self.mode, AxisSizeMode::Parameterized, "Parameterized");
-                ui.radio_value(&mut self.mode, AxisSizeMode::Reference, "Reference");
+                ui.radio_value(&mut self.mode, AxisSizeMode::Fixed, "Fixed")
+                    .on_hover_text("Axis is inflexible and must have exactly the size in 'Extent'");
+                ui.radio_value(&mut self.mode, AxisSizeMode::Parameterized, "Parameterized")
+                    .on_hover_text("Axis can have any any size that matches Min + N * Step");
+                ui.radio_value(&mut self.mode, AxisSizeMode::Reference, "Reference")
+                    .on_hover_text("Axis size is based on the size of another axis, potentially in another tensor");
             });
 
             group_frame(ui, |ui| match self.mode {

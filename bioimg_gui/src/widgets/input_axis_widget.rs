@@ -1,3 +1,5 @@
+use indoc::indoc;
+
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model as modelrdf;
@@ -12,6 +14,25 @@ use super::axis_widget::{BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
 use super::{Restore, StatefulWidget, ValueWidget};
 use super::axis_size_widget::AnyAxisSizeWidget;
 use crate::result::Result;
+
+fn axis_id_label(ui: &mut egui::Ui){
+    ui.strong("Axis Id: ").on_hover_text(
+        "The unique name of this axis within the tensor. E.g.: 'x', 't'"
+    );
+}
+
+fn axis_description_label(ui: &mut egui::Ui){
+    ui.strong("Axis Description: ").on_hover_ui(|ui|{
+        ui.label(indoc!("
+            The semantic meaning of this axis, i.e. what it means to go backwards \
+            and forwards on this axis."
+        ));
+        ui.horizontal_wrapped(|ui|{
+            ui.label("E.g.: For a Spacial Axis named 'z',a description could be: ");
+            ui.label(egui::RichText::new("'Each unit represents 1.3 mm in the positive Sagittal direction'"))
+        });
+    });
+}
 
 #[derive(Default, Restore)]
 pub struct InputSpaceAxisWidget {
@@ -46,11 +67,11 @@ impl StatefulWidget for InputSpaceAxisWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui| {
-                ui.strong("Axis Id: ");
+                axis_id_label(ui);
                 self.id_widget.draw_and_parse(ui, id.with("id"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Axis Description: ");
+                axis_description_label(ui);
                 self.description_widget.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
