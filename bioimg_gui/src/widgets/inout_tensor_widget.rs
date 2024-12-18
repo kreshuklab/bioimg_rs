@@ -154,14 +154,21 @@ impl StatefulWidget for InputTensorWidget {
         self.update();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Test Tensor: ");
+                ui.strong("Test Sample Input: ").on_hover_text(indoc!("
+                    A .npy file with a sample input for testing this model. This data, along with that from other \
+                    input tensors will be put through preprocessing and fed to the model network weights. \
+                    The outputs from the network will then be postprocessed and compared to `Expected Test outputs` \
+                    provided in the model output description fields to determine if this model is working properly."
+                ));
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
                 if matches!(self.test_tensor_widget, TestTensorWidget::Empty) {
                     show_error(ui, "Missing a npy test tensor");
                 }
             });
             ui.horizontal(|ui|{
-                ui.strong("Input is optional: ");
+                ui.strong("Input is optional: ").on_hover_text(indoc!("
+                    Marks whether the model can do inference without this input."
+                ));
                 ui.add(egui::widgets::Checkbox::without_text(&mut self.is_optional));
             });
             ui.horizontal(|ui| {
@@ -173,11 +180,19 @@ impl StatefulWidget for InputTensorWidget {
                 self.id_widget.draw_and_parse(ui, id.with("Id"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Description: ").on_hover_text(indoc!("
-                    A human-readable description of this tensor to help users of the model produce \
-                    compliant inputs. E.g.: 'An xyz, float32 tensor with values between 0 and 1.0 representing \
-                    the likelyhood of a pixel being relevant'"
-                ));
+                ui.strong("Description: ").on_hover_ui(|ui|{
+                    ui.label(indoc!("
+                        A human-readable description of this input tensor to help users of the model produce \
+                        compliant inputs."
+                    ));
+                    ui.horizontal(|ui|{
+                        ui.label("E.g.:");
+                        ui.label(egui::RichText::new(indoc!("
+                            'An xyz, float32 tensor with values between 0 and 1.0 representing \
+                            the likelyhood of a pixel being a cell nucleus'"
+                        )).italics());
+                    });
+                });
                 self.description_widget.draw_and_parse(ui, id.with("Description"));
             });
             ui.horizontal(|ui| {
@@ -332,26 +347,53 @@ impl StatefulWidget for OutputTensorWidget {
         self.update();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Test Tensor: ");
+                ui.strong("Expected Test Output: ").on_hover_text(indoc!("
+                    A .npy file with a sample output for testing this model. The 'Test Sample Inputs' from \
+                    the model input fields will be put through preprocessing and fed to the model network weights. \
+                    The outputs from the network will then be postprocessed and compared to the data in fields like \
+                    this one, to determine if this model is working properly."
+                ));
                 self.test_tensor_widget.draw_and_parse(ui, id.with("test tensor"));
                 if matches!(self.test_tensor_widget, TestTensorWidget::Empty) {
                     show_error(ui, "Missing a npy test tensor");
                 }
             });
             ui.horizontal(|ui| {
-                ui.strong("Tensor Id: ");
+                ui.strong("Tensor Id: ").on_hover_text(indoc!("
+                    The name of this output tensor. Running this model will produce a mapping of strings \
+                    to tensors. The keys in this mapping should be the IDs entered in this field."
+                ));
                 self.id_widget.draw_and_parse(ui, id.with("Id"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Description: ");
+                ui.strong("Description: ").on_hover_ui(|ui|{
+                    ui.label(indoc!("
+                        A human-readable description of this output tensor to help users of the model \
+                        understand the semantics of the model outputs."
+                    ));
+                    ui.horizontal(|ui|{
+                        ui.label("E.g.:");
+                        ui.label(egui::RichText::new(indoc!("
+                            'An xyz, float32 tensor with values between 0 and 1.0 representing \
+                            the likelyhood of a pixel being a cell nucleus'"
+                        )).italics());
+                    });
+                });
                 self.description_widget.draw_and_parse(ui, id.with("Description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Axes: ");
+                ui.strong("Axes: ").on_hover_text(indoc!("
+                    A list of axis descriptions that determine how this tensor is to be interpreted. Notice \
+                    that the axis should be given in C-order, i.e., that last axis given is the one that changes \
+                    more quickly when going through the bytes of the tensor.
+                "));
                 self.axes_widget.draw_and_parse(ui, id.with("Axes"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Postprocessing: ");
+                ui.strong("Postprocessing: ").on_hover_text(indoc!("
+                    A list of postprocessing steps that will be applied to this output tensor \
+                    after it is produced by the network models."
+                ));
                 self.postprocessing_widget.draw_and_parse(ui, id.with("postproc".as_ptr()));
             });
             show_if_error(ui, &self.parsed);
