@@ -2,7 +2,6 @@ use std::{borrow::Borrow, io::{Cursor, Read, Seek, Write}, ops::Deref, sync::Arc
 
 use bioimg_spec::rdf;
 use image::codecs::png::PngEncoder;
-use zip::ZipArchive;
 
 use crate::zip_archive_ext::{RdfFileReferenceExt, SharedZipArchive};
 use crate::{zip_archive_ext::RdfFileReferenceReadError, zip_writer_ext::ModelZipWriter, zoo_model::ModelPackingError};

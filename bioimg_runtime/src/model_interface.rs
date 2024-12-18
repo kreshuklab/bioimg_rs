@@ -2,7 +2,6 @@ use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::io::{Seek, Write};
-use std::path::Path;
 use std::sync::Arc;
 
 use bioimg_spec::rdf;
