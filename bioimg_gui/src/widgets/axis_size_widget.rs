@@ -85,6 +85,20 @@ impl StatefulWidget for ParameterizedAxisSizeWidget {
                 ui.strong("Step: ");
                 self.staging_step.draw_and_parse(ui, id.with("Step"));
             });
+
+            if let Ok(min) = self.staging_min.state() {
+                if let Ok(step) = self.staging_step.state(){
+                    let min: usize = min.into();
+                    let step: usize = step.into();
+                    ui.weak(format!(
+                        "Acceptable sizes are {}, {}, {}, {}, etc...",
+                        min,
+                        min + 1 * step,
+                        min + 2 * step,
+                        min + 3 * step,
+                    ));
+                }
+            }
         });
     }
 
