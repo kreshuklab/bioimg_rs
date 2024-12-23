@@ -373,10 +373,13 @@ impl StatefulWidget for OutputTensorWidget {
                     ));
                     ui.horizontal(|ui|{
                         ui.label("E.g.:");
-                        ui.label(egui::RichText::new(indoc!("
-                            'An xyz, float32 tensor with values between 0 and 1.0 representing \
-                            the likelyhood of a pixel being a cell nucleus'"
-                        )).italics());
+                        ui.label(
+                            egui::RichText::new(indoc!("
+                                'An xyz, float32 tensor with values between 0 and 1.0 representing \
+                                the likelyhood of a pixel being a cell nucleus'"
+                            ))
+                            .italics()
+                        );
                     });
                 });
                 self.description_widget.draw_and_parse(ui, id.with("Description"));
