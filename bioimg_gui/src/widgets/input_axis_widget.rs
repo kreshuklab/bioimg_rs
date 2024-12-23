@@ -4,7 +4,7 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model as modelrdf;
 
-use super::axis_physical_size_widget::PhysicalScaleWidget;
+use super::axis_physical_scale_widget::PhysicalScaleWidget;
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_string::StagingString;
