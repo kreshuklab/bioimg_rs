@@ -102,7 +102,7 @@ pub struct CodeEditorWidgetRawData{
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct PhysicalSizeWidgetRawData<T>{
+pub struct PhysicalScaleWidgetRawData<T>{
     pub raw_scale: String,
     pub unit_widget: Option<T>,
 }
@@ -172,7 +172,7 @@ pub struct InputSpaceAxisWidgetRawData {
     pub description_widget: String,
 
     pub size_widget: AnyAxisSizeWidgetRawData,
-    pub physical_size_widget: PhysicalSizeWidgetRawData<modelrdf::SpaceUnit>
+    pub physical_scale_widget: PhysicalScaleWidgetRawData<modelrdf::SpaceUnit>
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -181,7 +181,7 @@ pub struct InputTimeAxisWidgetRawData {
     pub description_widget: String,
 
     pub size_widget: AnyAxisSizeWidgetRawData,
-    pub physical_size_widget: PhysicalSizeWidgetRawData<modelrdf::TimeUnit>,
+    pub physical_scale_widget: PhysicalScaleWidgetRawData<modelrdf::TimeUnit>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -407,8 +407,7 @@ pub struct OutputTimeAxisWidgetRawData {
     pub description_widget: String,
 
     pub size_widget: OutputSpacetimeSizeWidgetRawData,
-    pub unit_widget: Option<modelrdf::TimeUnit>,
-    pub scale_widget: String,
+    pub physical_scale_widget: PhysicalScaleWidgetRawData<modelrdf::TimeUnit>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -417,8 +416,7 @@ pub struct OutputSpaceAxisWidgetRawData {
     pub description_widget: String,
 
     pub size_widget: OutputSpacetimeSizeWidgetRawData,
-    pub unit_widget: Option<modelrdf::SpaceUnit>,
-    pub scale_widget: String,
+    pub physical_scale_widget: PhysicalScaleWidgetRawData<modelrdf::SpaceUnit>
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

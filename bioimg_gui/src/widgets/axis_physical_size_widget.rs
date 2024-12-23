@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use bioimg_spec::rdf::model as modelrdf;
 
-use crate::project_data::PhysicalSizeWidgetRawData;
+use crate::project_data::PhysicalScaleWidgetRawData;
 // use crate::project_data::PhysicalSizeWidgetRawData;
 use crate::result::{Result, GuiError};
 
@@ -11,12 +11,12 @@ use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_opt::StagingOpt;
 use super::{Restore, StatefulWidget, ValueWidget};
 
-pub struct PhysicalSizeWidget<T>{
+pub struct PhysicalScaleWidget<T>{
     pub raw_scale: String,
     pub unit_widget: StagingOpt<SearchAndPickWidget<T>>,
 }
 
-impl<U> ValueWidget for PhysicalSizeWidget<U>
+impl<U> ValueWidget for PhysicalScaleWidget<U>
 where
     U: Default + strum::VariantArray + Clone + Display
 {
@@ -28,15 +28,15 @@ where
     }
 }
 
-impl<T> Restore for PhysicalSizeWidget<T>
+impl<T> Restore for PhysicalScaleWidget<T>
 where
     T: Default + Clone + Restore + strum::VariantArray + Display,
 {
-    type RawData = PhysicalSizeWidgetRawData<T::RawData>;
+    type RawData = PhysicalScaleWidgetRawData<T::RawData>;
 
     fn dump(&self) -> Self::RawData {
         let a = self.unit_widget.dump();
-        PhysicalSizeWidgetRawData{
+        PhysicalScaleWidgetRawData{
             raw_scale: self.raw_scale.clone(),
             unit_widget: a,
         }
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<T> Default for PhysicalSizeWidget<T>
+impl<T> Default for PhysicalScaleWidget<T>
 where
     StagingOpt<SearchAndPickWidget<T>>: Default
 {
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl<U> PhysicalSizeWidget<U>{
+impl<U> PhysicalScaleWidget<U>{
     fn parse_scale(&self) -> Result<modelrdf::AxisScale>{
         if self.raw_scale.is_empty(){
             return Ok(modelrdf::AxisScale::default())
@@ -69,7 +69,7 @@ impl<U> PhysicalSizeWidget<U>{
     }
 }
 
-impl<U> StatefulWidget for PhysicalSizeWidget<U>
+impl<U> StatefulWidget for PhysicalScaleWidget<U>
 where
     U: Default + strum::VariantArray + Clone + Display
 {

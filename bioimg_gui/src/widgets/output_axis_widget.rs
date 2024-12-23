@@ -1,15 +1,16 @@
+use indoc::indoc;
+
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::output_axes::OutputSpacetimeSize;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model::{self as modelrdf, ParameterizedAxisSize};
 
+use super::axis_physical_size_widget::PhysicalScaleWidget;
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::search_and_pick_widget::SearchAndPickWidget;
-use super::staging_float::StagingFloat;
-use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
-use super::axis_widget::{BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
+use super::axis_widget::{axis_description_label, axis_id_label, BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
 use super::util::group_frame;
 use super::{Restore, StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
@@ -63,12 +64,18 @@ impl StatefulWidget for OutputSpacetimeSizeWidget{
         ui.vertical(|ui|{
             self.size_widget.draw_and_parse(ui, id.with("size"));
             ui.horizontal(|ui| {
-                ui.strong("Edges have artifacts: ");
+                ui.strong("Edges have artifacts: ").on_hover_text(indoc!("
+                    If checked, means that this tensor has edge artifact on this axis, and that those should \
+                    be discarded by downstream callers of the model "
+                ));
                 ui.add(egui::widgets::Checkbox::without_text(&mut self.has_halo));
             });
             if self.has_halo {
                 ui.horizontal(|ui| {
-                    ui.strong("Bad pixels counting from the edge: ");
+                    ui.strong("Bad pixels counting from the edge: ").on_hover_text(indoc!("
+                        How many pixels counting from both the start and end of this axis should be discarded \
+                        to avoid edge artifacts"
+                    ));
                     self.halo_widget.draw_and_parse(ui, id.with("halo"));
                 });
             }
@@ -97,21 +104,23 @@ pub struct OutputSpaceAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: OutputSpacetimeSizeWidget,
-    pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
-    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
+    pub physical_scale_widget: PhysicalScaleWidget<modelrdf::SpaceUnit>,
 }
 
 impl OutputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
         self.size_widget.prefil_parameterized(min);
-        self.scale_widget.raw = 1.0.to_string();
+        self.physical_scale_widget.raw_scale = 1.0.to_string();
     }
 
     pub fn set_value(&mut self, value: modelrdf::SpaceOutputAxis){
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
-        self.scale_widget.set_value(value.scale);
+
+        self.physical_scale_widget.set_value(
+            (value.scale, value.unit)
+        );
     }
 }
 
@@ -121,36 +130,32 @@ impl StatefulWidget for OutputSpaceAxisWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui| {
-                ui.strong("Axis Id: ");
+                axis_id_label(ui);
                 self.id_widget.draw_and_parse(ui, id.with("id"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Axis Description: ");
+                axis_description_label(ui);
                 self.description_widget.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Size: ");
+                ui.strong("Size: ").on_hover_text(indoc!("
+                    The output tensor size in this dimension"
+                ));
                 group_frame(ui, |ui|{
                     self.size_widget.draw_and_parse(ui, id.with("size"));
                 });
             });
-            ui.horizontal(|ui| {
-                ui.strong("Unit: ");
-                self.unit_widget.draw_and_parse(ui, id.with("space unit"));
-            });
-            ui.horizontal(|ui| {
-                ui.strong("Scale: ");
-                self.scale_widget.draw_and_parse(ui, id.with("scale"));
-            });
+            self.physical_scale_widget.draw_and_parse(ui, id.with("physical_size"));
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
+        let (scale, unit) = self.physical_scale_widget.state()?;
         Ok(modelrdf::SpaceOutputAxis {
             id: self.id_widget.state()?.clone(),
             description: self.description_widget.state()?.clone(),
-            unit: self.unit_widget.state(),
-            scale: self.scale_widget.state()?,
+            unit,
+            scale,
             size: self.size_widget.state()?,
         })
     }
@@ -162,8 +167,7 @@ pub struct OutputTimeAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: OutputSpacetimeSizeWidget,
-    pub unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
-    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
+    pub physical_scale_widget: PhysicalScaleWidget<modelrdf::TimeUnit>,
 }
 
 impl OutputTimeAxisWidget{
@@ -171,7 +175,7 @@ impl OutputTimeAxisWidget{
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
-        self.scale_widget.set_value(value.scale);
+        self.physical_scale_widget.set_value((value.scale, value.unit));
     }
 }
 impl ValueWidget for OutputAxisWidget{
@@ -208,11 +212,11 @@ impl StatefulWidget for OutputTimeAxisWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui| {
-                ui.strong("Axis Id: ");
+                axis_id_label(ui);
                 self.id_widget.draw_and_parse(ui, id.with("id"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Axis Description: ");
+                axis_description_label(ui);
                 self.description_widget.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
@@ -221,23 +225,17 @@ impl StatefulWidget for OutputTimeAxisWidget{
                     self.size_widget.draw_and_parse(ui, id.with("size"));
                 });
             });
-            ui.horizontal(|ui| {
-                ui.strong("Unit: ");
-                self.unit_widget.draw_and_parse(ui, id.with("time unit"));
-            });
-            ui.horizontal(|ui| {
-                ui.strong("Scale: ");
-                self.scale_widget.draw_and_parse(ui, id.with("scale"));
-            });
+            self.physical_scale_widget.draw_and_parse(ui, id.with("physical_size"));
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
+        let (scale, unit) = self.physical_scale_widget.state()?;
         Ok(modelrdf::TimeOutputAxis {
             id: self.id_widget.state()?.clone(),
             description: self.description_widget.state()?.clone(),
-            unit: self.unit_widget.state(),
-            scale: self.scale_widget.state()?,
+            unit,
+            scale,
             size: self.size_widget.state()?
         })
     }

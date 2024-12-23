@@ -30,7 +30,7 @@ pub fn axis_description_label(ui: &mut egui::Ui) -> egui::Response{
             and forwards on this axis."
         ));
         ui.horizontal_wrapped(|ui|{
-            ui.label("E.g.: For a Spacial Axis named 'z',a description could be: ");
+            ui.label("E.g.: For a Spacial Axis named 'z', a description could be: ");
             ui.label(egui::RichText::new("'Each unit represents 1.3 mm in the positive Sagittal direction'"))
         });
     })
