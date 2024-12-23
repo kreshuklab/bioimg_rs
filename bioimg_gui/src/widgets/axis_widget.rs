@@ -1,3 +1,5 @@
+use indoc::indoc;
+
 use std::num::NonZeroUsize;
 
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
@@ -14,6 +16,25 @@ use super::{Restore, StatefulWidget, ValueWidget};
 use super::{axis_size_widget::AnyAxisSizeWidget, staging_num::StagingNum};
 use crate::project_data::ChannelNamesModeRawData;
 use crate::result::{GuiError, Result};
+
+pub fn axis_id_label(ui: &mut egui::Ui){
+    ui.strong("Axis Id: ").on_hover_text(
+        "The unique name of this axis within the tensor. E.g.: 'x', 't'"
+    );
+}
+
+pub fn axis_description_label(ui: &mut egui::Ui){
+    ui.strong("Axis Description: ").on_hover_ui(|ui|{
+        ui.label(indoc!("
+            The semantic meaning of this axis, i.e. what it means to go backwards \
+            and forwards on this axis."
+        ));
+        ui.horizontal_wrapped(|ui|{
+            ui.label("E.g.: For a Spacial Axis named 'z',a description could be: ");
+            ui.label(egui::RichText::new("'Each unit represents 1.3 mm in the positive Sagittal direction'"))
+        });
+    });
+}
 
 #[derive(Default, Restore)]
 pub struct BatchAxisWidget {
@@ -39,11 +60,14 @@ impl StatefulWidget for BatchAxisWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui| {
-                ui.strong("Axis Description: ");
+                axis_description_label(ui);
                 self.description_widget.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Allow arbitrary batch size: ");
+                ui.strong("Allow arbitrary batch size: ").on_hover_text(indoc!("
+                    Allows the batch size to be arbitrarily determined during inference. \
+                    If left unchecked, the batch size will always be '1'."
+                ));
                 ui.add(egui::widgets::Checkbox::without_text(&mut self.staging_allow_auto_size));
             });
         });
@@ -140,32 +164,42 @@ impl StatefulWidget for ChannelAxisWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui| {
-                ui.strong("Axis Description: ");
+                axis_description_label(ui);
                 self.description_widget.draw_and_parse(ui, id.with("description"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Channel Names: ");
+                ui.strong("Channel Names: ").on_hover_text(indoc!("
+                    An ordered list of channel names. The number of channels in in this tensor will be inferred to \
+                    be the number of channel names defined here"
+                ));
                 self.channel_names_mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
             });
             match self.channel_names_mode_widget.value {
                 ChannelNamesMode::Pattern => {
                     group_frame(ui, |ui|{
                         ui.horizontal(|ui| {
-                            ui.strong("Number of Channels: ");
+                            ui.strong("Number of Channels: ").on_hover_text(
+                                "Number of channels (i.e. the size of the 'channel' dimension) in this Tensor"
+                            );
                             self.channel_extent_widget.draw_and_parse(ui, id.with("extent"));
                         });
                         ui.horizontal(|ui| {
-                            ui.strong("Prefix: ");
+                            ui.strong("Prefix: ").on_hover_text(
+                                "Channel name prefix, prepended to the channel numerical index."
+                            );
                             self.channel_name_prefix_widget.draw_and_parse(ui, id.with("prefix"));
                         });
                         ui.horizontal(|ui| {
-                            ui.strong("Suffix: ");
+                            ui.strong("Suffix: ").on_hover_text(
+                                "Channel name suffix, appended to the channel numerical index."
+                            );
                             self.channel_name_suffix_widget.draw_and_parse(ui, id.with("suffix"));
                         });
-                        if !self.channel_name_prefix_widget.raw.is_empty() || !self.channel_name_suffix_widget.raw.is_empty(){
+                        let prefix = &self.channel_name_prefix_widget.raw;
+                        let suffix = &self.channel_name_suffix_widget.raw;
+                        if !prefix.is_empty() || !suffix.is_empty(){
                             ui.weak(format!(
-                                "e.g.: Channel #7 will be named \"{}7{}\"",
-                                &self.channel_name_prefix_widget.raw, &self.channel_name_suffix_widget.raw,
+                                "e.g.: Channels will be named \"{prefix}0{suffix}\", \"{prefix}1{suffix}\", \"{prefix}2{suffix}\", etc",
                             ));
                         }
                     });
