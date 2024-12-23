@@ -89,7 +89,11 @@ where
             });
             match (self.parse_scale(), self.unit_widget.state()){
                 (Err(e), _) => show_error(ui, e.to_string()),
-                (Ok(_), None) => show_warning(ui, "Having a scale with no unit is allowed, but not recommended"),
+                (Ok(_), None) => {
+                    if !self.raw_scale.is_empty() {
+                        show_warning(ui, "Having a scale with no unit is allowed, but not recommended")
+                    }
+                },
                 (Ok(scale), Some(unit)) => {
                     let raw_scale = f32::from(scale);
                     let pluralizer = if raw_scale >= 1.0 && raw_scale < 2.0 { "" } else { "s" };
