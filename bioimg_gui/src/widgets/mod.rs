@@ -57,6 +57,7 @@ pub mod model_links_widget;
 pub mod test_tensor_widget;
 pub mod zoo_widget;
 pub mod labels;
+pub mod axis_physical_size_widget;
 
 pub trait StatefulWidget {
     type Value<'p>

@@ -23,7 +23,7 @@ pub fn axis_id_label(ui: &mut egui::Ui){
     );
 }
 
-pub fn axis_description_label(ui: &mut egui::Ui){
+pub fn axis_description_label(ui: &mut egui::Ui) -> egui::Response{
     ui.strong("Axis Description: ").on_hover_ui(|ui|{
         ui.label(indoc!("
             The semantic meaning of this axis, i.e. what it means to go backwards \
@@ -33,7 +33,7 @@ pub fn axis_description_label(ui: &mut egui::Ui){
             ui.label("E.g.: For a Spacial Axis named 'z',a description could be: ");
             ui.label(egui::RichText::new("'Each unit represents 1.3 mm in the positive Sagittal direction'"))
         });
-    });
+    })
 }
 
 #[derive(Default, Restore)]

@@ -2,10 +2,9 @@ use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::model::axes::AxisType;
 use bioimg_spec::rdf::model as modelrdf;
 
+use super::axis_physical_size_widget::PhysicalSizeWidget;
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::search_and_pick_widget::SearchAndPickWidget;
-use super::staging_float::StagingFloat;
-use super::staging_opt::StagingOpt;
 use super::staging_string::StagingString;
 use super::staging_vec::ItemWidgetConf;
 use super::axis_widget::{axis_description_label, axis_id_label, BatchAxisWidget, ChannelAxisWidget, IndexAxisWidget};
@@ -20,14 +19,13 @@ pub struct InputSpaceAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: AnyAxisSizeWidget,
-    pub space_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::SpaceUnit>>,
-    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
+    pub physical_size_widget: PhysicalSizeWidget<modelrdf::SpaceUnit>,
 }
 
 impl InputSpaceAxisWidget{
     pub fn prefil_parameterized_size(&mut self, min: usize){
         self.size_widget.prefil_parameterized(min);
-        self.scale_widget.raw = 1.0.to_string();
+        self.physical_size_widget.raw_scale = 1.0.to_string();
     }
 }
 impl ValueWidget for InputSpaceAxisWidget{
@@ -36,8 +34,7 @@ impl ValueWidget for InputSpaceAxisWidget{
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
-        self.space_unit_widget.0 = value.unit.map(|unit| SearchAndPickWidget::from_enum(unit));
-        self.scale_widget.set_value(value.scale);
+        self.physical_size_widget.set_value((value.scale, value.unit));
     }
 }
 
@@ -58,24 +55,18 @@ impl StatefulWidget for InputSpaceAxisWidget{
                 ui.strong("Size: ");
                 self.size_widget.draw_and_parse(ui, id.with("size"));
             });
-            ui.horizontal(|ui| {
-                ui.strong("Unit: ");
-                self.space_unit_widget.draw_and_parse(ui, id.with("space unit"));
-            });
-            ui.horizontal(|ui| {
-                ui.strong("Scale: ");
-                self.scale_widget.draw_and_parse(ui, id.with("scale"));
-            });
+            self.physical_size_widget.draw_and_parse(ui, id.with("physical_size"));
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
+        let (scale, unit) = self.physical_size_widget.state()?;
         Ok(modelrdf::SpaceInputAxis {
             id: self.id_widget.state()?.clone(),
             description: self.description_widget.state()?.clone(),
-            unit: self.space_unit_widget.state(),
-            scale: self.scale_widget.state()?,
-            size: self.size_widget.state()?
+            size: self.size_widget.state()?,
+            scale,
+            unit
         })
     }
 }
@@ -86,8 +77,7 @@ pub struct InputTimeAxisWidget {
     pub description_widget: StagingString<BoundedString<0, 128>>,
 
     pub size_widget: AnyAxisSizeWidget,
-    pub time_unit_widget: StagingOpt<SearchAndPickWidget<modelrdf::TimeUnit>>,
-    pub scale_widget: StagingFloat<modelrdf::AxisScale>,
+    pub physical_size_widget: PhysicalSizeWidget<modelrdf::TimeUnit>,
 }
 
 impl ValueWidget for InputTimeAxisWidget{
@@ -96,8 +86,7 @@ impl ValueWidget for InputTimeAxisWidget{
         self.id_widget.set_value(value.id);
         self.description_widget.set_value(value.description);
         self.size_widget.set_value(value.size);
-        self.time_unit_widget.0 = value.unit.map(|unit| SearchAndPickWidget::from_enum(unit));
-        self.scale_widget.set_value(value.scale);
+        self.physical_size_widget.set_value((value.scale, value.unit));
     }
 }
 
@@ -119,24 +108,18 @@ impl StatefulWidget for InputTimeAxisWidget{
                 ui.strong("Size: ");
                 self.size_widget.draw_and_parse(ui, id.with("size"));
             });
-            ui.horizontal(|ui| {
-                ui.strong("Unit: ");
-                self.time_unit_widget.draw_and_parse(ui, id.with("time unit"));
-            });
-            ui.horizontal(|ui| {
-                ui.strong("Scale: ");
-                self.scale_widget.draw_and_parse(ui, id.with("scale"));
-            });
+            self.physical_size_widget.draw_and_parse(ui, id.with("physical_size"));
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
+        let (scale, unit) = self.physical_size_widget.state()?;
         Ok(modelrdf::TimeInputAxis {
             id: self.id_widget.state()?.clone(),
             description: self.description_widget.state()?.clone(),
-            unit: self.time_unit_widget.state(),
-            scale: self.scale_widget.state()?,
-            size: self.size_widget.state()?
+            size: self.size_widget.state()?,
+            scale,
+            unit,
         })
     }
 }
