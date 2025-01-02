@@ -3,11 +3,14 @@ use std::{fmt::Display, sync::Arc};
 pub type Result<T, E = GuiError> = std::result::Result<T, E>;
 
 #[derive(Debug, Clone)]
-pub struct GuiError(Arc<str>);
+pub struct GuiError{
+    message: Arc<str>,
+    failed_widget_rect: Option<egui::Rect>,
+}
 
 impl Display for GuiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        self.message.fmt(f)
     }
 }
 
@@ -22,9 +25,11 @@ where
 
 impl GuiError {
     pub fn new<S: AsRef<str>>(message: S) -> Self {
-        return Self(Arc::from(message.as_ref()));
+        return Self{ message: Arc::from(message.as_ref()), failed_widget_rect: None };
     }
-    
+    pub fn failed_widget_rect(&self) -> Option<egui::Rect>{
+        self.failed_widget_rect
+    }
 }
 
 pub trait VecResultExt{
