@@ -654,10 +654,9 @@ impl eframe::App for AppState1 {
         }
 
         if self.show_confirmation_dialog {
-            egui::Window::new("Are you sure you want to quit?")
-                .collapsible(false)
-                .resizable(false)
+            egui::Modal::new(egui::Id::from("confirmation dialog"))
                 .show(ctx, |ui| {
+                    ui.label("Are you sure you want to quit?");
                     ui.horizontal(|ui| {
                         if ui.button("No").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                             self.show_confirmation_dialog = false;
