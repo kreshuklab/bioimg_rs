@@ -76,13 +76,13 @@ impl ItemWidgetConf for CollapsibleWidget<InputTensorWidget>{
 
 impl SummarizableWidget for InputTensorWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        self.update();
         match self.state(){
             Ok(slot) => {
                 ui.label(slot.to_string());
             },
             Err(err) => {
-                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
-                ui.label(rich_text);
+                show_error(ui, err);
             }
         }
     }
@@ -270,13 +270,13 @@ impl ItemWidgetConf for CollapsibleWidget<OutputTensorWidget>{
 
 impl SummarizableWidget for OutputTensorWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        self.update();
         match self.state(){
             Ok(slot) => {
                 ui.label(slot.to_string());
             },
             Err(err) => {
-                let rich_text = egui::RichText::new(err.to_string()).color(egui::Color32::RED);
-                ui.label(rich_text);
+                show_error(ui, err);
             }
         }
     }
