@@ -590,7 +590,9 @@ impl eframe::App for AppState1 {
                         intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
                         arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
                         Further, pytorch state dicts essentially require client applications to either be written in Python or \
-                        to ship the Python interpreter embedded into them."
+                        to ship the Python interpreter embedded into them.
+
+                        You can include mutiple flavors of your model weights, but they all MUST produce the same results"
                     ));
                     group_frame(ui, |ui| {
                         self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
