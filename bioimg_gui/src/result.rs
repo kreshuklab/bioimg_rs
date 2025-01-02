@@ -5,7 +5,7 @@ pub type Result<T, E = GuiError> = std::result::Result<T, E>;
 #[derive(Debug, Clone)]
 pub struct GuiError{
     message: Arc<str>,
-    failed_widget_rect: Option<egui::Rect>,
+    pub failed_widget_rect: Option<egui::Rect>,
 }
 
 impl Display for GuiError {
@@ -27,8 +27,8 @@ impl GuiError {
     pub fn new<S: AsRef<str>>(message: S) -> Self {
         return Self{ message: Arc::from(message.as_ref()), failed_widget_rect: None };
     }
-    pub fn failed_widget_rect(&self) -> Option<egui::Rect>{
-        self.failed_widget_rect
+    pub fn new_with_rect<S: AsRef<str>>(message: S, failed_widget_rect: Option<egui::Rect>) -> Self {
+        return Self{ message: Arc::from(message.as_ref()), failed_widget_rect };
     }
 }
 

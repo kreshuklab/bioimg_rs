@@ -187,73 +187,91 @@ impl Default for AppState1 {
 
 impl AppState1{
     pub fn create_model(&self) -> Result<ZooModel>{
-        let model_interface = self.model_interface_widget.state()
-            .as_ref()
-            .map(|interf| interf.clone())
-            .map_err(|_| GuiError::new("Check model interface for errors"))?;
-
+        let name = self.staging_name.state()
+            .cloned()
+            .map_err(|e| GuiError::new_with_rect("Check resoure name for errors", e.failed_widget_rect))?;
+        let description = self.staging_description.state()
+            .cloned()
+            .map_err(|e| GuiError::new_with_rect("Check resource text description for errors", e.failed_widget_rect))?;
         let covers: Vec<_> = self.cover_images.state().into_iter()
             .map(|cover_img_res|{
                 cover_img_res
                     .map(|val| val.clone())
-                    .map_err(|_| GuiError::new("Check cover images for errors"))
+                    .map_err(|e| GuiError::new_with_rect("Check cover images for errors", e.failed_widget_rect))
             })
             .collect::<Result<Vec<_>, _>>()?;
-
+        let model_id = self.model_id_widget.state().transpose()
+            .map_err(|e| GuiError::new_with_rect("Check model id for errors", e.failed_widget_rect))?
+            .cloned();
+        let authors = NonEmptyList::
+            try_from(
+                self.staging_authors.state()
+                    .collect_result()
+                    .map_err(|e| GuiError::new_with_rect("Check authors for errors", e.failed_widget_rect))?
+            )
+            .map_err(|_| GuiError::new("Empty authors"))?;
         let attachments = self.attachments_widget.state()
             .collect_result()
-            .map_err(|_| GuiError::new("Check model attachments for errors"))?;
-
-        let cite = self.staging_citations.state().collect_result().map_err(|_| GuiError::new("Check cites for errors"))?;
+            .map_err(|e| GuiError::new_with_rect("Check model attachments for errors", e.failed_widget_rect))?;
+        let cite = self.staging_citations.state()
+            .collect_result()
+            .map_err(|e| GuiError::new_with_rect("Check cites for errors", e.failed_widget_rect))?;
         let non_empty_cites = NonEmptyList::try_from(cite)
             .map_err(|_| GuiError::new("Cites are empty"))?;
-
+        let config = self.custom_config_widget.state().cloned()
+            .transpose()
+            .map_err(|e| GuiError::new_with_rect("Check custom configs for errors", e.failed_widget_rect))?
+            .unwrap_or(serde_json::Map::default());
+        let git_repo = self.staging_git_repo.state()
+            .transpose()
+            .map_err(|e| GuiError::new_with_rect("Check git repo field for errors", e.failed_widget_rect))?
+            .map(|val| val.as_ref().clone());
+        let icon = self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors"))?;
+        let links = self.links_widget.state()
+            .collect_result()
+            .map_err(|e| GuiError::new_with_rect("Check links for errors", e.failed_widget_rect))?
+            .into_iter()
+            .map(|s| s.clone())
+            .collect();
+        let maintainers = self.staging_maintainers.state().collect_result()
+            .map_err(|e| GuiError::new_with_rect("Check maintainers field for errors", e.failed_widget_rect))?;
         let tags: Vec<rdf::Tag> = self.staging_tags.state()
             .into_iter()
             .map(|res_ref| res_ref.cloned())
             .collect::<Result<Vec<_>>>()
-            .map_err(|_| GuiError::new("Check tags for errors"))?;
-
-        let authors = NonEmptyList::try_from(
-            self.staging_authors.state().collect_result().map_err(|_| GuiError::new("Check authors for errors"))?
-        ).map_err(|_| GuiError::new("Empty authors"))?;
+            .map_err(|e| GuiError::new_with_rect("Check tags for errors", e.failed_widget_rect))?;
+        let version = self.staging_version.state()
+            .transpose()
+            .map_err(|e| GuiError::new_with_rect("Review resource version field", e.failed_widget_rect))?
+            .cloned();
+        let documentation = self.staging_documentation.state().to_owned();
+        let license = self.staging_license.state();
+        let model_interface = self.model_interface_widget.state()
+            .as_ref()
+            .map(|interf| interf.clone())
+            .map_err(|_| GuiError::new("Check model interface for errors"))?;
+        let weights = self.weights_widget.state()
+            .map_err(|e| GuiError::new_with_rect("Check model weights for errors", e.failed_widget_rect))?
+            .as_ref().clone();
 
         Ok(ZooModel {
-            description: self.staging_description.state()
-                .cloned()
-                .map_err(|_| GuiError::new("Check resource text description for errors"))?,
+            name,
+            description,
             covers,
             attachments,
             cite: non_empty_cites,
-            config: self.custom_config_widget.state().cloned()
-                .transpose()
-                .map_err(|_| GuiError::new("Check custom configs for errors"))?
-                .unwrap_or(serde_json::Map::default()),
-            git_repo: self.staging_git_repo.state()
-                .transpose()
-                .map_err(|_| GuiError::new("Check git repo field for errors"))?
-                .map(|val| val.as_ref().clone()),
-            icon: self.icon_widget.state().transpose().map_err(|_| GuiError::new("Check icons field for errors"))?,
-            links: self.links_widget.state()
-                    .collect_result()
-                    .map_err(|_| GuiError::new("Check links for errors"))?
-                    .into_iter()
-                    .map(|s| s.clone())
-                    .collect(),
-            maintainers: self.staging_maintainers.state().collect_result().map_err(|_| GuiError::new("Check maintainers field for errors"))?,
+            config,
+            git_repo,
+            icon,
+            links,
+            maintainers,
             tags,
-            version: self.staging_version.state()
-                .transpose()
-                .map_err(|_| GuiError::new("Review resource version field"))?
-                .cloned(),
+            version,
             authors,
-            documentation: self.staging_documentation.state().to_owned(),
-            license: self.staging_license.state(),
-            name: self.staging_name.state()
-                .cloned()
-                .map_err(|_| GuiError::new("Check resoure name for errors"))?,
-            id: self.model_id_widget.state().transpose().map_err(|_| GuiError::new("Check model id for errors"))?.cloned(),
-            weights: self.weights_widget.state().map_err(|_| GuiError::new("Check model weights for errors"))?.as_ref().clone(),
+            documentation,
+            license,
+            id: model_id,
+            weights,
             interface: model_interface,
         })
     }
@@ -591,7 +609,9 @@ impl eframe::App for AppState1 {
                             TaskResult::ModelImport(model) => self.set_value(*model),
                         }
                     }
-                    self.notifications_widget.draw(ui, egui::Id::from("messages_widget"));
+                    if let Some(error_rect) = self.notifications_widget.draw(ui, egui::Id::from("messages_widget")){
+                        ui.scroll_to_rect(error_rect, None);
+                    }
 
                     self.model_packing_status = match std::mem::take(&mut self.model_packing_status) {
                         PackingStatus::Done => 'done: {
@@ -601,7 +621,7 @@ impl eframe::App for AppState1 {
                             let zoo_model = match self.create_model(){
                                 Ok(zoo_model) => zoo_model,
                                 Err(err) => {
-                                    self.notifications_widget.push_message(Err(err.to_string()));
+                                    self.notifications_widget.push_gui_error(err);
                                     break 'done PackingStatus::Done;
                                 }
                             };
