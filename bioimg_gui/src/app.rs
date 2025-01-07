@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
@@ -30,6 +29,7 @@ use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
+use crate::widgets::util::TaskChannel;
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::zoo_widget::{upload_model, ZooLoginWidget};
@@ -54,20 +54,6 @@ enum PackingStatus {
 pub enum TaskResult{
     Notification(Result<String, String>),
     ModelImport(Box<rt::zoo_model::ZooModel>),
-}
-
-pub struct TaskChannel{
-    sender: Sender<TaskResult>,
-    receiver: Receiver<TaskResult>
-}
-
-impl Default for TaskChannel{
-    fn default() -> Self {
-        let (sender, receiver) = std::sync::mpsc::channel();
-        Self{
-            sender, receiver
-        }
-    }
 }
 
 #[derive(Restore)]
@@ -102,7 +88,7 @@ pub struct AppState1 {
     #[restore_default]
     pub notifications_widget: NotificationsWidget,
     #[restore_default]
-    pub notifications_channel: TaskChannel,
+    pub notifications_channel: TaskChannel<TaskResult>,
     #[restore_default]
     model_packing_status: PackingStatus,
     #[restore_default]
@@ -336,7 +322,7 @@ impl eframe::App for AppState1 {
                             }
                         };
                         let user_token = user_token.as_ref().clone();
-                        let sender = self.notifications_channel.sender.clone();
+                        let sender = self.notifications_channel.sender().clone();
                         let on_progress = move |msg: String|{
                             sender.send(TaskResult::Notification(Ok(msg))).unwrap(); //FIXME: is there anything sensible to do if this fails?
                         };
@@ -364,7 +350,7 @@ impl eframe::App for AppState1 {
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Model").clicked() {
                         ui.close_menu();
-                        let sender = self.notifications_channel.sender.clone();
+                        let sender = self.notifications_channel.sender().clone();
 
                         #[cfg(target_arch="wasm32")]
                         wasm_bindgen_futures::spawn_local(async move {
@@ -605,7 +591,7 @@ impl eframe::App for AppState1 {
                         .on_hover_text("Save this model to a .zip file, ready to be used or uploaded to the Model Zoo")
                         .clicked();
 
-                    while let Ok(msg) = self.notifications_channel.receiver.try_recv(){
+                    while let Ok(msg) = self.notifications_channel.receiver().try_recv(){
                         match msg{
                             TaskResult::Notification(msg) => self.notifications_widget.push_message(msg),
                             TaskResult::ModelImport(model) => self.set_value(*model),

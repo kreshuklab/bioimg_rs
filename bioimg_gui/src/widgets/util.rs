@@ -1,3 +1,5 @@
+use std::sync::mpsc::{Receiver, Sender};
+
 use egui::InnerResponse;
 
 pub trait DynamicImageExt {
@@ -31,4 +33,25 @@ pub fn group_frame<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui
     let line_end = line_start + egui::Vec2 { x: 0.0, y: response_rect.height() };
     ui.painter().line_segment([line_start, line_end], ui.visuals().window_stroke);
     response
+}
+
+pub struct TaskChannel<T>{
+    sender: Sender<T>,
+    receiver: Receiver<T>
+}
+
+impl<T> TaskChannel<T>{
+    pub fn sender(&self) -> &Sender<T>{
+        &self.sender
+    }
+    pub fn receiver(&self) -> &Receiver<T>{
+        &self.receiver
+    }
+}
+
+impl<T> Default for TaskChannel<T>{
+    fn default() -> Self {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        Self{sender, receiver}
+    }
 }
