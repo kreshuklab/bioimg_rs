@@ -2,7 +2,7 @@ use std::{borrow::Borrow, error::Error, fmt::Display, str::FromStr};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::{show_error, show_if_error}, Restore, StatefulWidget, ValueWidget};
+use super::{error_display::show_error, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug)]
 pub enum InputLines {
