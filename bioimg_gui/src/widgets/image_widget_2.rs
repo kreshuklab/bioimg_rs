@@ -1,12 +1,20 @@
-use std::{borrow::Borrow, error::Error, io::Cursor, sync::Arc};
+use std::borrow::Borrow;
+use std::sync::Arc;
+use std::io::Cursor;
+use std::error::Error;
 
-use poll_promise as pp;
-use bioimg_runtime as rt;
+use image::GenericImageView;
+use parking_lot as pl;
+use bioimg_runtime::{self as rt, FileSource};
 
 use crate::{project_data::{ImageWidget2LoadingStateRawData, ImageWidget2RawData, SpecialImageWidgetRawData}, result::{GuiError, Result}};
-use super::{error_display::show_error, file_source_widget::FileSourceWidget, util::DynamicImageExt, Restore, StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
+use super::error_display::show_error;
+use super::file_source_widget::FileSourceWidget;
+use super::util::DynamicImageExt;
 
 pub type ArcDynImg = Arc<image::DynamicImage>;
+pub type Generation = i64;
 
 pub struct Texture{
     name: String,
@@ -46,42 +54,49 @@ impl Drop for Texture {
 enum LoadingState{
     #[default]
     Empty,
-    Loading{source: rt::FileSource, promise: pp::Promise<Result<(ArcDynImg, Texture)>>},
-    Ready{source: rt::FileSource, img: ArcDynImg, texture: Texture},
+    Loading{source: rt::FileSource},
+    Ready{source: rt::FileSource, img: ArcDynImg, texture: Option<Texture>},
     Forced{img: ArcDynImg, texture: Option<Texture>},
     Failed{source: rt::FileSource, err: GuiError},
 }
 
 impl LoadingState{
-    pub fn loading(file_source: rt::FileSource, context: egui::Context) -> Self{
-        LoadingState::Loading {
-            promise: {
-                let file_source = file_source.clone();
-                pp::Promise::spawn_thread(file_source.to_string(), move ||{
-                    let mut img_data = Vec::<u8>::new();
-                    file_source.read_to_end(&mut img_data)?;
-                    let img = image::io::Reader::new(Cursor::new(img_data)).with_guessed_format()?.decode()?;
-                    let texture = Texture::load(&img, context);
-                    Ok((Arc::new(img), texture))
-                })
-            },
-            source: file_source,
+    pub fn file_source(&self) -> Option<&FileSource>{
+        match self {
+            Self::Empty => None,
+            Self::Loading { source } => Some(source),
+            Self::Ready { source, ..} => Some(source),
+            Self::Forced { .. } => None,
+            Self::Failed { source, .. } => Some(source)
         }
+    }
+    pub fn is_loading(&self) -> bool{
+        matches!(self, Self::Loading{..})
     }
 }
 
-#[derive(Default)]
 pub struct ImageWidget2{
     file_source_widget: FileSourceWidget,
-    loading_state: LoadingState,
+    loading_state: Arc<pl::Mutex<(Generation, LoadingState)>>,
+}
+
+impl Default for ImageWidget2{
+    fn default() -> Self {
+        Self{
+            file_source_widget: Default::default(),
+            loading_state: Arc::new(pl::Mutex::new((0, Default::default())))
+        }
+    }
 }
 
 impl Restore for ImageWidget2{
     type RawData = ImageWidget2RawData;
     fn dump(&self) -> Self::RawData {
+        let loading_state_guard = self.loading_state.lock();
+        let loading_state: &(_, LoadingState) = &*loading_state_guard;
         ImageWidget2RawData{
             file_source_widget: self.file_source_widget.dump(),
-            loading_state: match &self.loading_state{
+            loading_state: match &loading_state.1{
                 LoadingState::Forced{img, ..} => {
                     let mut raw_out = Vec::<u8>::new();
                     if let Err(err) = img.write_to(&mut Cursor::new(&mut raw_out), image::ImageFormat::Png){
@@ -95,22 +110,21 @@ impl Restore for ImageWidget2{
     }
     fn restore(&mut self, raw: Self::RawData) {
         self.file_source_widget.restore(raw.file_source_widget);
-        match raw.loading_state{
-            ImageWidget2LoadingStateRawData::Empty => {
-                self.loading_state = LoadingState::Empty;
-            },
+        let loading_state = match raw.loading_state{
+            ImageWidget2LoadingStateRawData::Empty => LoadingState::Empty,
             ImageWidget2LoadingStateRawData::Forced { img_bytes } => 'forced: {
                 let Ok(reader) = image::io::Reader::new(Cursor::new(img_bytes)).with_guessed_format() else {
                     eprintln!("[WARNING] Could not guess format of saved image");
-                    break 'forced;
+                    break 'forced LoadingState::Empty;
                 };
                 let Ok(image) = reader.decode() else {
                     eprintln!("[WARNING] Could not decoded saved image");
-                    break 'forced;
+                    break 'forced LoadingState::Empty;
                 };
-                self.loading_state = LoadingState::Forced { img: Arc::new(image), texture: None };
+                LoadingState::Forced { img: Arc::new(image), texture: None }
             }
-        }
+        };
+        self.loading_state = Arc::new(pl::Mutex::new((0, loading_state)));
     }
 }
 
@@ -121,59 +135,49 @@ impl ValueWidget for ImageWidget2{
         match value{
             (None, Some(img)) => {
                 self.file_source_widget = Default::default();
-                self.loading_state = LoadingState::Forced { img, texture: None};
+                self.loading_state = Arc::new(pl::Mutex::new((0, LoadingState::Forced { img, texture: None})));
             },
             (None, None) => {
                 self.file_source_widget = Default::default();
-                self.loading_state = LoadingState::Empty;
+                self.loading_state = Arc::new(pl::Mutex::new((0, LoadingState::Empty)));
             },
             (Some(file_source), _) => {
                 self.file_source_widget.set_value(file_source);
-                self.loading_state = LoadingState::Empty;
+                self.loading_state = Arc::new(pl::Mutex::new((0, LoadingState::Empty)));
             }
         }
-        self.update();
+        // self.update(); //FIXME: call once set_value takes a context
     }
 }
 
 impl ImageWidget2{
-    pub fn update(&mut self){
-        self.file_source_widget.update();
-        let file_source_res = self.file_source_widget.state();
-        self.loading_state = match (std::mem::take(&mut self.loading_state), file_source_res){
-            (LoadingState::Empty, _) => LoadingState::Empty,
-            (LoadingState::Loading{..}, Err(_)) => LoadingState::Empty,
-            (LoadingState::Failed{..}, Err(_)) => LoadingState::Empty,
-            (LoadingState::Ready{..}, Err(_)) => LoadingState::Empty,
-            (LoadingState::Loading { source, promise }, Ok(new_source)) => 'loading_ok: {
-                if source != new_source{
-                    break 'loading_ok LoadingState::Empty;
-                }
-                match promise.try_take(){
-                    Err(promise) => LoadingState::Loading{ source, promise },
-                    Ok(Err(err)) => LoadingState::Failed{ source, err },
-                    Ok(Ok((img, texture))) => LoadingState::Ready{source, img, texture},
-                }
-            },
-            (LoadingState::Failed{source, err}, Ok(new_source)) => {
-                if source == new_source{
-                    LoadingState::Failed { source, err }
-                }else{
-                    LoadingState::Empty
-                }
-            },
-            (LoadingState::Ready{source, img, texture}, Ok(new_source)) => {
-                if new_source == source{
-                    LoadingState::Ready{source, img, texture}
-                }else{
-                    LoadingState::Empty
-                }
-            },
-            (LoadingState::Forced { img, texture }, Err(_)) => { //FIXME: maybe check for source emptyness instead of just Err
-                LoadingState::Forced { img,  texture }
-            },
-            (LoadingState::Forced{..}, Ok(_)) => LoadingState::Empty,
+    pub fn update(&self, ctx: &egui::Context){
+        if self.loading_state.lock().1.is_loading(){ //FIXME: only on loading?
+            ctx.request_repaint();
         }
+    }
+    fn spawn_load_image_task(
+        generation: Generation,
+        file_source: FileSource,
+        loading_state: Arc<pl::Mutex<(Generation, LoadingState)>>,
+    ){
+        std::thread::spawn(move ||{
+            let res = || -> Result<ArcDynImg>{
+                let mut img_data = Vec::<u8>::new();
+                file_source.read_to_end(&mut img_data)?;
+                let img = image::io::Reader::new(Cursor::new(img_data)).with_guessed_format()?.decode()?;
+                Ok(Arc::new(img))
+            }();
+            let mut guard = loading_state.lock();
+            if guard.0 > generation {
+                eprintln!("Dropping stale image: {file_source:?}");
+                return
+            }
+            guard.1 = match res{
+                Err(e) => LoadingState::Failed { source: file_source, err: e },
+                Ok(img) => LoadingState::Ready { source: file_source, img, texture: None },
+            };
+        });
     }
 }
 
@@ -181,49 +185,67 @@ impl StatefulWidget for ImageWidget2{
     type Value<'p> = Result<Arc<image::DynamicImage>>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        self.update(); //FIXME: don't call update on draw
+        let mut loading_state_guard = self.loading_state.lock();
+        let gen_state: &mut (Generation, LoadingState) = &mut *loading_state_guard;
+        let generation: &mut Generation = &mut gen_state.0;
+        let loading_state: &mut LoadingState = &mut gen_state.1;
+
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
-                self.loading_state = match std::mem::take(&mut self.loading_state){
-                    LoadingState::Empty => {
-                        match self.file_source_widget.state(){
-                            Ok(file_source) => {
-                                //we need to check this on draw instead of update because we need the Context to load the texture
-                                ui.ctx().request_repaint();
-                                LoadingState::loading(file_source, ui.ctx().clone())
-                            },
-                            Err(_) => LoadingState::Empty,
+
+                if let Ok(file_source) = self.file_source_widget.state() { 'needs_reload: {
+                    if let Some(fs) = loading_state.file_source() {
+                        if *fs == file_source{
+                            eprintln!("Reload dismissed!!");
+                            break 'needs_reload
                         }
-                    },
-                    LoadingState::Loading{source, promise} => {
+                    }
+                    //FIXME: this logic should also trigger on restore, but we'd need an egui::Context
+                    eprintln!("Reload REQUIRED, dispatching thread!!");
+                    *generation += 1;
+                    *loading_state = LoadingState::Loading{ source: file_source.clone() };
+                    Self::spawn_load_image_task(
+                        *generation,
+                        file_source,
+                        Arc::clone(&self.loading_state)
+                    );
+                }}
+
+                match loading_state {
+                    LoadingState::Empty => (),
+                    LoadingState::Loading{ .. } => {
                         ui.ctx().request_repaint();
                         ui.weak("Loading...");
-                        LoadingState::Loading { source, promise }
                     },
-                    LoadingState::Ready{source, img, texture} => {
-                        texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
-                        LoadingState::Ready{source, img, texture}
+                    LoadingState::Ready{ img, texture, ..} => {
+                        let tex = texture.get_or_insert_with(|| Texture::load(img, ui.ctx().clone()));
+                        let (width, height) = img.dimensions();
+                        let ratio =  height as f64 / width as f64;
+                        tex.show(ui, egui::Vec2 { x: 50.0, y: 50.0 * ratio as f32 }); //FIXME: can we not hardcode this?
                     },
-                    LoadingState::Forced { img, texture } => { //FIXME: maybe check for source emptyness instead of just Err
-                        let texture = texture.unwrap_or_else(|| Texture::load(&img, ui.ctx().clone()));
-                        texture.show(ui, egui::Vec2 { x: 50.0, y: 50.0 }); //FIXME
-                        LoadingState::Forced { img,  texture: Some(texture) }
+                    LoadingState::Forced { img, texture } => {
+                        let tex = texture.get_or_insert_with(|| Texture::load(img, ui.ctx().clone()));
+                        let (width, height) = img.dimensions();
+                        let ratio =  height as f64 / width as f64;
+                        tex.show(ui, egui::Vec2 { x: 50.0, y: 50.0 * ratio as f32 }); //FIXME: can we not hardcode this?
                     },
-                    LoadingState::Failed { source, err } => {
-                        //will render error later so it shows under the button
-                        LoadingState::Failed { source, err }
-                    }
-                }
+                    LoadingState::Failed { .. } => (), //will render later so erro shows under the button
+                };
             });
-            if let LoadingState::Failed{err, ..} = &self.loading_state{
+
+            if let LoadingState::Failed{ err, .. } = loading_state {
                 show_error(ui, err);
             }
         });
+
+        self.update(&ui.ctx()); //FIXME: maybe don't call update on draw?
     }
 
     fn state(&self) -> Result<ArcDynImg>{
-        match &self.loading_state{
+        let loading_state_guard = self.loading_state.lock();
+        let loading_state: &(_, LoadingState) = &*loading_state_guard;
+        match &loading_state.1{
             LoadingState::Empty | LoadingState::Loading { .. } => Err(GuiError::new("Empty".to_owned())),
             LoadingState::Failed { err, .. } => Err(err.clone()),
             LoadingState::Ready { img, .. } => Ok(img.clone()),
