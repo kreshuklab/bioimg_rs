@@ -1,14 +1,16 @@
 use std::io::{Cursor, Read};
+use std::ops::Deref;
 use std::time::Instant;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use bioimg_runtime::{npy_array::ArcNpyArray, zip_archive_ext::SeekReadSend, NpyArray};
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard, RawMutex};
+use bioimg_runtime::{npy_array::ArcNpyArray, NpyArray};
+use parking_lot as pl;
 
 use crate::{project_data::TestTensorWidgetRawData, result::GuiError};
 
-use super::{error_display::show_error, util::TaskChannel, Restore, StatefulWidget, ValueWidget};
+use super::util::GenCell;
+use super::{error_display::show_error, Restore, StatefulWidget, ValueWidget};
 
 
 #[derive(Default)]
@@ -20,15 +22,13 @@ pub enum TestTensorWidgetState{
 }
 
 pub struct TestTensorWidget{
-    state: Arc<Mutex<(Instant, TestTensorWidgetState)>>,
+    state: Arc<pl::Mutex<GenCell<TestTensorWidgetState>>>,
 }
 
 impl Default for TestTensorWidget{
     fn default() -> Self {
         Self{
-            state: Arc::new(Mutex::new(
-                (Instant::now(), Default::default()))
-            ),
+            state: Arc::new(pl::Mutex::new(GenCell::new(Default::default()))),
         }
     }
 }
@@ -38,9 +38,9 @@ impl ValueWidget for TestTensorWidget{
     type Value<'v> = ArcNpyArray;
 
     fn set_value<'v>(&mut self, data: Self::Value<'v>) {
-        self.state = Arc::new(Mutex::new(
-            (Instant::now(), TestTensorWidgetState::Loaded { path: None, data})
-        ));
+        self.state = Arc::new(pl::Mutex::new(GenCell::new(
+            TestTensorWidgetState::Loaded { path: None, data}
+        )));
     }
 
 }
@@ -49,7 +49,9 @@ impl Restore for TestTensorWidget{
     type RawData = TestTensorWidgetRawData;
 
     fn dump(&self) -> Self::RawData {
-        match &*self.state(){
+        let state_guard = self.state();
+        let state: &TestTensorWidgetState = state_guard.deref();
+        match state{
             TestTensorWidgetState::Empty  | &TestTensorWidgetState::Error { .. }=> TestTensorWidgetRawData::Empty,
             TestTensorWidgetState::Loaded { path, data } => TestTensorWidgetRawData::Loaded {
                 path: path.clone(),
@@ -63,16 +65,16 @@ impl Restore for TestTensorWidget{
     }
 
     fn restore(&mut self, raw: Self::RawData) {
-        self.state = Arc::new(Mutex::new(match raw{
-            TestTensorWidgetRawData::Empty => (Instant::now(), TestTensorWidgetState::Empty),
+        self.state = Arc::new(pl::Mutex::new(GenCell::new(match raw{
+            TestTensorWidgetRawData::Empty => TestTensorWidgetState::Empty,
             TestTensorWidgetRawData::Loaded { path, data } => {
                 let state = match NpyArray::try_load(Cursor::new(data)){
                     Ok(data) => TestTensorWidgetState::Loaded { path, data: Arc::new(data) },
                     Err(_e) => TestTensorWidgetState::Error { message: "Could not deserialize npy data".to_owned() }
                 };
-                (Instant::now(), state)
+                state
             }
-        }));
+        })));
     }
 }
 
@@ -83,13 +85,8 @@ impl TestTensorWidget{
         let data = NpyArray::try_load(&mut data.as_slice())?;
         Ok(Arc::new(data))
     }
-    pub fn with_state<F: FnOnce(&TestTensorWidgetState)>(&self, f: F){
-        let guard = self.state.lock();
-        f(&guard.1)
-    }
-    pub fn state(&self) -> MappedMutexGuard<'_, TestTensorWidgetState>{
-        let guard = self.state.lock();
-        MutexGuard::map(guard, |state| &mut state.1)
+    pub fn state(&self) -> pl::MutexGuard<'_, GenCell<TestTensorWidgetState>>{
+        self.state.lock()
     }
 
 }
@@ -100,21 +97,18 @@ impl StatefulWidget for TestTensorWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.horizontal(|ui|{
             if ui.button("Open...").clicked(){
+                let timestamp = Instant::now();
                 let current_state = Arc::clone(&self.state);
                 #[cfg(not(target_arch="wasm32"))]
                 std::thread::spawn(move ||{
                     let Some(path) = rfd::FileDialog::new().add_filter("numpy array", &["npy"],).pick_file() else {
-                        *current_state.lock() = (Instant::now(), TestTensorWidgetState::Empty);
+                        current_state.lock().maybe_set(timestamp, TestTensorWidgetState::Empty);
                         return
                     };
-                    let instant = Instant::now();
                     let file = match std::fs::File::open(&path){
                         Ok(file) => file,
                         Err(e) => {
-                            let mut guard = current_state.lock();
-                            if instant > guard.0{
-                                *guard = (instant, TestTensorWidgetState::Error{ message: e.to_string()});
-                            }
+                            current_state.lock().maybe_set(timestamp, TestTensorWidgetState::Error{message: e.to_string()});
                             return
                         }
                     };
@@ -123,10 +117,7 @@ impl StatefulWidget for TestTensorWidget{
                         Ok(data) => TestTensorWidgetState::Loaded { path: Some(path.to_owned()), data },
                         Err(e) => TestTensorWidgetState::Error { message: e.to_string() }
                     };
-                    let mut guard = current_state.lock();
-                    if instant > guard.0{
-                        *guard = (instant, new_state);
-                    }
+                    current_state.lock().maybe_set(timestamp, new_state);
                 });
                 #[cfg(target_arch="wasm32")]
                 wasm_bindgen_futures::spawn_local(async move {
@@ -143,7 +134,8 @@ impl StatefulWidget for TestTensorWidget{
                     sender.send(task).unwrap();
                 })
             }
-            match &*self.state(){
+            
+            match (&*self.state()).deref(){
                 TestTensorWidgetState::Empty => (),
                 TestTensorWidgetState::Loaded { path, data } => {
                     let shape = data.shape();
@@ -173,7 +165,7 @@ impl StatefulWidget for TestTensorWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        match &*self.state(){
+        match (&*self.state()).deref(){
             TestTensorWidgetState::Empty => Err(GuiError::new("Empty")),
             TestTensorWidgetState::Error { message } => Err(GuiError::new(message)),
             TestTensorWidgetState::Loaded { data, .. } => Ok(Arc::clone(data)),
