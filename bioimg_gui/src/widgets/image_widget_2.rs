@@ -160,6 +160,7 @@ impl ImageWidget2{
         generation: Generation,
         file_source: FileSource,
         loading_state: Arc<pl::Mutex<(Generation, LoadingState)>>,
+        ctx: egui::Context,
     ){
         std::thread::spawn(move ||{
             let res = || -> Result<ArcDynImg>{
@@ -177,6 +178,7 @@ impl ImageWidget2{
                 Err(e) => LoadingState::Failed { source: file_source, err: e },
                 Ok(img) => LoadingState::Ready { source: file_source, img, texture: None },
             };
+            ctx.request_repaint();
         });
     }
 }
@@ -208,7 +210,8 @@ impl StatefulWidget for ImageWidget2{
                     Self::spawn_load_image_task(
                         *generation,
                         file_source,
-                        Arc::clone(&self.loading_state)
+                        Arc::clone(&self.loading_state),
+                        ui.ctx().clone(),
                     );
                 }}
 
