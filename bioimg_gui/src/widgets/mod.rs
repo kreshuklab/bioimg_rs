@@ -10,7 +10,6 @@ pub mod cover_image_widget;
 pub mod error_display;
 pub mod file_widget;
 pub mod functional;
-pub mod gui_npy_array;
 pub mod icon_widget;
 pub mod inout_tensor_widget;
 pub mod maintainer_widget;
