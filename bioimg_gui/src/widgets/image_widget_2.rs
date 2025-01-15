@@ -241,8 +241,6 @@ impl StatefulWidget for ImageWidget2{
                 show_error(ui, err);
             }
         });
-
-        self.update(&ui.ctx()); //FIXME: maybe don't call update on draw?
     }
 
     fn state(&self) -> Result<ArcDynImg>{
