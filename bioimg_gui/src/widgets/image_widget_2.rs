@@ -70,9 +70,6 @@ impl LoadingState{
             Self::Failed { source, .. } => Some(source)
         }
     }
-    pub fn is_loading(&self) -> bool{
-        matches!(self, Self::Loading{..})
-    }
 }
 
 pub struct ImageWidget2{
@@ -151,11 +148,6 @@ impl ValueWidget for ImageWidget2{
 }
 
 impl ImageWidget2{
-    pub fn update(&self, ctx: &egui::Context){
-        if self.loading_state.lock().1.is_loading(){ //FIXME: only on loading?
-            ctx.request_repaint();
-        }
-    }
     fn spawn_load_image_task(
         generation: Generation,
         file_source: FileSource,
