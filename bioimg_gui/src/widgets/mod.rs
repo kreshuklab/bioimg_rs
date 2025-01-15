@@ -28,7 +28,6 @@ pub mod attachments_widget;
 pub mod tags_widget;
 pub mod channel_name_widget;
 pub mod notice_widget;
-pub mod image_widget;
 pub mod output_axis_widget;
 pub mod input_axis_widget;
 pub mod preprocessing_widget;
