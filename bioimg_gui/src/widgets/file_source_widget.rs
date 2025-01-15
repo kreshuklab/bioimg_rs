@@ -1,12 +1,18 @@
-use std::{marker::PhantomData, path::{Path, PathBuf}, sync::Arc};
+use std::marker::PhantomData;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::path::Path;
 
-use bioimg_runtime::{self as rt, zip_archive_ext::{SharedZipArchive, ZipArchiveIdentifier}};
+use parking_lot as pl;
 
-use crate::{
-    project_data::{FileSourceWidgetRawData, LocalFileSourceWidgetRawData},
-    result::{GuiError, Result},
-    widgets::popup_widget::draw_fullscreen_popup,
-};
+use bioimg_runtime as rt;
+use bioimg_runtime::zip_archive_ext::ZipArchiveIdentifier;
+use bioimg_runtime::zip_archive_ext::SharedZipArchive;
+
+use crate::project_data::{FileSourceWidgetRawData, LocalFileSourceWidgetRawData};
+use crate::result::{GuiError, Result};
+use crate::widgets::popup_widget::draw_fullscreen_popup;
+
 use super::{
     error_display::show_error,
     popup_widget::PopupResult,
@@ -17,29 +23,37 @@ use super::{
 
 
 #[derive(Default)]
-pub enum LocalFileSourceWidget{
+pub enum LocalFileState{
     #[default]
     Empty,
     Failed(GuiError),
-    AboutToLoad{path: Arc<Path>, inner_path: Option<String>},
-    LoadingExternal{path: Arc<Path>, promise: poll_promise::Promise<Box<Self>>},
     PickedNormalFile{path: Arc<Path>},
     PickedEmptyZip{path: Arc<Path>},
     PickingInner{archive: SharedZipArchive, inner_options_widget: SearchAndPickWidget<String>}
 }
 
+pub struct LocalFileSourceWidget{
+    state: Arc<pl::Mutex<(i64, LocalFileState)>>,
+}
+
+impl Default for LocalFileSourceWidget{
+    fn default() -> Self {
+        let state = (0, LocalFileState::default());
+        Self{ state: Arc::new(pl::Mutex::new(state)) }
+    }
+}
+
 impl Restore for LocalFileSourceWidget{
     type RawData = LocalFileSourceWidgetRawData;
     fn dump(&self) -> Self::RawData {
-        match self{
-            Self::Empty | Self::Failed(_) => Self::RawData::Empty,
-            Self::AboutToLoad { path, inner_path } => {
-                Self::RawData::AboutToLoad{path: path.to_string_lossy().into(), inner_path: inner_path.clone()}
-            },
-            Self::LoadingExternal{path, ..} | Self::PickedNormalFile {path} | Self::PickedEmptyZip {path} => {
+        let guard = self.state.lock();
+        let gen_state: &(i64, LocalFileState) = &*guard;
+        match &gen_state.1{
+            LocalFileState::Empty | LocalFileState::Failed(_) => Self::RawData::Empty,
+            LocalFileState::PickedNormalFile {path} | LocalFileState::PickedEmptyZip {path} => {
                 Self::RawData::AboutToLoad{path: path.to_string_lossy().into(), inner_path: None}
             },
-            Self::PickingInner { archive, inner_options_widget, .. } => {
+            LocalFileState::PickingInner { archive, inner_options_widget, .. } => {
                 match archive.identifier(){
                     ZipArchiveIdentifier::Path(path) => Self::RawData::AboutToLoad{
                         path: path.to_string_lossy().into(),
@@ -53,131 +67,149 @@ impl Restore for LocalFileSourceWidget{
     fn restore(&mut self, raw: Self::RawData) {
         match raw{
             Self::RawData::Empty => {
-                *self = Self::Empty;
+                self.state = Arc::new(pl::Mutex::new((0, LocalFileState::Empty)));
+                return
             },
             Self::RawData::AboutToLoad{path, inner_path} => {
-                *self = Self::AboutToLoad { path: Arc::from(PathBuf::from(path).as_path()) , inner_path }
+                let pathbuf = PathBuf::from(path);
+                *self = LocalFileSourceWidget::from_outer_path(
+                    Arc::from(pathbuf.as_path()),
+                    inner_path,
+                    None,
+                );
+                return
             }
-        }
+        };
     } 
 }
 
 impl LocalFileSourceWidget{
-    pub fn boxed(self) -> Box<Self>{
-        Box::new(self)
+    pub fn new(state: LocalFileState) -> Self{
+        Self{
+            state: Arc::new(pl::Mutex::new((0, state)))
+        }
     }
-    pub fn update(&mut self){
-        *self = match std::mem::replace(self, Self::Empty){
-            Self::AboutToLoad { path, inner_path } => {
-                println!("Should trigger move to loading_external....");
-                Self::LoadingExternal {
-                    path: path.clone(),
-                    promise: poll_promise::Promise::spawn_thread("loading file", move || {
-                        if !path.exists(){
-                            return Self::Failed(GuiError::new("File does not exist".to_owned())).boxed()
-                        }
-                        match path.extension(){
-                            None => return Self::PickedNormalFile { path }.boxed(),
-                            Some(ext) if ext != "zip" => return Self::PickedNormalFile { path }.boxed(),
-                            _ => ()
-                        }
-                        let archive_and_inner_options = || -> Result<(SharedZipArchive, Vec<String>)> {
-                            let archive = SharedZipArchive::open(&path)?;
-                            let file_names: Vec<String> = archive.with_file_names(|file_names| {
-                                file_names
-                                    .filter(|fname| !fname.ends_with('/') && !fname.ends_with('\\'))
-                                    .map(|fname| fname.to_owned())
-                                    .collect()
-                            });
-                            Ok((
-                                archive,
-                                file_names,
-                            ))
-                        }();
-                        let (archive, mut inner_options) = match archive_and_inner_options{
-                            Ok(opts) => opts,
-                            Err(err) => return Self::Failed(err).boxed(),
-                        };
-                        inner_options.sort();
-                        let selected_inner_path = match inner_options.first(){
-                            None => return Self::PickedEmptyZip { path: path.clone() }.boxed(),
-                            Some(first) => inner_path.unwrap_or(first.clone())
-                        };
-                        Self::PickingInner {
-                            archive,
-                            inner_options_widget: SearchAndPickWidget::new(selected_inner_path, inner_options)
-                        }.boxed()
-                    })
-                }
-            },
-            Self::LoadingExternal { path, promise } => match promise.try_take() {
-                Err(promise) => Self::LoadingExternal{ path, promise },
-                Ok(parsed) => *parsed,
-            },
-            state => state,
+    pub fn from_outer_path(
+        path: Arc<Path>,
+        inner_path: Option<String>,
+        ctx: Option<egui::Context>,
+    ) -> Self{
+        let out = Self::default();
+        spawn_load_file_task(
+            path, inner_path, 0, Arc::clone(&out.state), ctx
+        );
+        out
+    }
+}
+
+
+pub fn spawn_load_file_task(
+    path: Arc<Path>,
+    inner_path: Option<String>,
+    generation: i64,
+    state: Arc<pl::Mutex<(i64, LocalFileState)>>,
+    ctx: Option<egui::Context>, //FIXME: always require ctx?
+){
+    std::thread::spawn(move || {
+        let next_state = 'next: {
+            if !path.exists(){
+                break 'next LocalFileState::Failed(GuiError::new("File does not exist"));
+            }
+            if path.extension().is_none() || matches!(path.extension(), Some(ext) if ext != "zip"){
+                break 'next LocalFileState::PickedNormalFile { path }
+            }
+            let archive = match SharedZipArchive::open(&path){
+                Ok(arch) => arch,
+                Err(err) => break 'next LocalFileState::Failed(GuiError::from(err))
+            };
+            let mut inner_options: Vec<String> = archive.with_file_names(|file_names| {
+                file_names
+                    .filter(|fname| !fname.ends_with('/') && !fname.ends_with('\\'))
+                    .map(|fname| fname.to_owned())
+                    .collect()
+            });
+            inner_options.sort();
+            let selected_inner_path = match inner_options.first(){
+                None => break 'next LocalFileState::PickedEmptyZip { path: path.clone() },
+                Some(first) => inner_path.unwrap_or(first.clone())
+            };
+            LocalFileState::PickingInner {
+                archive,
+                inner_options_widget: SearchAndPickWidget::new(selected_inner_path, inner_options)
+            }
         };
-    }
+        let mut guard = state.lock();
+        if guard.0 == generation{
+            guard.1 = next_state;
+        }
+        drop(guard);
+        ctx.as_ref().map(|ctx| ctx.request_repaint());
+    });
 }
 
 impl StatefulWidget for LocalFileSourceWidget{
     type Value<'p> = Result<rt::FileSource>;
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.update();
+        let mut guard = self.state.lock();
+        let gen_state: &mut (i64, LocalFileState) = &mut *guard;
+        let generation = &mut gen_state.0;
+        let state = &mut gen_state.1;
+
         ui.vertical(|ui|{
-            let inner_widget = ui.horizontal(|ui|{
+            ui.horizontal(|ui|{
                 if ui.button("Open...").clicked(){
                     if let Some(path) = rfd::FileDialog::new().pick_file(){
-                        *self = Self::AboutToLoad { path: Arc::from(path), inner_path: None}
+                        *generation += 1;
+                        spawn_load_file_task(
+                            Arc::from(path.as_path()),
+                            None,
+                            *generation,
+                            Arc::clone(&self.state),
+                            Some(ui.ctx().clone()),
+                        );
                     }
                 }
-                match self{
-                    Self::Empty => {
-                        // ui.weak("Empty");
-                        None
-                    },
-                    Self::Failed(err) => {
+                match state{
+                    LocalFileState::Empty => (),
+                    LocalFileState::Failed(err) => {
                         show_error(ui, err);
-                        None
                     },
-                    Self::AboutToLoad{path, ..} | Self::LoadingExternal {path, ..} => {
-                        ui.weak(format!("Loading {}", path.to_string_lossy()));
-                        None
-                    }, //FIXME: user inner
-                    Self::PickedNormalFile{path} => {
+                    LocalFileState::PickedNormalFile{path} => {
                         ui.weak(path.to_string_lossy());
-                        None
                     },
-                    Self::PickedEmptyZip{path} => {
+                    LocalFileState::PickedEmptyZip{path} => {
                         show_error(ui, format!("Empty zip file: {}", path.to_string_lossy()));
-                        None
                     },
-                    Self::PickingInner{archive, inner_options_widget, ..} => {
+                    LocalFileState::PickingInner{archive, ..} => {
                         ui.weak(archive.identifier().to_string());
-                        Some(inner_options_widget)
                     }
                 }
-            }).inner;
-            if let Some(inner_widget) = inner_widget {
+            });
+            if let LocalFileState::PickingInner{inner_options_widget, ..} = state {
                 ui.horizontal(|ui|{
                     ui.strong("Inner Path: ");
-                    inner_widget.draw_and_parse(ui, id.with("inner_widget".as_ptr()));
+                    inner_options_widget.draw_and_parse(ui, id.with("inner_widget".as_ptr()));
                 });
             }
         });
     }
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        match self{
-            Self::Failed(err) => Err(err.clone()),
-            Self::AboutToLoad{..} | Self::LoadingExternal{..} | Self::Empty | Self::PickedEmptyZip{..} => {
+        let mut guard = self.state.lock();
+        let gen_state: &mut (i64, LocalFileState) = &mut *guard;
+        let state = &mut gen_state.1;
+
+        match state{
+            LocalFileState::Failed(err) => Err(err.clone()),
+            LocalFileState::Empty | LocalFileState::PickedEmptyZip{..} => {
                 Err(GuiError::new("Empty"))
             },
-            Self::PickingInner{archive, inner_options_widget, ..} => Ok(
+            LocalFileState::PickingInner{archive, inner_options_widget, ..} => Ok(
                 rt::FileSource::FileInZipArchive {
                     archive: archive.clone(),
                     inner_path: Arc::from(inner_options_widget.value.as_ref())
                 }
             ),
-            Self::PickedNormalFile{path} => {
+            LocalFileState::PickedNormalFile{path} => {
                 Ok(rt::FileSource::LocalFile{path: path.clone()})
             },
         }
@@ -226,7 +258,7 @@ impl ValueWidget for FileSourceWidget{
         match value{
             rt::FileSource::LocalFile { path } => {
                 self.mode_widget.value = FileSourceWidgetMode::Local;
-                self.local_file_source_widget = LocalFileSourceWidget::AboutToLoad { path, inner_path: None};
+                self.local_file_source_widget = LocalFileSourceWidget::from_outer_path(path, None, None);
             },
             rt::FileSource::FileInZipArchive { inner_path, archive} => {
                 self.mode_widget.value = FileSourceWidgetMode::Local;
@@ -238,10 +270,10 @@ impl ValueWidget for FileSourceWidget{
                             .collect()
                     });
                     inner_options.sort();
-                    LocalFileSourceWidget::PickingInner {
+                    LocalFileSourceWidget::new(LocalFileState::PickingInner {
                         archive,
                         inner_options_widget: SearchAndPickWidget::new(inner_path.as_ref().to_owned(), inner_options),
-                    }
+                    })
                 };
             },
             rt::FileSource::HttpUrl(url) => {
@@ -255,7 +287,7 @@ impl ValueWidget for FileSourceWidget{
 impl FileSourceWidget{
     pub fn update(&mut self){
         self.http_url_widget.update();
-        self.local_file_source_widget.update();
+        // self.local_file_source_widget.update();
     }
 }
 
