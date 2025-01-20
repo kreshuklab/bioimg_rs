@@ -1,17 +1,19 @@
 use std::path::PathBuf;
 
 use bioimg_spec::rdf::model::{self as modelrdf, AxisType};
-use crate::widgets::{
-    author_widget::AuthorWidget,
-    cite_widget::CiteEntryWidget,
-    inout_tensor_widget::{InputTensorWidget, OutputTensorWidget},
-    input_axis_widget::InputAxisWidget,
-    maintainer_widget::MaintainerWidget,
-    output_axis_widget::OutputAxisWidget,
-    posstprocessing_widget::PostprocessingWidget,
-    preprocessing_widget::PreprocessingWidget,
-    Restore
-};
+use crate::widgets::author_widget::AuthorWidget;
+use crate::widgets::maintainer_widget::MaintainerWidget;
+use crate::widgets::output_axis_widget::OutputAxisWidget;
+use crate::widgets::posstprocessing_widget::PostprocessingWidget;
+use crate::widgets::input_axis_widget::InputAxisWidget;
+
+use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
+use crate::widgets::file_source_widget::FileSourceWidget;
+use crate::widgets::cite_widget::CiteEntryWidget;
+use crate::widgets::preprocessing_widget::PreprocessingWidget;
+use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
+use crate::widgets::weights_widget::TorchscriptWeightsWidget;
+use crate::widgets::Restore;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorWidgetRawData{
@@ -254,8 +256,8 @@ pub struct KerasHdf5WeightsWidgetRawData{
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct WeightsWidgetRawData{
     pub keras_weights_widget: Option<KerasHdf5WeightsWidgetRawData>,
-    pub torchscript_weights_widget: Option<TorchscriptWeightsWidgetRawData>,
-    pub pytorch_state_dict_widget: Option<PytorchStateDictWidgetRawData>,
+    pub torchscript_weights_widget: Option<CollapsibleWidgetRawData<TorchscriptWeightsWidget>>,
+    pub pytorch_state_dict_widget: Option<CollapsibleWidgetRawData<PytorchStateDictWidget>>,
     pub onnx_eights_widget: Option<OnnxWeightsWidgetRawData>,
 }
 
@@ -532,7 +534,7 @@ pub struct AppState1RawData{
     #[serde(default)] // added after AppState1RawData
     pub model_id_widget: Option<String>,
     pub staging_authors: Vec<CollapsibleWidgetRawData<AuthorWidget>>,
-    pub attachments_widget: Vec<FileSourceWidgetRawData>,
+    pub attachments_widget: Vec<CollapsibleWidgetRawData<FileSourceWidget>>,
     pub staging_citations: Vec<CollapsibleWidgetRawData<CiteEntryWidget>>,
     #[serde(default)] // added after AppState1RawData
     pub custom_config_widget: Option<JsonObjectEditorWidgetRawData>,

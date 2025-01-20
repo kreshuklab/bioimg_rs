@@ -13,6 +13,7 @@ use crate::project_data::{FileSourceWidgetRawData, LocalFileSourceWidgetRawData}
 use crate::result::{GuiError, Result};
 use crate::widgets::popup_widget::draw_fullscreen_popup;
 
+use super::collapsible_widget::SummarizableWidget;
 use super::{
     error_display::show_error,
     popup_widget::PopupResult,
@@ -34,6 +35,31 @@ pub enum LocalFileState{
 
 pub struct LocalFileSourceWidget{
     state: Arc<pl::Mutex<(i64, LocalFileState)>>,
+}
+
+impl SummarizableWidget for LocalFileSourceWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
+        let guard = self.state.lock();
+        let (_, state): &(_, LocalFileState) = &*guard;
+        match state{
+            LocalFileState::Empty => {
+                ui.label("Empty");
+            },
+            LocalFileState::Failed(err) => {
+                show_error(ui, err);
+            },
+            LocalFileState::PickedNormalFile{path} | LocalFileState::PickedEmptyZip{path} => {
+                ui.label(path.to_string_lossy());
+            },
+            LocalFileState::PickingInner{ archive, inner_options_widget} => {
+                ui.label(format!(
+                    "{}/{}",
+                    archive.identifier(),
+                    inner_options_widget.value,
+                ));
+            },
+        }
+    }
 }
 
 impl Default for LocalFileSourceWidget{
@@ -216,7 +242,7 @@ impl StatefulWidget for LocalFileSourceWidget{
     }
 }
 
-#[derive(Default, PartialEq, Eq, strum::VariantArray, Clone, strum::Display, strum::AsRefStr)]
+#[derive(Default, PartialEq, Eq, strum::VariantArray, Copy, Clone, strum::Display, strum::AsRefStr)]
 pub enum FileSourceWidgetMode{
     #[default]
     #[strum(to_string = "Local File")]
@@ -229,6 +255,20 @@ pub struct FileSourceWidget{
     pub mode_widget: SearchAndPickWidget<FileSourceWidgetMode, false>,
     pub local_file_source_widget: LocalFileSourceWidget,
     pub http_url_widget: StagingUrl,
+}
+
+impl SummarizableWidget for FileSourceWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        match self.mode_widget.value{
+            FileSourceWidgetMode::Local => self.local_file_source_widget.summarize(ui, id.with("local".as_ptr())),
+            FileSourceWidgetMode::Url => match self.http_url_widget.state(){
+                Ok(url) => {
+                    ui.label(url.to_string());
+                },
+                Err(err) => show_error(ui, err),
+            }
+        }
+    }
 }
 
 impl Restore for FileSourceWidget{

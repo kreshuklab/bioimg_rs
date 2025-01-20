@@ -1,4 +1,4 @@
-use super::{util::group_frame, Restore, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::SummarizableWidget, util::group_frame, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug, Default)]
 pub struct StagingOpt<Stg>(pub Option<Stg>);
@@ -33,6 +33,19 @@ where
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         self.0.as_ref().map(|inner_widget| inner_widget.state())
+    }
+}
+
+impl<Stg> SummarizableWidget for StagingOpt<Stg>
+where
+    Stg: SummarizableWidget
+{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        if let Some(inner) = &mut self.0{
+            inner.summarize(ui, id.with("inner".as_ptr()));
+        } else {
+            ui.weak("None");
+        }
     }
 }
 

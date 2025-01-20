@@ -63,7 +63,7 @@ pub struct AppState1 {
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     pub model_id_widget: StagingOpt<StagingString<ResourceId>>,
     pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
-    pub attachments_widget: StagingVec<AttachmentsWidget>,
+    pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
     pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
     pub custom_config_widget: StagingOpt<JsonObjectEditorWidget>, //FIXME
     pub staging_git_repo: StagingOpt<StagingUrl>,
@@ -144,7 +144,7 @@ impl Default for AppState1 {
             cover_images: StagingVec::default(),
             model_id_widget: Default::default(),
             staging_authors: StagingVec::default(),
-            attachments_widget: StagingVec::default(),
+            attachments_widget: Default::default(),
             staging_citations: StagingVec::default(),
             custom_config_widget: Default::default(),
             staging_git_repo: Default::default(),
