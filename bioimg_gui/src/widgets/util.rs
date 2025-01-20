@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Receiver, Sender};
+use std::{ops::Deref, sync::mpsc::{Receiver, Sender}, time::Instant};
 
 use egui::InnerResponse;
 
@@ -53,5 +53,29 @@ impl<T> Default for TaskChannel<T>{
     fn default() -> Self {
         let (sender, receiver) = std::sync::mpsc::channel();
         Self{sender, receiver}
+    }
+}
+
+
+pub struct GenCell<T>{
+    timestamp: Instant,
+    data: T,
+}
+
+impl<T> GenCell<T>{
+    pub fn new(data: T) -> Self{
+        Self{timestamp: Instant::now(), data }
+    }
+    pub fn maybe_set(&mut self, timestamp: Instant, value: T){
+        if timestamp > self.timestamp {
+            self.data = value
+        }
+    }
+}
+
+impl<T> Deref for GenCell<T>{
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
 }
