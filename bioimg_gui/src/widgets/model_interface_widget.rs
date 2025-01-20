@@ -42,15 +42,15 @@ impl ModelInterfaceWidget{
         // self.outputs_widget.update();
         let inputs = match self.inputs_widget.state().into_iter().map(|i| i.clone()).collect::<Result<Vec<_>>>() {
             Ok(inps) => inps,
-            Err(_) => {
-                self.parsed = Err(GuiError::new("Check inputs for errors".to_owned()));
+            Err(e) => {
+                self.parsed = Err(GuiError::new_with_rect("Check inputs for errors", e.failed_widget_rect));
                 return;
             }
         };
         let outputs = match self.outputs_widget.state().into_iter().map(|i| i.clone()).collect::<Result<Vec<_>>>() {
             Ok(outs) => outs,
-            Err(_) => {
-                self.parsed = Err(GuiError::new("Check outputs for errors".to_owned()));
+            Err(e) => {
+                self.parsed = Err(GuiError::new_with_rect("Check outputs for errors", e.failed_widget_rect));
                 return;
             }
         };

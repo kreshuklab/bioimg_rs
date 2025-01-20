@@ -2,12 +2,15 @@ use std::{collections::VecDeque, time::{Duration, Instant}};
 
 use egui::NumExt;
 
+use crate::result::GuiError;
+
 const FADE_TIME: Duration = Duration::from_secs(5);
 
 struct Message{
     spawn_instant: Instant,
     text: String,
     color: egui::Color32,
+    link_target: Option<egui::Rect>
 }
 
 impl Message{
@@ -17,11 +20,6 @@ impl Message{
     }
     fn is_done(&self) -> bool{
         self.spawn_instant + FADE_TIME < Instant::now()
-    }
-    fn draw(&self, ui: &mut egui::Ui) -> egui::Response{
-        let alpha = 1.0 - self.progress();
-        let rich_text = egui::RichText::new(&self.text).color(self.color.gamma_multiply(alpha));
-        ui.label(rich_text)
     }
 }
 
@@ -44,12 +42,22 @@ impl NotificationsWidget{
             spawn_instant: Instant::now(),
             text,
             color,
+            link_target: None,
+        });
+    }
+    pub fn push_gui_error(&mut self, error: GuiError){
+        self.messages.push_back(Message{
+            spawn_instant: Instant::now(),
+            text: error.to_string(),
+            color: egui::Color32::RED,
+            link_target: error.failed_widget_rect,
         });
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id){
+    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id) -> Option<egui::Rect>{
+        let mut scroll_to: Option<egui::Rect> = None;
         if self.messages.len() == 0{
-            return
+            return scroll_to
         }
         let now = Instant::now();
         let area = egui::Window::new("Notifications")
@@ -73,7 +81,19 @@ impl NotificationsWidget{
                     if msg.is_done(){
                         false
                     } else {
-                        msg.draw(ui);
+                        let alpha = 1.0 - msg.progress();
+                        let rich_text = egui::RichText::new(&msg.text).color(msg.color.gamma_multiply(alpha));
+                        match msg.link_target{
+                            Some(rect) => {
+                                let rich_text = rich_text.underline();
+                                if ui.link(rich_text).clicked(){
+                                    scroll_to.replace(rect);
+                                }
+                            },
+                            None => {
+                                ui.label(rich_text);
+                            },
+                        }
                         ui.ctx().request_repaint();
                         true
                     }
@@ -83,5 +103,6 @@ impl NotificationsWidget{
         if let Some(inner_response) = area_resp{
             self.stop_fade = inner_response.response.contains_pointer();
         }
+        scroll_to
     }
 }

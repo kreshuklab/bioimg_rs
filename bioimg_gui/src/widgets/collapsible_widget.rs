@@ -69,6 +69,6 @@ impl<W: ValueWidget> ValueWidget for CollapsibleWidget<W>{
 
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.inner.set_value(value);
-        self.is_closed = false; //FIXME: we rely on drawing to update widgets, so we need this open =/
+        self.is_closed = true;
     }
 }

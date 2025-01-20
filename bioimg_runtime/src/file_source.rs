@@ -35,7 +35,7 @@ impl PartialEq for FileSource{
                 arch_self == arch_other && path_self == path_other
             },
             (Self::HttpUrl(self_url), Self::HttpUrl(other_url)) => self_url == other_url,
-            _ => panic!()
+            _ => false
         }
     }
 }

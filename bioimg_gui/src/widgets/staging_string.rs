@@ -2,7 +2,7 @@ use std::{borrow::Borrow, error::Error, fmt::Display, str::FromStr};
 
 use crate::result::{GuiError, Result};
 
-use super::{error_display::show_if_error, Restore, StatefulWidget, ValueWidget};
+use super::{error_display::show_error, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Clone, Debug)]
 pub enum InputLines {
@@ -107,19 +107,22 @@ where
 
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, _id: egui::Id) {
         ui.horizontal(|ui| {
-            match self.input_lines {
+            let input_rect = match self.input_lines {
                 InputLines::SingleLine => {
                     ui.add(
                         //FIXME: any way we can not hardcode this? at least use font size?
                         egui::TextEdit::singleline(&mut self.raw).min_size(egui::Vec2 { x: 200.0, y: 10.0 }),
-                    );
+                    ).rect
                 }
                 InputLines::Multiline => {
-                    ui.text_edit_multiline(&mut self.raw);
+                    ui.text_edit_multiline(&mut self.raw).rect
                 }
-            }
+            };
             self.update();
-            show_if_error(ui, &self.parsed);
+            if let Err(e) = &mut self.parsed{
+                show_error(ui, &*e);
+                e.failed_widget_rect = Some(input_rect);
+            }
         });
     }
 
