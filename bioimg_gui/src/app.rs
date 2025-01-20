@@ -553,20 +553,7 @@ impl eframe::App for AppState1 {
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 });
 
-                ui.horizontal(|ui| {
-                    ui.strong("Model Interface: ").on_hover_text(indoc!("
-                        During runtime, the model weights (specified further down) will be fed with input data. This input data must be \
-                        in a particular shape, order, and of a particular type to be accepted by the overall Zoo Model.
-
-                        This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights.
-
-                        The data comming out of the model weights is then further postprocessed (as specified in the 'postprocessing' \
-                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields."
-                    ));
-                    group_frame(ui, |ui| {
-                        self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
-                    });
-                });
+                self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
 
                 ui.horizontal(|ui| {
                     ui.strong("Model Weights: ").on_hover_text(indoc!("
