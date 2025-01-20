@@ -2,8 +2,20 @@ use bioimg_spec::rdf;
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_runtime as rt;
 
-use crate::{project_data::PytorchArchModeRawData, result::Result};
-use super::{conda_env_editor_widget::CondaEnvEditorWidget, file_source_widget::FileSourceWidget, json_editor_widget::JsonObjectEditorWidget, search_and_pick_widget::SearchAndPickWidget, staging_opt::StagingOpt, staging_string::StagingString, util::group_frame, version_widget::VersionWidget, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
+use crate::project_data::PytorchArchModeRawData;
+use crate::result::{GuiError, Result};
+use super::{Restore, StatefulWidget, ValueWidget};
+use super::collapsible_widget::SummarizableWidget;
+use super::weights_widget::WeightsDescrBaseWidget;
+use super::version_widget::VersionWidget;
+use super::util::group_frame;
+use super::staging_string::StagingString;
+use super::staging_opt::StagingOpt;
+use super::search_and_pick_widget::SearchAndPickWidget;
+use super::json_editor_widget::JsonObjectEditorWidget;
+use super::file_source_widget::FileSourceWidget;
+use super::error_display::show_error;
+use super::conda_env_editor_widget::CondaEnvEditorWidget;
 
 #[derive(Clone, strum::AsRefStr, strum::VariantArray, strum::VariantNames, Default, strum::Display)]
 pub enum PytorchArchMode{
@@ -149,6 +161,20 @@ pub struct PytorchStateDictWidget{
     pub dependencies_widget: StagingOpt<CondaEnvEditorWidget>,
 }
 
+impl SummarizableWidget for PytorchStateDictWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        match self.state(){
+            Err(e) => {
+                show_error(ui, e);
+            },
+            Ok(_) => {
+                self.base_widget.summarize(ui, id.with("base".as_ptr()));
+                ui.label(format!(" pytorch {}", self.version_widget.raw));
+            },
+        }
+    }
+}
+
 impl ValueWidget for PytorchStateDictWidget{
     type Value<'v> = rt::model_weights::PytorchStateDictWeights;
 
@@ -180,14 +206,23 @@ impl StatefulWidget for PytorchStateDictWidget{
                 ui.strong("Conda Environment: ").on_hover_text("A conda environment to be used with this model");
                 self.dependencies_widget.draw_and_parse(ui, id.with("env".as_ptr()));
             });
+            if let Err(e) = self.state(){
+                show_error(ui, e);
+            }
         });
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
+        let dependencies = self.dependencies_widget.state()
+            .transpose()
+            .map_err(|e| GuiError::new(format!("Dependencies error: {e}")))?
+            .cloned();
+        let architecture = self.architecture_widget.state()
+            .map_err(|e| GuiError::new(format!("Architecture error: {e}")))?;
         Ok(rt::model_weights::PytorchStateDictWeights{
-            dependencies: self.dependencies_widget.state().transpose()?.cloned(),
+            dependencies,
             weights: self.base_widget.state()?,
-            architecture: self.architecture_widget.state()?,
+            architecture,
             pytorch_version: self.version_widget.state()?.clone(),
         })
     }

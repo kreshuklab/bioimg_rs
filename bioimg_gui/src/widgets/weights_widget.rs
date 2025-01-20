@@ -3,15 +3,23 @@ use std::sync::Arc;
 use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
-use super::{
-    author_widget::AuthorWidget, collapsible_widget::{CollapsibleWidget, SummarizableWidget}, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, util::group_frame, version_widget::VersionWidget, Restore, StatefulWidget, ValueWidget
-};
+use super::{Restore, StatefulWidget, ValueWidget};
+use super::author_widget::AuthorWidget;
+use super::version_widget::VersionWidget;
+use super::util::group_frame;
+use super::staging_vec::StagingVec;
+use super::staging_opt::StagingOpt;
+use super::pytorch_statedict_weights_widget::PytorchStateDictWidget;
+use super::onnx_weights_widget::OnnxWeightsWidget;
+use super::file_source_widget::FileSourceWidget;
+use super::error_display::show_error;
+use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 
 #[derive(Restore)]
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
     pub torchscript_weights_widget: StagingOpt<CollapsibleWidget<TorchscriptWeightsWidget>>,
-    pub pytorch_state_dict_widget: StagingOpt<PytorchStateDictWidget>,
+    pub pytorch_state_dict_widget: StagingOpt<CollapsibleWidget<PytorchStateDictWidget>>,
     pub onnx_eights_widget: StagingOpt<OnnxWeightsWidget>,
     #[restore_on_update]
     parsed: Result<Arc<rt::ModelWeights>>
@@ -141,7 +149,7 @@ impl StatefulWidget for WeightsDescrBaseWidget{
         let authors  = self.authors_widget.state().map(|authors|{
             authors.collect_result()
         }).transpose()?;
-        let source = self.source_widget.state().map_err(|_| GuiError::new("Review cover images"))?;
+        let source = self.source_widget.state().map_err(|e| GuiError::new(format!("Model source error: {e}")))?;
         Ok(rt::WeightsBase{authors, source})
     }
 }
@@ -200,7 +208,7 @@ impl SummarizableWidget for TorchscriptWeightsWidget{
             match self.state(){
                 Ok(_) => {
                     self.base_widget.summarize(ui, id.with("base".as_ptr()));
-                    ui.label(&self.pytorch_version_widget.raw);
+                    ui.label(format!("pytorch {}", self.pytorch_version_widget.raw));
                 },
                 Err(e) => {
                     show_error(ui, e);
