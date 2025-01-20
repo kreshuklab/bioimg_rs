@@ -2,15 +2,7 @@ use std::path::PathBuf;
 
 use bioimg_spec::rdf::model::{self as modelrdf, AxisType};
 use crate::widgets::{
-    author_widget::AuthorWidget,
-    cite_widget::CiteEntryWidget,
-    inout_tensor_widget::{InputTensorWidget, OutputTensorWidget},
-    input_axis_widget::InputAxisWidget,
-    maintainer_widget::MaintainerWidget,
-    output_axis_widget::OutputAxisWidget,
-    posstprocessing_widget::PostprocessingWidget,
-    preprocessing_widget::PreprocessingWidget,
-    Restore
+    author_widget::AuthorWidget, cite_widget::CiteEntryWidget, file_source_widget::FileSourceWidget, inout_tensor_widget::{InputTensorWidget, OutputTensorWidget}, input_axis_widget::InputAxisWidget, maintainer_widget::MaintainerWidget, output_axis_widget::OutputAxisWidget, posstprocessing_widget::PostprocessingWidget, preprocessing_widget::PreprocessingWidget, Restore
 };
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -532,7 +524,7 @@ pub struct AppState1RawData{
     #[serde(default)] // added after AppState1RawData
     pub model_id_widget: Option<String>,
     pub staging_authors: Vec<CollapsibleWidgetRawData<AuthorWidget>>,
-    pub attachments_widget: Vec<FileSourceWidgetRawData>,
+    pub attachments_widget: Vec<CollapsibleWidgetRawData<FileSourceWidget>>,
     pub staging_citations: Vec<CollapsibleWidgetRawData<CiteEntryWidget>>,
     #[serde(default)] // added after AppState1RawData
     pub custom_config_widget: Option<JsonObjectEditorWidgetRawData>,
