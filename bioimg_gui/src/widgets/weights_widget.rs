@@ -4,13 +4,13 @@ use bioimg_runtime as rt;
 
 use crate::result::{GuiError, Result, VecResultExt};
 use super::{
-    author_widget::AuthorWidget, collapsible_widget::CollapsibleWidget, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, util::group_frame, version_widget::VersionWidget, Restore, StatefulWidget, ValueWidget
+    author_widget::AuthorWidget, collapsible_widget::{CollapsibleWidget, SummarizableWidget}, error_display::show_error, file_source_widget::FileSourceWidget, onnx_weights_widget::OnnxWeightsWidget, pytorch_statedict_weights_widget::PytorchStateDictWidget, staging_opt::StagingOpt, staging_vec::StagingVec, util::group_frame, version_widget::VersionWidget, Restore, StatefulWidget, ValueWidget
 };
 
 #[derive(Restore)]
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
-    pub torchscript_weights_widget: StagingOpt<TorchscriptWeightsWidget>,
+    pub torchscript_weights_widget: StagingOpt<CollapsibleWidget<TorchscriptWeightsWidget>>,
     pub pytorch_state_dict_widget: StagingOpt<PytorchStateDictWidget>,
     pub onnx_eights_widget: StagingOpt<OnnxWeightsWidget>,
     #[restore_on_update]
@@ -48,7 +48,9 @@ impl WeightsWidget{
                 self.pytorch_state_dict_widget.state().transpose()?,
                 None,
                 None,
-                self.torchscript_weights_widget.state().transpose()?,
+                self.torchscript_weights_widget.0.as_ref()
+                    .map(|col_widget| col_widget.inner.state())
+                    .transpose()?,
             )?)
         )})();
     }
@@ -93,6 +95,19 @@ pub struct WeightsDescrBaseWidget{
     pub source_widget: FileSourceWidget,
     pub authors_widget: StagingOpt<StagingVec<CollapsibleWidget<AuthorWidget>>>,
     // pub parent_widget: Option<WeightsFormat>,
+}
+
+impl SummarizableWidget for WeightsDescrBaseWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        ui.horizontal(|ui|{
+            self.source_widget.summarize(ui, id.with("source".as_ptr()));
+            let Some(authors_widget) = &mut self.authors_widget.0 else {
+                return
+            };
+            ui.weak("by");
+            authors_widget.summarize(ui, id.with("authors".as_ptr()));
+        });
+    }
 }
 
 impl ValueWidget for WeightsDescrBaseWidget{
@@ -177,6 +192,22 @@ impl StatefulWidget for KerasHdf5WeightsWidget{
 pub struct TorchscriptWeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub pytorch_version_widget: VersionWidget,
+}
+
+impl SummarizableWidget for TorchscriptWeightsWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        ui.horizontal(|ui|{
+            match self.state(){
+                Ok(_) => {
+                    self.base_widget.summarize(ui, id.with("base".as_ptr()));
+                    ui.label(&self.pytorch_version_widget.raw);
+                },
+                Err(e) => {
+                    show_error(ui, e);
+                },
+            };
+        });
+    }
 }
 
 impl ValueWidget for TorchscriptWeightsWidget{

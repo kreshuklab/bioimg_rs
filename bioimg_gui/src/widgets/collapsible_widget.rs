@@ -28,6 +28,15 @@ impl<W: Restore> Restore for CollapsibleWidget<W>{
     }
 }
 
+impl<W> SummarizableWidget for CollapsibleWidget<W>
+where
+    W: SummarizableWidget
+{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.inner.summarize(ui, id.with("inner".as_ptr()));
+    }
+}
+
 impl<W> StatefulWidget for CollapsibleWidget<W>
 where
     W: StatefulWidget + SummarizableWidget,

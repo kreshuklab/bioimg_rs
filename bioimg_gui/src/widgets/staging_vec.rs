@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::{util::group_frame, Restore, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::SummarizableWidget, util::group_frame, Restore, StatefulWidget, ValueWidget};
 
 pub trait ItemWidgetConf{
     const ITEM_NAME: &'static str;
@@ -12,6 +12,23 @@ pub trait ItemWidgetConf{
 pub struct StagingVec<Stg, Conf=Stg>{
     pub staging: Vec<Stg>,
     marker: PhantomData<Conf>,
+}
+
+impl<Stg> SummarizableWidget for StagingVec<Stg>
+where
+    Stg: SummarizableWidget
+{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        ui.horizontal(|ui|{
+            let last_idx = self.staging.len() - 1;
+            for (idx, widget) in self.staging.iter_mut().enumerate(){
+                widget.summarize(ui, id.with(idx));
+                if idx != last_idx{
+                    ui.label(",");
+                }
+            }
+        });
+    }
 }
 
 impl<Stg, Conf> ValueWidget for StagingVec<Stg, Conf>

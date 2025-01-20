@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use bioimg_spec::rdf::model::{self as modelrdf, AxisType};
 use crate::widgets::{
-    author_widget::AuthorWidget, cite_widget::CiteEntryWidget, file_source_widget::FileSourceWidget, inout_tensor_widget::{InputTensorWidget, OutputTensorWidget}, input_axis_widget::InputAxisWidget, maintainer_widget::MaintainerWidget, output_axis_widget::OutputAxisWidget, posstprocessing_widget::PostprocessingWidget, preprocessing_widget::PreprocessingWidget, Restore
+    author_widget::AuthorWidget, cite_widget::CiteEntryWidget, file_source_widget::FileSourceWidget, inout_tensor_widget::{InputTensorWidget, OutputTensorWidget}, input_axis_widget::InputAxisWidget, maintainer_widget::MaintainerWidget, output_axis_widget::OutputAxisWidget, posstprocessing_widget::PostprocessingWidget, preprocessing_widget::PreprocessingWidget, weights_widget::TorchscriptWeightsWidget, Restore
 };
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -246,7 +246,7 @@ pub struct KerasHdf5WeightsWidgetRawData{
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct WeightsWidgetRawData{
     pub keras_weights_widget: Option<KerasHdf5WeightsWidgetRawData>,
-    pub torchscript_weights_widget: Option<TorchscriptWeightsWidgetRawData>,
+    pub torchscript_weights_widget: Option<CollapsibleWidgetRawData<TorchscriptWeightsWidget>>,
     pub pytorch_state_dict_widget: Option<PytorchStateDictWidgetRawData>,
     pub onnx_eights_widget: Option<OnnxWeightsWidgetRawData>,
 }
