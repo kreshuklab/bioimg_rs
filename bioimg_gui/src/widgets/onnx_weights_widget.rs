@@ -2,12 +2,26 @@ use bioimg_runtime as rt;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::Result;
-use super::{staging_num::StagingNum, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
+use super::{collapsible_widget::SummarizableWidget, error_display::show_error, staging_num::StagingNum, weights_widget::WeightsDescrBaseWidget, Restore, StatefulWidget, ValueWidget};
 
 #[derive(Default, Restore)]
 pub struct OnnxWeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub opset_version_widget: StagingNum<u32, modelrdf::weights::OnnxOpsetVersion>,
+}
+
+impl SummarizableWidget for OnnxWeightsWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        match self.state(){
+            Ok(_) => {
+                self.base_widget.summarize(ui, id.with("base".as_ptr()));
+                ui.label(format!("opset {}", self.opset_version_widget.raw));
+            },
+            Err(e) => {
+                show_error(ui, e);
+            }
+        }
+    }
 }
 
 impl ValueWidget for OnnxWeightsWidget{

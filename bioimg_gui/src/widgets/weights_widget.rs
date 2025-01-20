@@ -17,10 +17,10 @@ use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 
 #[derive(Restore)]
 pub struct WeightsWidget{
-    pub keras_weights_widget: StagingOpt<KerasHdf5WeightsWidget>,
+    pub keras_weights_widget: StagingOpt<CollapsibleWidget<KerasHdf5WeightsWidget>>,
     pub torchscript_weights_widget: StagingOpt<CollapsibleWidget<TorchscriptWeightsWidget>>,
     pub pytorch_state_dict_widget: StagingOpt<CollapsibleWidget<PytorchStateDictWidget>>,
-    pub onnx_eights_widget: StagingOpt<OnnxWeightsWidget>,
+    pub onnx_eights_widget: StagingOpt<CollapsibleWidget<OnnxWeightsWidget>>,
     #[restore_on_update]
     parsed: Result<Arc<rt::ModelWeights>>
 }
@@ -51,7 +51,9 @@ impl WeightsWidget{
     pub fn update(&mut self){
         self.parsed = (|| {
             Ok(Arc::new(rt::ModelWeights::new(
-                self.keras_weights_widget.state().transpose()?,
+                self.keras_weights_widget.0.as_ref()
+                    .map(|col_widget| col_widget.inner.state())
+                    .transpose()?,
                 self.onnx_eights_widget.state().transpose()?,
                 self.pytorch_state_dict_widget.state().transpose()?,
                 None,
@@ -87,8 +89,8 @@ impl StatefulWidget for WeightsWidget{
                 self.onnx_eights_widget.draw_and_parse(ui, id.with("onnx".as_ptr()));
             });
 
-            if self.parsed.is_err(){
-                show_error(ui, "Please review the model weights");
+            if let Err(e) = &self.parsed{
+                show_error(ui, e);
             }
         });
     }
@@ -160,6 +162,22 @@ impl StatefulWidget for WeightsDescrBaseWidget{
 pub struct KerasHdf5WeightsWidget{
     pub base_widget: WeightsDescrBaseWidget,
     pub tensorflow_version_widget: VersionWidget,
+}
+
+impl SummarizableWidget for KerasHdf5WeightsWidget{
+    fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        match self.state(){
+            Ok(_) => {
+                ui.horizontal(|ui|{
+                    self.base_widget.summarize(ui, id.with("base".as_ptr()));
+                    ui.label(format!("tensorflow {}", self.tensorflow_version_widget.raw));
+                });
+            },
+            Err(e) => {
+                show_error(ui, e);
+            },
+        }
+    }
 }
 
 impl ValueWidget for KerasHdf5WeightsWidget{
