@@ -61,17 +61,17 @@ pub struct AppState1 {
     pub staging_name: StagingString<ResourceName>,
     pub staging_description: StagingString<BoundedString<0, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
-    pub model_id_widget: StagingOpt<StagingString<ResourceId>>,
+    pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,
     pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
     pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
     pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
-    pub custom_config_widget: StagingOpt<JsonObjectEditorWidget>, //FIXME
-    pub staging_git_repo: StagingOpt<StagingUrl>,
+    pub custom_config_widget: StagingOpt<JsonObjectEditorWidget, false>, //FIXME
+    pub staging_git_repo: StagingOpt<StagingUrl, false>,
     pub icon_widget: StagingOpt<IconWidget>,
     pub links_widget: ModelLinksWidget,
     pub staging_maintainers: StagingVec<CollapsibleWidget<MaintainerWidget>>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
-    pub staging_version: StagingOpt<VersionWidget>,
+    pub staging_version: StagingOpt<VersionWidget, false>,
 
     pub staging_documentation: CodeEditorWidget<MarkdwownLang>,
     pub staging_license: SearchAndPickWidget<rdf::LicenseId>,
@@ -496,9 +496,7 @@ impl eframe::App for AppState1 {
                         An icon for quick identification on bioimage.io.
                         This can either be an emoji or a small square image."
                     ));
-                    group_frame(ui, |ui| {
-                        self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
-                    });
+                    self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                 });
                 ui.add_space(10.0);
 

@@ -1,7 +1,13 @@
 use super::{collapsible_widget::SummarizableWidget, util::group_frame, Restore, StatefulWidget, ValueWidget};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct StagingOpt<Stg, const DRAW_FRAME: bool = true>(pub Option<Stg>);
+
+impl<Stg, const DRAW_FRAME: bool> Default for StagingOpt<Stg, DRAW_FRAME>{
+    fn default() -> Self {
+        Self(None)
+    }
+}
 
 impl<Stg, const DRAW_FRAME: bool> StatefulWidget for StagingOpt<Stg, DRAW_FRAME>
 where
@@ -15,8 +21,7 @@ where
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.horizontal(|ui| {
             if self.0.is_none() {
-                ui.label("None");
-                if ui.button("Add").clicked() {
+                if ui.button("✚").clicked() {
                     self.0 = Some(Stg::default())
                 }
             } else {
