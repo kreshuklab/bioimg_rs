@@ -17,10 +17,10 @@ use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 
 #[derive(Restore)]
 pub struct WeightsWidget{
-    pub keras_weights_widget: StagingOpt<CollapsibleWidget<KerasHdf5WeightsWidget>>,
-    pub torchscript_weights_widget: StagingOpt<CollapsibleWidget<TorchscriptWeightsWidget>>,
-    pub pytorch_state_dict_widget: StagingOpt<CollapsibleWidget<PytorchStateDictWidget>>,
-    pub onnx_eights_widget: StagingOpt<CollapsibleWidget<OnnxWeightsWidget>>,
+    pub keras_weights_widget: StagingOpt<CollapsibleWidget<KerasHdf5WeightsWidget>, false>,
+    pub torchscript_weights_widget: StagingOpt<CollapsibleWidget<TorchscriptWeightsWidget>, false>,
+    pub pytorch_state_dict_widget: StagingOpt<CollapsibleWidget<PytorchStateDictWidget>, false>,
+    pub onnx_eights_widget: StagingOpt<CollapsibleWidget<OnnxWeightsWidget>, false>,
     #[restore_on_update]
     parsed: Result<Arc<rt::ModelWeights>>
 }
