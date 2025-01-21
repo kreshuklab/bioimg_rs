@@ -69,7 +69,8 @@ impl StatefulWidget for ModelInterfaceWidget {
             ui.horizontal(|ui| {
                 ui.strong("Model Inputs: ").on_hover_text(indoc!("
                     During runtime, the model weights will be fed with input data. This input data must be \
-                    in a particular shape, order, and of a particular data type to be accepted by the overall Zoo Model.
+                    in a particular shape, order, and of a particular data type (e.g. int32, float64, etc) \
+                    to be accepted by the overall Zoo Model.
 
                     This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights."
                 ));
@@ -78,9 +79,7 @@ impl StatefulWidget for ModelInterfaceWidget {
             ui.horizontal(|ui| {
                 ui.strong("Model Outputs: ").on_hover_text(indoc!("
                     The data comming out of the model weights is postprocessed (as specified in the 'postprocessing' \
-                    field), and ultimately returned in the shape, order and type specified in these fields.
-
-                    Describes the output tensors that are produced by this model"
+                    field), and ultimately returned in the shape, order and data type specified in these fields."
                 ));
                 self.outputs_widget.draw_and_parse(ui, id.with("out"));
             });
