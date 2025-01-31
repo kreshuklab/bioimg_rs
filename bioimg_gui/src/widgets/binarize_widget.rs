@@ -171,14 +171,24 @@ impl StatefulWidget for BinarizePreprocessingWidget{
     type Value<'p> = Result<modelrdf::preprocessing::BinarizeDescr>;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        ui.horizontal(|ui|{
-            ui.strong("Mode: ");
-            self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
+        ui.vertical(|ui|{
+            ui.weak(indoc::indoc!("
+                Converts tensor elements to 'true' if the element is greater than the threshold, or false otherwise.
+                
+                The data type after this preprocessing is 'bool'"
+            ));
+            ui.horizontal(|ui|{
+                ui.strong("Mode: ");
+
+                ui.radio_value(&mut self.mode, FileSourceWidgetMode::Local, "Local File")
+                    .on_hover_text("Pick a file form the local filesystem");
+                self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
+            });
+            match self.mode_widget.value{
+                BinarizeMode::Simple => self.simple_binarize_widget.draw_and_parse(ui, id.with("simp".as_ptr())),
+                BinarizeMode::AlongAxis => self.binarize_along_axis_wiget.draw_and_parse(ui, id.with("axis".as_ptr())),
+            }
         });
-        match self.mode_widget.value{
-            BinarizeMode::Simple => self.simple_binarize_widget.draw_and_parse(ui, id.with("simp".as_ptr())),
-            BinarizeMode::AlongAxis => self.binarize_along_axis_wiget.draw_and_parse(ui, id.with("axis".as_ptr())),
-        }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
