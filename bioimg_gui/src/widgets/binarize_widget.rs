@@ -1,3 +1,5 @@
+use indoc::indoc;
+
 use bioimg_spec::rdf::{model as modelrdf, NonEmptyList};
 use bioimg_spec::rdf::model::preprocessing as preproc;
 
@@ -5,7 +7,6 @@ use crate::project_data::{BinarizeAlongAxisWidgetRawData, BinarizeModeRawData};
 use crate::result::{GuiError, Result, VecResultExt};
 
 use super::error_display::show_if_error;
-use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_float::StagingFloat;
 use super::{Restore, ValueWidget};
 use super::{staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
@@ -145,7 +146,7 @@ impl StatefulWidget for BinarizeAlongAxisWidget{
 
 #[derive(Default, Restore)]
 pub struct BinarizePreprocessingWidget{
-    pub mode_widget: SearchAndPickWidget<BinarizeMode, false>,
+    pub mode: BinarizeMode,
     pub simple_binarize_widget: SimpleBinarizeWidget,
     pub binarize_along_axis_wiget: BinarizeAlongAxisWidget,
 }
@@ -156,11 +157,11 @@ impl ValueWidget for BinarizePreprocessingWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         match value{
             preproc::BinarizeDescr::Simple(val) => {
-                self.mode_widget.value = BinarizeMode::Simple;
+                self.mode = BinarizeMode::Simple;
                 self.simple_binarize_widget.set_value(val)
             },
             preproc::BinarizeDescr::AlongAxis(val) => {
-                self.mode_widget.value = BinarizeMode::AlongAxis;
+                self.mode = BinarizeMode::AlongAxis;
                 self.binarize_along_axis_wiget.set_value(val);
             }
         }
@@ -180,11 +181,19 @@ impl StatefulWidget for BinarizePreprocessingWidget{
             ui.horizontal(|ui|{
                 ui.strong("Mode: ");
 
-                ui.radio_value(&mut self.mode, FileSourceWidgetMode::Local, "Local File")
-                    .on_hover_text("Pick a file form the local filesystem");
-                self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
+                ui.radio_value(&mut self.mode, BinarizeMode::Simple, "General")
+                    .on_hover_text(indoc!("
+                        Every tensor element will be compared with Threshold, and replaced with \
+                        'true' if greater than Threshold and 'false' otherwise"
+                    ));
+                ui.radio_value(&mut self.mode, BinarizeMode::AlongAxis, "Along Axis")
+                    .on_hover_text(indoc!("
+                        Pick one axis form the tensor; for every tensor slice along this tensor, \
+                        compare every element of the slice with the corresponding Threshold, setting \
+                        the element to 'true' if it's greater than the Threshold, or 'false' otherwise."
+                    ));
             });
-            match self.mode_widget.value{
+            match self.mode{
                 BinarizeMode::Simple => self.simple_binarize_widget.draw_and_parse(ui, id.with("simp".as_ptr())),
                 BinarizeMode::AlongAxis => self.binarize_along_axis_wiget.draw_and_parse(ui, id.with("axis".as_ptr())),
             }
@@ -192,7 +201,7 @@ impl StatefulWidget for BinarizePreprocessingWidget{
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(match self.mode_widget.value{
+        Ok(match self.mode{
             BinarizeMode::Simple => modelrdf::preprocessing::BinarizeDescr::Simple(
                 self.simple_binarize_widget.state()?
             ),

@@ -303,7 +303,7 @@ pub struct BinarizeAlongAxisWidgetRawData{
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct BinarizePreprocessingWidgetRawData{
-    pub mode_widget: BinarizeModeRawData,
+    pub mode: BinarizeModeRawData,
     pub simple_binarize_widget: SimpleBinarizeWidgetRawData,
     pub binarize_along_axis_wiget: BinarizeAlongAxisWidgetRawData,
 }
