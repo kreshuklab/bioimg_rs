@@ -76,4 +76,4 @@ fn _now() -> iso8601_timestamp::Timestamp{
 }
 
 pub type TensorTextDescription = BoundedString<0, 128>;
-pub type ModelRdfName = BoundedString<5, 1024>;
+pub type ModelRdfName = BoundedString<5, 128>;

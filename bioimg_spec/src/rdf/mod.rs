@@ -46,7 +46,7 @@ use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
 pub type ResourceId = SlashlessString<Lowercase<BoundedString<1, 1024>>>;
 pub type ResourceTextDescription = BoundedString<0, 1024>;
-pub type ResourceName = BoundedString<5, 1024>;
+pub type ResourceName = BoundedString<5, 128>;
 
 // #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 // pub struct Rdf {
