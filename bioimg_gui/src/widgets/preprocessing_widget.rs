@@ -147,7 +147,7 @@ impl StatefulWidget for PreprocessingWidget{
             });
             match self.mode_widget.value{
                 PreprocessingWidgetMode::Binarize => {
-                    self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()))
+                    self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()));
                 },
                 PreprocessingWidgetMode::Clip => {
                     self.clip_widget.draw_and_parse(ui, id.with("clip_widget".as_ptr()))

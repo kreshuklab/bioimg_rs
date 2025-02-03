@@ -52,9 +52,12 @@ impl StatefulWidget for SimpleBinarizeWidget{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.horizontal(|ui|{
-            ui.strong("Threshold: ");
+            ui.strong("Threshold: ").on_hover_text("Value to compare every tensor elemnt to");
             self.threshold_widget.draw_and_parse(ui, id.with("threshold"));
         });
+        if let Ok(threshold) = self.threshold_widget.state(){
+            ui.weak(format!("Output = Input > {threshold}"));
+        }
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
