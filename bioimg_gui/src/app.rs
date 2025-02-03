@@ -2,12 +2,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use bioimg_spec::rdf::model::ModelRdfName;
 use bioimg_zoo::collection::ZooNickname;
 use indoc::indoc;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
-use bioimg_spec::rdf::{self, ResourceId, ResourceName};
+use bioimg_spec::rdf;
+use bioimg_spec::rdf::ResourceId;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
@@ -58,7 +60,7 @@ pub enum TaskResult{
 
 #[derive(Restore)]
 pub struct AppState1 {
-    pub staging_name: StagingString<ResourceName>,
+    pub staging_name: StagingString<ModelRdfName>,
     pub staging_description: StagingString<BoundedString<0, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,

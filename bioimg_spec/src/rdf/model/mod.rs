@@ -1,3 +1,4 @@
+use super::basic_chars_string::BasicCharsString;
 use super::BoundedString;
 
 pub mod axes;
@@ -17,6 +18,7 @@ pub mod run_mode;
 pub mod dataset_descr;
 pub mod unsupported;
 pub mod model_rdf_0_5;
+pub mod model_rdf_0_4;
 
 pub use axes::{
     AxisType, AxisId, AxisScale,
@@ -76,4 +78,4 @@ fn _now() -> iso8601_timestamp::Timestamp{
 }
 
 pub type TensorTextDescription = BoundedString<0, 128>;
-pub type ModelRdfName = BoundedString<5, 128>;
+pub type ModelRdfName = BasicCharsString<BoundedString<5, 128>>;
