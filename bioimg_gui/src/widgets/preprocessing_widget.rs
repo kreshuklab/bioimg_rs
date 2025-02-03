@@ -2,7 +2,16 @@ use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::{project_data::PreprocessingWidgetModeRawData, result::Result};
-use super::{binarize_widget::BinarizePreprocessingWidget, clip_widget::ClipWidget, collapsible_widget::{CollapsibleWidget, SummarizableWidget}, fixed_zero_mean_unit_variance_widget::FixedZmuvWidget, scale_linear_widget::ScaleLinearWidget, scale_range_widget::ScaleRangeWidget, search_and_pick_widget::SearchAndPickWidget, staging_vec::ItemWidgetConf, zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget, Restore, StatefulWidget, ValueWidget};
+use super::{Restore, StatefulWidget, ValueWidget};
+use super::binarize_widget::BinarizePreprocessingWidget;
+use super::zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget;
+use super::staging_vec::ItemWidgetConf;
+use super::search_and_pick_widget::SearchAndPickWidget;
+use super::scale_range_widget::ScaleRangeWidget;
+use super::scale_linear_widget::ScaleLinearWidget;
+use super::fixed_zero_mean_unit_variance_widget::FixedZmuvWidget;
+use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
+use super::clip_widget::ClipWidget;
 
 #[derive(PartialEq, Eq, Default, Clone, strum::VariantArray, strum::AsRefStr, strum::VariantNames, strum::Display)]
 pub enum PreprocessingWidgetMode {
@@ -131,12 +140,14 @@ impl StatefulWidget for PreprocessingWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
-                ui.strong("Preprocessing Type: ");
+                ui.strong("Preprocessing Type: ").on_hover_text(
+                    "What function is to be applied onto the input before it's fed to the model weights"
+                );
                 self.mode_widget.draw_and_parse(ui, id.with("preproc type".as_ptr()));
             });
             match self.mode_widget.value{
                 PreprocessingWidgetMode::Binarize => {
-                    self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()))
+                    self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()));
                 },
                 PreprocessingWidgetMode::Clip => {
                     self.clip_widget.draw_and_parse(ui, id.with("clip_widget".as_ptr()))

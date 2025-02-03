@@ -6,10 +6,10 @@ use crate::result::Result;
 #[derive(Restore)]
 pub struct MaintainerWidget {
     pub github_user_widget: StagingString<BoundedString<1, 1024>>, //FIXME validate this somehow}
-    pub affiliation_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>,
-    pub email_widget: StagingOpt<StagingString<BoundedString<1, 1024>>>, //FIXME
-    pub orcid_widget: StagingOpt<StagingString<Orcid>>,
-    pub name_widget: StagingOpt<StagingString<rdf::MaintainerName>>,
+    pub affiliation_widget: StagingOpt<StagingString<BoundedString<1, 1024>>, false>,
+    pub email_widget: StagingOpt<StagingString<BoundedString<1, 1024>>, false>, //FIXME
+    pub orcid_widget: StagingOpt<StagingString<Orcid>, false>,
+    pub name_widget: StagingOpt<StagingString<rdf::MaintainerName>, false>,
 }
 
 impl ValueWidget for MaintainerWidget{

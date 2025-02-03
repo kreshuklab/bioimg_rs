@@ -49,13 +49,19 @@ impl StatefulWidget for ClipWidget{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         self.update();
-        ui.horizontal(|ui|{
-            ui.strong("Min Percentile");
-            self.min_widget.draw_and_parse(ui, id.with("min"));
-            ui.strong("Max Percentile");
-            self.min_widget.draw_and_parse(ui, id.with("max"));
+        ui.vertical(|ui|{
+            ui.weak(indoc::indoc!("
+                Forces elements of the tensor to be within the interval [min, max]."
+            ));
+
+            ui.horizontal(|ui|{
+                ui.strong("Min Percentile");
+                self.min_widget.draw_and_parse(ui, id.with("min"));
+                ui.strong("Max Percentile");
+                self.min_widget.draw_and_parse(ui, id.with("max"));
+            });
+            show_if_error(ui, &self.parsed)
         });
-        show_if_error(ui, &self.parsed)
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {

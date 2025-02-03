@@ -252,14 +252,14 @@ pub enum FileSourceWidgetMode{
 
 #[derive(Default)]
 pub struct FileSourceWidget{
-    pub mode_widget: SearchAndPickWidget<FileSourceWidgetMode, false>,
+    pub mode: FileSourceWidgetMode,
     pub local_file_source_widget: LocalFileSourceWidget,
     pub http_url_widget: StagingUrl,
 }
 
 impl SummarizableWidget for FileSourceWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        match self.mode_widget.value{
+        match self.mode {
             FileSourceWidgetMode::Local => self.local_file_source_widget.summarize(ui, id.with("local".as_ptr())),
             FileSourceWidgetMode::Url => match self.http_url_widget.state(){
                 Ok(url) => {
@@ -274,7 +274,7 @@ impl SummarizableWidget for FileSourceWidget{
 impl Restore for FileSourceWidget{
     type RawData = FileSourceWidgetRawData;
     fn dump(&self) -> Self::RawData {
-        match self.mode_widget.value{
+        match self.mode {
             FileSourceWidgetMode::Local => {
                 Self::RawData::Local(self.local_file_source_widget.dump())
             },
@@ -297,11 +297,11 @@ impl ValueWidget for FileSourceWidget{
     fn set_value(&mut self, value: rt::FileSource){
         match value{
             rt::FileSource::LocalFile { path } => {
-                self.mode_widget.value = FileSourceWidgetMode::Local;
+                self.mode = FileSourceWidgetMode::Local;
                 self.local_file_source_widget = LocalFileSourceWidget::from_outer_path(path, None, None);
             },
             rt::FileSource::FileInZipArchive { inner_path, archive} => {
-                self.mode_widget.value = FileSourceWidgetMode::Local;
+                self.mode = FileSourceWidgetMode::Local;
                 self.local_file_source_widget = {
                     let mut inner_options: Vec<String> = archive.with_file_names(|file_names| {
                         file_names
@@ -317,7 +317,7 @@ impl ValueWidget for FileSourceWidget{
                 };
             },
             rt::FileSource::HttpUrl(url) => {
-                self.mode_widget.value = FileSourceWidgetMode::Url;
+                self.mode = FileSourceWidgetMode::Url;
                 self.http_url_widget.set_value(url);
             },
         };
@@ -337,19 +337,24 @@ impl StatefulWidget for FileSourceWidget{
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
-                self.mode_widget.draw_and_parse(ui, id.with("mode".as_ptr()));
-                if matches!(self.mode_widget.value, FileSourceWidgetMode::Url){
-                    self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
-                }
+                ui.radio_value(&mut self.mode, FileSourceWidgetMode::Local, "Local File")
+                    .on_hover_text("Pick a file form the local filesystem");
+                ui.radio_value(&mut self.mode, FileSourceWidgetMode::Url, "Url")
+                    .on_hover_text("Specify a file on the web by its HTTP URL");
             });
-            if matches!(self.mode_widget.value, FileSourceWidgetMode::Local) {
-                self.local_file_source_widget.draw_and_parse(ui, id.with("local".as_ptr()));
+            match self.mode{
+                FileSourceWidgetMode::Local => {
+                    self.local_file_source_widget.draw_and_parse(ui, id.with("local".as_ptr()));
+                },
+                FileSourceWidgetMode::Url => {
+                    self.http_url_widget.draw_and_parse(ui, id.with("url".as_ptr()));
+                },
             }
         });
     }
 
     fn state(&self) -> Result<rt::FileSource>{
-        return match self.mode_widget.value{
+        return match self.mode {
             FileSourceWidgetMode::Local => self.local_file_source_widget.state(),
             FileSourceWidgetMode::Url => Ok(rt::FileSource::HttpUrl(self.http_url_widget.state()?)),
         }

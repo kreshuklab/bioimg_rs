@@ -77,12 +77,16 @@ impl StatefulWidget for ParameterizedAxisSizeWidget {
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Min: ");
+                ui.strong("Min: ").on_hover_text(
+                    "The minimum size of this tensor axis"
+                );
                 self.staging_min.draw_and_parse(ui, id.with("Min"));
             });
 
             ui.horizontal(|ui| {
-                ui.strong("Step: ");
+                ui.strong("Step: ").on_hover_text(
+                    "This axis size can be incremented by adding the 'step' amount an arbitrary numer of times"
+                );
                 self.staging_step.draw_and_parse(ui, id.with("Step"));
             });
 
@@ -192,7 +196,7 @@ impl StatefulWidget for AnyAxisSizeWidget {
             group_frame(ui, |ui| match self.mode {
                 AxisSizeMode::Fixed => {
                     ui.horizontal(|ui| {
-                        ui.strong("Extent: ");
+                        ui.strong("Extent: ").on_hover_text("Exactly how big a tensor must be in this axis");
                         self.staging_fixed_size.draw_and_parse(ui, id.with("Fixed"));
                     });
                 }

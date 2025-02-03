@@ -13,7 +13,7 @@ use super::{Restore, StatefulWidget, ValueWidget};
 
 pub struct PhysicalScaleWidget<T>{
     pub raw_scale: String,
-    pub unit_widget: StagingOpt<SearchAndPickWidget<T>>,
+    pub unit_widget: StagingOpt<SearchAndPickWidget<T>, false>,
 }
 
 impl<U> ValueWidget for PhysicalScaleWidget<U>

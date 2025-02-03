@@ -57,7 +57,7 @@ enum LoadingState{
     Loading{source: rt::FileSource},
     Ready{source: rt::FileSource, img: ArcDynImg, texture: Option<Texture>},
     Forced{img: ArcDynImg, texture: Option<Texture>},
-    Failed{source: rt::FileSource, err: GuiError},
+    Failed{source: Option<rt::FileSource>, err: GuiError},
 }
 
 impl LoadingState{
@@ -67,7 +67,7 @@ impl LoadingState{
             Self::Loading { source } => Some(source),
             Self::Ready { source, ..} => Some(source),
             Self::Forced { .. } => None,
-            Self::Failed { source, .. } => Some(source)
+            Self::Failed { source, .. } => source.as_ref()
         }
     }
 }
@@ -167,7 +167,7 @@ impl ImageWidget2{
                 return
             }
             guard.1 = match res{
-                Err(e) => LoadingState::Failed { source: file_source, err: e },
+                Err(e) => LoadingState::Failed { source: Some(file_source), err: e },
                 Ok(img) => LoadingState::Ready { source: file_source, img, texture: None },
             };
             ctx.request_repaint();
@@ -188,24 +188,29 @@ impl StatefulWidget for ImageWidget2{
             ui.horizontal(|ui|{
                 self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
 
-                if let Ok(file_source) = self.file_source_widget.state() { 'needs_reload: {
-                    if let Some(fs) = loading_state.file_source() {
-                        if *fs == file_source{
-                            eprintln!("Reload dismissed!!");
-                            break 'needs_reload
+                match self.file_source_widget.state() {
+                    Ok(file_source) => 'needs_reload: {
+                        if let Some(fs) = loading_state.file_source() {
+                            if *fs == file_source{
+                                eprintln!("Reload dismissed!!");
+                                break 'needs_reload
+                            }
                         }
-                    }
-                    //FIXME: this logic should also trigger on restore, but we'd need an egui::Context
-                    eprintln!("Reload REQUIRED, dispatching thread!!");
-                    *generation += 1;
-                    *loading_state = LoadingState::Loading{ source: file_source.clone() };
-                    Self::spawn_load_image_task(
-                        *generation,
-                        file_source,
-                        Arc::clone(&self.loading_state),
-                        ui.ctx().clone(),
-                    );
-                }}
+                        //FIXME: this logic should also trigger on restore, but we'd need an egui::Context
+                        eprintln!("Reload REQUIRED, dispatching thread!!");
+                        *generation += 1;
+                        *loading_state = LoadingState::Loading{ source: file_source.clone() };
+                        Self::spawn_load_image_task(
+                            *generation,
+                            file_source,
+                            Arc::clone(&self.loading_state),
+                            ui.ctx().clone(),
+                        );
+                    },
+                    Err(err) => {
+                        *loading_state = LoadingState::Failed{source: None, err}
+                    },
+                }
 
                 match loading_state {
                     LoadingState::Empty => (),
@@ -229,8 +234,13 @@ impl StatefulWidget for ImageWidget2{
                 };
             });
 
-            if let LoadingState::Failed{ err, .. } = loading_state {
-                show_error(ui, err);
+            if let LoadingState::Failed{source, err} = loading_state {
+                match source{
+                    None | Some(FileSource::HttpUrl(_)) => (), //FIXME: can we filter out the error some other way?
+                    _ => {
+                        show_error(ui, err);
+                    }
+                }
             }
         });
     }

@@ -2,9 +2,10 @@ use std::{
     io::{Read, Seek, Write}, path::{Path, PathBuf}, sync::Arc
 };
 
-use bioimg_spec::rdf::{
-    model::unsupported::{UnsupportedFutureModel, UnsupportedLegacyModel, Version_0_5_4_OrLater}, FileReference, FsPath, HttpUrl, LicenseId, ResourceId, ResourceName, Version
-};
+use bioimg_spec::rdf::{model::ModelRdfName, FileReference, FsPath, HttpUrl, LicenseId, ResourceId, Version};
+use bioimg_spec::rdf::model::unsupported::Version_0_5_4_OrLater;
+use bioimg_spec::rdf::model::unsupported::UnsupportedLegacyModel;
+use bioimg_spec::rdf::model::unsupported::UnsupportedFutureModel;
 use bioimg_spec::rdf;
 use bioimg_spec::rdf::version::Version_0_5_x;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
@@ -18,7 +19,8 @@ use bioimg_spec::rdf::model as  modelrdf;
 use image::ImageError;
 use serde::Deserialize;
 
-use crate::{zip_archive_ext::{SharedZipArchive, ZipArchiveOpenError}, FileSource, Icon, ModelInterface, NpyArray, TensorValidationError};
+use crate::{FileSource, Icon, ModelInterface, NpyArray, TensorValidationError};
+use crate::zip_archive_ext::{SharedZipArchive, ZipArchiveOpenError};
 use crate::cover_image::CoverImageLoadingError;
 use crate::CoverImage;
 use crate::zip_writer_ext::ModelZipWriter;
@@ -100,7 +102,7 @@ pub struct ZooModel {
     pub authors: NonEmptyList<Author2>,
     pub documentation: String,
     pub license: LicenseId,
-    pub name: ResourceName,
+    pub name: ModelRdfName,
     pub id: Option<ResourceId>,
     // training_data: DatasetDescrEnum, //FIXME
     pub weights: ModelWeights,

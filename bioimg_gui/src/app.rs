@@ -2,12 +2,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
+use bioimg_spec::rdf::model::ModelRdfName;
 use bioimg_zoo::collection::ZooNickname;
 use indoc::indoc;
 
 use bioimg_runtime as rt;
 use bioimg_runtime::zoo_model::{ModelPackingError, ZooModel};
-use bioimg_spec::rdf::{self, ResourceId, ResourceName};
+use bioimg_spec::rdf;
+use bioimg_spec::rdf::ResourceId;
 use bioimg_spec::rdf::bounded_string::BoundedString;
 use bioimg_spec::rdf::non_empty_list::NonEmptyList;
 
@@ -58,20 +60,20 @@ pub enum TaskResult{
 
 #[derive(Restore)]
 pub struct AppState1 {
-    pub staging_name: StagingString<ResourceName>,
+    pub staging_name: StagingString<ModelRdfName>,
     pub staging_description: StagingString<BoundedString<0, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
-    pub model_id_widget: StagingOpt<StagingString<ResourceId>>,
+    pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,
     pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
     pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
     pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
-    pub custom_config_widget: StagingOpt<JsonObjectEditorWidget>, //FIXME
-    pub staging_git_repo: StagingOpt<StagingUrl>,
+    pub custom_config_widget: StagingOpt<JsonObjectEditorWidget, false>, //FIXME
+    pub staging_git_repo: StagingOpt<StagingUrl, false>,
     pub icon_widget: StagingOpt<IconWidget>,
     pub links_widget: ModelLinksWidget,
     pub staging_maintainers: StagingVec<CollapsibleWidget<MaintainerWidget>>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
-    pub staging_version: StagingOpt<VersionWidget>,
+    pub staging_version: StagingOpt<VersionWidget, false>,
 
     pub staging_documentation: CodeEditorWidget<MarkdwownLang>,
     pub staging_license: SearchAndPickWidget<rdf::LicenseId>,
@@ -496,9 +498,7 @@ impl eframe::App for AppState1 {
                         An icon for quick identification on bioimage.io.
                         This can either be an emoji or a small square image."
                     ));
-                    group_frame(ui, |ui| {
-                        self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
-                    });
+                    self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                 });
                 ui.add_space(10.0);
 
@@ -553,20 +553,7 @@ impl eframe::App for AppState1 {
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 });
 
-                ui.horizontal(|ui| {
-                    ui.strong("Model Interface: ").on_hover_text(indoc!("
-                        During runtime, the model weights (specified further down) will be fed with input data. This input data must be \
-                        in a particular shape, order, and of a particular type to be accepted by the overall Zoo Model.
-
-                        This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights.
-
-                        The data comming out of the model weights is then further postprocessed (as specified in the 'postprocessing' \
-                        field inside the 'outputs' field), and ultimately output in the shape, order and type specified in the 'outputs' fields."
-                    ));
-                    group_frame(ui, |ui| {
-                        self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
-                    });
-                });
+                self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
 
                 ui.horizontal(|ui| {
                     ui.strong("Model Weights: ").on_hover_text(indoc!("

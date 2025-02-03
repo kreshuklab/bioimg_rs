@@ -1,9 +1,15 @@
 use super::{collapsible_widget::SummarizableWidget, util::group_frame, Restore, StatefulWidget, ValueWidget};
 
-#[derive(Clone, Debug, Default)]
-pub struct StagingOpt<Stg>(pub Option<Stg>);
+#[derive(Clone, Debug)]
+pub struct StagingOpt<Stg, const DRAW_FRAME: bool = true>(pub Option<Stg>);
 
-impl<Stg> StatefulWidget for StagingOpt<Stg>
+impl<Stg, const DRAW_FRAME: bool> Default for StagingOpt<Stg, DRAW_FRAME>{
+    fn default() -> Self {
+        Self(None)
+    }
+}
+
+impl<Stg, const DRAW_FRAME: bool> StatefulWidget for StagingOpt<Stg, DRAW_FRAME>
 where
     Stg: Default + StatefulWidget,
 {
@@ -15,15 +21,18 @@ where
     fn draw_and_parse<'p>(&'p mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.horizontal(|ui| {
             if self.0.is_none() {
-                ui.label("None");
-                if ui.button("Add").clicked() {
+                if ui.button("✚").clicked() {
                     self.0 = Some(Stg::default())
                 }
             } else {
                 let x_clicked = ui.button("🗙").clicked();
-                group_frame(ui, |ui| {
+                if DRAW_FRAME{
+                    group_frame(ui, |ui| {
+                        self.0.as_mut().unwrap().draw_and_parse(ui, id);
+                    });
+                } else {
                     self.0.as_mut().unwrap().draw_and_parse(ui, id);
-                });
+                }
                 if x_clicked {
                     self.0.take();
                 }
@@ -36,7 +45,7 @@ where
     }
 }
 
-impl<Stg> SummarizableWidget for StagingOpt<Stg>
+impl<Stg, const DRAW_FRAME: bool> SummarizableWidget for StagingOpt<Stg, DRAW_FRAME>
 where
     Stg: SummarizableWidget
 {
@@ -49,7 +58,7 @@ where
     }
 }
 
-impl<Stg> ValueWidget for StagingOpt<Stg>
+impl<Stg, const RAW_FRAME: bool> ValueWidget for StagingOpt<Stg, RAW_FRAME>
 where
     Stg: ValueWidget + Default
 {
@@ -63,7 +72,7 @@ where
     }
 }
 
-impl<W: Restore + Default> Restore for StagingOpt<W>{
+impl<W: Restore + Default, const RAW_FRAME: bool> Restore for StagingOpt<W, RAW_FRAME>{
     type RawData = Option<W::RawData>;
     fn dump(&self) -> Self::RawData {
         self.0.as_ref().map(|val| val.dump())

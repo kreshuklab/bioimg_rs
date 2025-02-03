@@ -24,6 +24,7 @@ pub mod non_empty_list;
 pub mod orcid;
 pub mod si_units;
 pub mod slashless_string;
+pub mod basic_chars_string;
 pub mod version;
 pub mod tag;
 
@@ -46,7 +47,6 @@ use self::{lowercase::Lowercase, slashless_string::SlashlessString};
 
 pub type ResourceId = SlashlessString<Lowercase<BoundedString<1, 1024>>>;
 pub type ResourceTextDescription = BoundedString<0, 1024>;
-pub type ResourceName = BoundedString<5, 1024>;
 
 // #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 // pub struct Rdf {
