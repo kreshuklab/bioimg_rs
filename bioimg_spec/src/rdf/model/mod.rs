@@ -18,7 +18,7 @@ pub mod run_mode;
 pub mod dataset_descr;
 pub mod unsupported;
 pub mod model_rdf_0_5;
-pub mod model_rdf_0_4;
+// pub mod model_rdf_0_4;
 
 pub use axes::{
     AxisType, AxisId, AxisScale,
