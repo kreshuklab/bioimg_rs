@@ -72,6 +72,41 @@ pub struct PreprocessingWidget{
     pub fixed_zmuv_widget: FixedZmuvWidget,
 }
 
+impl PreprocessingWidget{
+    pub fn iconify(&self, ui: &mut egui::Ui, id: egui::Id,) -> egui::Response{
+        match self.mode_widget.value{
+            PreprocessingWidgetMode::Binarize => {
+                self.binarize_widget.iconify(ui, id.with("binarize".as_ptr()))
+            },
+            // PreprocessingWidgetMode::Clip => {
+            //     self.clip_widget.draw_and_parse(ui, id.with("clip_widget".as_ptr()))
+            // },
+            // PreprocessingWidgetMode::ScaleLinear => {
+            //     self.scale_linear_widget.draw_and_parse(ui, id.with("scale_linear_widget".as_ptr()))
+            // },
+            PreprocessingWidgetMode::Sigmoid => {
+                ui.strong("∫")
+            },
+            _ => panic!(),
+            // PreprocessingWidgetMode::ZeroMeanUnitVariance => {
+            //     self.zero_mean_unit_variance_widget.draw_and_parse(ui, id.with("zero_mean_unit_variance_widget".as_ptr()))
+            // },
+            // PreprocessingWidgetMode::ScaleRange => {
+            //     self.scale_range_widget.draw_and_parse(ui, id.with("scale_range_widget".as_ptr()))
+            // },
+            // PreprocessingWidgetMode::EnsureDtype => {
+            //     ui.horizontal(|ui|{
+            //         ui.strong("Data Type: ");
+            //         self.ensure_dtype_widget.draw_and_parse(ui, id.with("ensure_dtype".as_ptr()))
+            //     });
+            // },
+            // PreprocessingWidgetMode::FixedZmuv => {
+            //     self.fixed_zmuv_widget.draw_and_parse(ui, id.with("fixed_zmuv".as_ptr()) )
+            // }
+        }
+    }
+}
+
 impl ValueWidget for PreprocessingWidget{
     type Value<'v> = modelrdfpreproc::PreprocessingDescr;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {

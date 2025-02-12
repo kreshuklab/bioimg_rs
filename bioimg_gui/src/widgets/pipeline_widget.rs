@@ -1,70 +1,47 @@
+use bioimg_spec::rdf::model as modelrdf;
+
+use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
+use super::inout_tensor_widget::InputTensorWidget;
+use super::staging_string::StagingString;
 use super::util::Arrow;
+use super::StatefulWidget;
 
+
+
+
+
+#[derive(Default)]
 pub struct PipelineWidget{
-    num_inputs: usize,
-
-    c1_x_offset: f32,
-    c1_y_offset: f32,
-
-    c2_x_offset: f32,
-    c2_y_offset: f32,
-
-    block_space: f32,
 }
 
-impl Default for PipelineWidget{
-    fn default() -> Self {
-        Self{
-            num_inputs: 1,
-            c1_x_offset: 0.0,
-            c1_y_offset: 0.0,
-            c2_x_offset: 0.0,
-            c2_y_offset: 0.0,
-            block_space: 30.0,
-        }
-    }
-}
 
 impl PipelineWidget{
-    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        ui.horizontal(|ui|{
-            ui.label("num inputs:"); ui.add(egui::DragValue::new(&mut self.num_inputs).speed(1.0));
-        });
-
-        ui.horizontal(|ui|{
-            ui.label("c1_x_offset:"); ui.add(egui::DragValue::new(&mut self.c1_x_offset).speed(0.1));
-        });
-        ui.horizontal(|ui|{
-            ui.label("c1_y_offset:"); ui.add(egui::DragValue::new(&mut self.c1_y_offset).speed(0.1));
-        });
-
-        ui.horizontal(|ui|{
-            ui.label("c2_x_offset:"); ui.add(egui::DragValue::new(&mut self.c2_x_offset).speed(0.1));
-        });
-        ui.horizontal(|ui|{
-            ui.label("c2_y_offset:"); ui.add(egui::DragValue::new(&mut self.c2_y_offset).speed(0.1));
-        });
-
-        ui.horizontal(|ui|{
-            ui.label("block space:"); ui.add(egui::DragValue::new(&mut self.block_space).speed(0.1));
-        });
-
+    pub fn draw(
+        &mut self,
+        ui: &mut egui::Ui,
+        id: egui::Id,
+        inputs: &mut Vec<CollapsibleWidget<InputTensorWidget>>,
+    ){
 
         let margin_width = 10.0;
         let (input_rects, weights_rect, output_rects) = ui.horizontal(|ui|{
-            let input_rects = ui.vertical(|ui|{
-                egui::Frame::none()
-                .inner_margin(egui::Margin::same(margin_width))
-                .fill(egui::Color32::from_rgb(255, 0, 0))
-                .show(ui, |ui|{
-                    let input_rects: Vec<_> = (0..self.num_inputs).into_iter()
-                        .map(|idx| ui.label(format!("Input #{idx}")).rect)
-                        .collect();
-                    input_rects
-                }).inner
-            }).inner;
+            let inp_id = id.with("inputs".as_ptr());
+            let inp_margin = egui::Margin::same(margin_width);
+            let input_rects: Vec<egui::Rect> = ui.vertical(|ui| inputs.iter_mut()
+                .map(|collapsible| &mut collapsible.inner)
+                .enumerate()
+                .map(|(idx, inp)| egui::Frame::none()
+                    .inner_margin(inp_margin)
+                    .stroke(egui::Stroke{color: egui::Color32::RED, width: 2.0})
+                    .show(ui, |ui|{
+                        let id = inp_id.with(idx);
+                        inp.summarize2(ui, id);
+                    }).response.rect
+                )
+                .collect()
+            ).inner;
 
-            ui.add_space(self.block_space);
+            ui.add_space(30.0);
 
             let weights_rect = ui.vertical(|ui|{
                 egui::Frame::none()
@@ -119,8 +96,8 @@ impl PipelineWidget{
 
             // let control1 = egui::Pos2{x: origin.x + self.c1_x_offset, y: origin.y + self.c1_y_offset};
             // let control2 = egui::Pos2{x: target.x + self.c2_x_offset, y: target.y + self.c2_y_offset};
-            let control1 = egui::Pos2{x: origin.x + 20.0, y: origin.y + self.c1_y_offset};
-            let control2 = egui::Pos2{x: target.x + -20.0, y: target.y + self.c2_y_offset};
+            let control1 = egui::Pos2{x: origin.x + 20.0, y: origin.y};
+            let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
 
             // ui.painter().circle_filled(control1, 3.0, egui::Color32::YELLOW);
             // ui.painter().circle_filled(control2, 3.0, egui::Color32::LIGHT_BLUE);

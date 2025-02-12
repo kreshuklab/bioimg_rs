@@ -154,6 +154,22 @@ pub struct BinarizePreprocessingWidget{
     pub binarize_along_axis_wiget: BinarizeAlongAxisWidget,
 }
 
+impl BinarizePreprocessingWidget{
+    pub fn iconify(&self, ui: &mut egui::Ui, _id: egui::Id) -> egui::Response{
+        let Ok(prep) = self.state() else{
+            return ui.strong("?")
+        };
+        match prep{
+            modelrdf::preprocessing::BinarizeDescr::Simple(prep) => {
+                ui.strong(format!("> {}", prep.threshold))
+            },
+            modelrdf::preprocessing::BinarizeDescr::AlongAxis(prep) => {
+                ui.strong(format!("[{}] > {}", prep.axis, prep.threshold))
+            }
+        }
+    }
+}
+
 impl ValueWidget for BinarizePreprocessingWidget{
     type Value<'v> = preproc::BinarizeDescr;
 

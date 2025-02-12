@@ -27,6 +27,7 @@ use crate::widgets::json_editor_widget::JsonObjectEditorWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::model_links_widget::ModelLinksWidget;
 use crate::widgets::notice_widget::NotificationsWidget;
+use crate::widgets::pipeline_widget::PipelineWidget;
 use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
@@ -81,6 +82,13 @@ pub struct AppState1 {
     pub model_interface_widget: ModelInterfaceWidget,
     ////
     pub weights_widget: WeightsWidget,
+
+
+
+    #[restore_default]
+    pub pipeline_widget: PipelineWidget,
+
+
 
     #[restore_default]
     pub zoo_login_widget: ZooLoginWidget,
@@ -166,6 +174,7 @@ impl Default for AppState1 {
             notifications_channel: Default::default(),
             zoo_login_widget: Default::default(),
             zoo_model_creation_task: Default::default(),
+            pipeline_widget: Default::default(),
 
             close_confirmed: false,
             show_confirmation_dialog: false,
@@ -427,6 +436,8 @@ impl eframe::App for AppState1 {
                     let _description_result = self.staging_description.state();
                 });
                 ui.add_space(10.0);
+
+                self.pipeline_widget.draw(ui, egui::Id::from("pipeline"), &mut self.model_interface_widget.inputs_widget.staging);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Cover Images: ").on_hover_text(
