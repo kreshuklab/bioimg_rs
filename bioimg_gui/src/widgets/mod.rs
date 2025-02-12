@@ -2,6 +2,7 @@ use serde::de::DeserializeOwned;
 pub use bioimg_codegen::Restore;
 use bioimg_spec::rdf;
 
+pub mod pipeline_widget;
 pub mod author_widget;
 pub mod axis_size_widget;
 pub mod cite_widget;
