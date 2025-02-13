@@ -34,6 +34,11 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
     }
 }
 
+enum PipelineAction{
+    Nothing,
+    Remove{index: usize}
+}
+
 impl PipelineWidget{
     pub fn draw(
         &mut self,
@@ -60,6 +65,7 @@ impl PipelineWidget{
                             ui.strong(&inp.id_widget.raw);
                             ui.spacing_mut().item_spacing.x = 1.0;
 
+                            let mut preproc_action = PipelineAction::Nothing;
                             for (idx, preproc) in inp.preprocessing_widget.staging.iter_mut().enumerate(){
                                 let preproc = &mut preproc.inner;
                                 let preproc_id = inp_id.with(idx);
@@ -80,8 +86,21 @@ impl PipelineWidget{
                                             }
                                         });
                                         preproc.draw_and_parse(ui, id.with("widget".as_ptr()));
+                                        ui.separator();
+                                        ui.horizontal(|ui|{
+                                            if ui.button("Remove").clicked{
+                                                preproc_action = PipelineAction::Remove { index: idx };
+                                                self.popup_id = None;
+                                            }
+                                            if ui.button("Ok").clicked{
+                                                self.popup_id = None;
+                                            }
+                                        });
                                     })
                                 });
+                            }
+                            if let PipelineAction::Remove { index } = preproc_action{
+                                inp.preprocessing_widget.staging.remove(index);
                             }
                         });
                     }).response.rect;

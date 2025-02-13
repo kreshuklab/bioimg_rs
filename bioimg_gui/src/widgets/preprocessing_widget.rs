@@ -13,7 +13,7 @@ use super::fixed_zero_mean_unit_variance_widget::FixedZmuvWidget;
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::clip_widget::ClipWidget;
 
-#[derive(PartialEq, Eq, Default, Clone, strum::VariantArray, strum::AsRefStr, strum::VariantNames, strum::Display)]
+#[derive(Hash, PartialEq, Eq, Default, Copy, Clone, strum::VariantArray, strum::AsRefStr, strum::VariantNames, strum::Display)]
 pub enum PreprocessingWidgetMode {
     #[default]
     Binarize,
