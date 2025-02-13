@@ -16,6 +16,10 @@ pub struct ClipWidget{
 }
 
 impl ClipWidget{
+    pub fn iconify(&self) -> Result<egui::WidgetText>{
+        let preproc = self.state().clone()?;
+        Ok(egui::RichText::new(format!("➡ {} , {} ⬅", preproc.min(), preproc.max())).into())
+    }
     pub fn update(&mut self){
         self.parsed = || -> Result<ClipDescr> {
             let min = self.min_widget.state()?;

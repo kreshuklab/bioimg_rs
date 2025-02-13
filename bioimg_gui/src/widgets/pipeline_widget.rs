@@ -1,19 +1,38 @@
-use bioimg_spec::rdf::model as modelrdf;
+use egui::Widget;
 
-use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
+use super::collapsible_widget::CollapsibleWidget;
+use super::error_display::show_error;
 use super::inout_tensor_widget::InputTensorWidget;
-use super::staging_string::StagingString;
+use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode};
 use super::util::Arrow;
 use super::StatefulWidget;
 
 
 
-
-
 #[derive(Default)]
 pub struct PipelineWidget{
+    popup_id: Option<egui::Id>,
 }
 
+fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui::Response{
+    let color = match preproc.mode_widget.value{
+        PreprocessingWidgetMode::Binarize => egui::Color32::GOLD,
+        PreprocessingWidgetMode::Clip => egui::Color32::BLUE,
+        PreprocessingWidgetMode::ScaleLinear => egui::Color32::GREEN,
+        PreprocessingWidgetMode::Sigmoid => egui::Color32::ORANGE,
+        PreprocessingWidgetMode::ZeroMeanUnitVariance => egui::Color32::BROWN,
+        PreprocessingWidgetMode::ScaleRange => egui::Color32::DARK_GREEN,
+        PreprocessingWidgetMode::EnsureDtype => egui::Color32::LIGHT_GRAY,
+        PreprocessingWidgetMode::FixedZmuv => egui::Color32::KHAKI,
+    };
+    match preproc.iconify(){
+        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(color).ui(ui),
+        Err(err) => {
+            let text = egui::RichText::new("!").color(egui::Color32::WHITE);
+            egui::Button::new(text).fill(egui::Color32::RED).ui(ui).on_hover_ui(|ui| show_error(ui, err))
+        }
+    }
+}
 
 impl PipelineWidget{
     pub fn draw(
@@ -24,22 +43,52 @@ impl PipelineWidget{
     ){
 
         let margin_width = 10.0;
+        let margin = egui::Margin::same(10.0);
+        let red_stroke = egui::Stroke{color: egui::Color32::RED, width: 2.0};
+
+        let inputs_base_id = id.with("inputs".as_ptr());
+
         let (input_rects, weights_rect, output_rects) = ui.horizontal(|ui|{
-            let inp_id = id.with("inputs".as_ptr());
-            let inp_margin = egui::Margin::same(margin_width);
-            let input_rects: Vec<egui::Rect> = ui.vertical(|ui| inputs.iter_mut()
-                .map(|collapsible| &mut collapsible.inner)
-                .enumerate()
-                .map(|(idx, inp)| egui::Frame::none()
-                    .inner_margin(inp_margin)
-                    .stroke(egui::Stroke{color: egui::Color32::RED, width: 2.0})
-                    .show(ui, |ui|{
-                        let id = inp_id.with(idx);
-                        inp.summarize2(ui, id);
-                    }).response.rect
-                )
-                .collect()
-            ).inner;
+            let input_rects: Vec<egui::Rect> = ui.vertical(|ui| {
+                let mut input_rects =  Vec::<egui::Rect>::new();
+                for (idx, cw) in inputs.iter_mut().enumerate(){
+                    let inp = &mut cw.inner;
+                    let inp_id = inputs_base_id.with(idx);
+
+                    let rect = egui::Frame::none().inner_margin(margin).stroke(red_stroke).show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.strong(&inp.id_widget.raw);
+                            ui.spacing_mut().item_spacing.x = 1.0;
+
+                            for (idx, preproc) in inp.preprocessing_widget.staging.iter_mut().enumerate(){
+                                let preproc = &mut preproc.inner;
+                                let preproc_id = inp_id.with(idx);
+                                if draw_preproc_button(ui, preproc).clicked(){
+                                    self.popup_id = Some(preproc_id);
+                                }
+                                let Some(id) = self.popup_id else{
+                                    continue
+                                };
+                                if id != preproc_id{
+                                    continue
+                                }
+                                egui::Modal::new(id.with("modal".as_ptr())).show(ui.ctx(), |ui| {
+                                    ui.vertical(|ui|{
+                                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                                                self.popup_id = None;
+                                            }
+                                        });
+                                        preproc.draw_and_parse(ui, id.with("widget".as_ptr()));
+                                    })
+                                });
+                            }
+                        });
+                    }).response.rect;
+                    input_rects.push(rect);
+                }
+                input_rects
+            }).inner;
 
             ui.add_space(30.0);
 

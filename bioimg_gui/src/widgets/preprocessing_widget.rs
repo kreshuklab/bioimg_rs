@@ -73,19 +73,19 @@ pub struct PreprocessingWidget{
 }
 
 impl PreprocessingWidget{
-    pub fn iconify(&self, ui: &mut egui::Ui, id: egui::Id,) -> egui::Response{
+    pub fn iconify(&self) -> Result<egui::WidgetText> {
         match self.mode_widget.value{
             PreprocessingWidgetMode::Binarize => {
-                self.binarize_widget.iconify(ui, id.with("binarize".as_ptr()))
+                self.binarize_widget.iconify()
             },
-            // PreprocessingWidgetMode::Clip => {
-            //     self.clip_widget.draw_and_parse(ui, id.with("clip_widget".as_ptr()))
-            // },
+            PreprocessingWidgetMode::Clip => {
+                self.clip_widget.iconify()
+            },
             // PreprocessingWidgetMode::ScaleLinear => {
             //     self.scale_linear_widget.draw_and_parse(ui, id.with("scale_linear_widget".as_ptr()))
             // },
             PreprocessingWidgetMode::Sigmoid => {
-                ui.strong("∫")
+                Ok("∫".into())
             },
             _ => panic!(),
             // PreprocessingWidgetMode::ZeroMeanUnitVariance => {

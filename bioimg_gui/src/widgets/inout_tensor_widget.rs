@@ -90,37 +90,6 @@ impl SummarizableWidget for InputTensorWidget{
 }
 
 impl InputTensorWidget{
-    pub fn summarize2(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 1.0;
-            ui.strong(&self.id_widget.raw);
-
-            self.preprocessing_widget.staging.iter_mut()
-                .map(|collapsible| &mut collapsible.inner)
-                .enumerate()
-                .for_each(|(idx, prep)|{
-                    let color = match prep.mode_widget.value{
-                        PreprocessingWidgetMode::Binarize => egui::Color32::GOLD,
-                        PreprocessingWidgetMode::Clip => egui::Color32::BLUE,
-                        PreprocessingWidgetMode::ScaleLinear => egui::Color32::GREEN,
-                        PreprocessingWidgetMode::Sigmoid => egui::Color32::ORANGE,
-                        PreprocessingWidgetMode::ZeroMeanUnitVariance => egui::Color32::BROWN,
-                        PreprocessingWidgetMode::ScaleRange => egui::Color32::DARK_GREEN,
-                        PreprocessingWidgetMode::EnsureDtype => egui::Color32::LIGHT_GRAY,
-                        PreprocessingWidgetMode::FixedZmuv => egui::Color32::KHAKI,
-                    };
-                    let margin = egui::Margin::same(10.0);
-                    let resp = egui::Frame::none().fill(color).inner_margin(margin).show(ui, |ui|{
-                        prep.iconify(ui, id.with(idx))
-                    }).response;
-                })
-        });
-
-        
-    }
-}
-
-impl InputTensorWidget{
     pub fn update(&mut self){
         'auto_adjust_axes: {
             let state_guard = self.test_tensor_widget.state();
