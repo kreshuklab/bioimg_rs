@@ -20,6 +20,7 @@ use super::staging_vec::StagingVec;
 use super::input_axis_widget::InputAxisWidget;
 use super::output_axis_widget::OutputAxisWidget;
 use super::test_tensor_widget::{TestTensorWidget, TestTensorWidgetState};
+use super::util::{VecWidget, WidgetItemPosition};
 use super::{Restore, StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
 
@@ -33,7 +34,7 @@ pub struct InputTensorWidget {
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<InputAxisWidget>>,
     pub test_tensor_widget: TestTensorWidget,
-    pub preprocessing_widget: StagingVec<CollapsibleWidget<PreprocessingWidget>>,
+    pub preprocessing_widget: Vec<PreprocessingWidget>,
 
     #[restore_on_update]
     pub parsed: Result<InputSlot<Arc<NpyArray>>>,
@@ -59,7 +60,13 @@ impl ValueWidget for InputTensorWidget{
     type Value<'v> = InputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
-        self.preprocessing_widget.set_value(value.tensor_meta.preprocessing().clone()); //FIXME: clone
+        self.preprocessing_widget = value.tensor_meta.preprocessing().iter()
+            .map(|descr| {
+                let mut w = PreprocessingWidget::default();
+                w.set_value(descr.clone());
+                w
+            })
+            .collect(); //FIXME: use current alloc?
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget.set_value(value.test_tensor);
@@ -141,7 +148,9 @@ impl InputTensorWidget{
             let meta_msg = rdfinput::InputTensorMetadataMsg{
                 id: self.id_widget.state()?.clone(),
                 optional: self.is_optional,
-                preprocessing: self.preprocessing_widget.state().collect_result()?,
+                preprocessing: self.preprocessing_widget.iter()
+                    .map(|w| w.state())
+                    .collect::<Result<_>>()?,
                 description: self.description_widget.state()?.clone(),
                 axes: input_axis_group,
             };
@@ -215,7 +224,17 @@ impl StatefulWidget for InputTensorWidget {
                     A list of preprocessing steps that will be applied to this input tensor before it is \
                     fed to the model weights."
                 ));
-                self.preprocessing_widget.draw_and_parse(ui, id.with("preproc".as_ptr()));
+                let vec_widget = VecWidget{
+                    items: &mut self.preprocessing_widget,
+                    item_label: "Preprocessing Step",
+                    show_reorder_buttons: true,
+                    item_position: WidgetItemPosition::Block,
+                    render_widget: |widget: &mut PreprocessingWidget, index, ui|{
+                        widget.draw_and_parse(ui, id.with("preprocs".as_ptr()).with(index));
+                    },
+                    new_item: Some(PreprocessingWidget::default),
+                };
+                ui.add(vec_widget);
             });
             show_if_error(ui, &self.parsed);
         });

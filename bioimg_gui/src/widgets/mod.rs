@@ -76,6 +76,21 @@ pub trait Restore{
     fn restore(&mut self, raw: Self::RawData);
 }
 
+impl<T: Restore + Default> Restore for Vec<T>{
+    type RawData = Vec<T::RawData>;
+    fn dump(&self) -> Self::RawData {
+        self.iter().map(|item| item.dump()).collect()
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        self.clear();
+        raw.into_iter().for_each(|raw_item| {
+            let mut t = T::default();
+            t.restore(raw_item);
+            self.push(t)
+        })
+    }
+}
+
 macro_rules! impl_Restore_for {($type:ty) => {
     impl Restore for $type{
         type RawData = $type;
@@ -91,6 +106,7 @@ macro_rules! impl_Restore_for {($type:ty) => {
 
 impl_Restore_for!(bool);
 impl_Restore_for!(String);
+impl_Restore_for!(egui::Id);
 impl_Restore_for!(rdf::LicenseId);
 impl_Restore_for!(rdf::model::axes::AxisType);
 impl_Restore_for!(rdf::model::SpaceUnit);

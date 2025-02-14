@@ -1,6 +1,7 @@
 use indoc::indoc;
 
 use super::collapsible_widget::CollapsibleWidget;
+use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode};
 use super::{Restore, ValueWidget};
 use super::{
     error_display::show_if_error,
@@ -31,7 +32,30 @@ impl ModelInterfaceWidget{
 impl Default for ModelInterfaceWidget {
     fn default() -> Self {
         Self {
-            inputs_widget: StagingVec::default(),
+            inputs_widget: {
+                let mut out = StagingVec::default();
+                out.staging = vec![
+                    {
+                        let mut cw: CollapsibleWidget<InputTensorWidget> = Default::default();
+                        cw.inner.id_widget.raw = "blas".to_owned();
+                        cw.inner.preprocessing_widget = vec![
+                            {
+                                let mut preproc: PreprocessingWidget = Default::default();
+                                preproc.mode_widget.value = PreprocessingWidgetMode::Binarize;
+                                preproc.binarize_widget.simple_binarize_widget.threshold_widget.raw = "1.2".to_owned();
+                                preproc
+                            },
+                            {
+                                let mut preproc: PreprocessingWidget = Default::default();
+                                preproc.mode_widget.value = PreprocessingWidgetMode::Sigmoid;
+                                preproc
+                            }
+                        ];
+                        cw
+                    }
+                ];
+                out
+            },
             outputs_widget: StagingVec::default(),
             parsed: Err(GuiError::new("emtpy")), //FIXME?
         }

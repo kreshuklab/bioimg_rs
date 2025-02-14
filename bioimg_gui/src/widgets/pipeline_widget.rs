@@ -47,8 +47,8 @@ impl PipelineWidget{
         inputs: &mut Vec<CollapsibleWidget<InputTensorWidget>>,
     ){
 
-        let margin_width = 10.0;
-        let margin = egui::Margin::same(10.0);
+        let margin_width = 10;
+        let margin = egui::Margin::same(10);
         let red_stroke = egui::Stroke{color: egui::Color32::RED, width: 2.0};
 
         let inputs_base_id = id.with("inputs".as_ptr());
@@ -60,14 +60,13 @@ impl PipelineWidget{
                     let inp = &mut cw.inner;
                     let inp_id = inputs_base_id.with(idx);
 
-                    let rect = egui::Frame::none().inner_margin(margin).stroke(red_stroke).show(ui, |ui| {
+                    let rect = egui::Frame::new().inner_margin(margin).stroke(red_stroke).show(ui, |ui| {
                         ui.horizontal(|ui| {
                             ui.strong(&inp.id_widget.raw);
                             ui.spacing_mut().item_spacing.x = 1.0;
 
                             let mut preproc_action = PipelineAction::Nothing;
-                            for (idx, preproc) in inp.preprocessing_widget.staging.iter_mut().enumerate(){
-                                let preproc = &mut preproc.inner;
+                            for (idx, preproc) in inp.preprocessing_widget.iter_mut().enumerate(){
                                 let preproc_id = inp_id.with(idx);
                                 if draw_preproc_button(ui, preproc).clicked(){
                                     self.popup_id = Some(preproc_id);
@@ -88,11 +87,11 @@ impl PipelineWidget{
                                         preproc.draw_and_parse(ui, id.with("widget".as_ptr()));
                                         ui.separator();
                                         ui.horizontal(|ui|{
-                                            if ui.button("Remove").clicked{
+                                            if ui.button("Remove").clicked(){
                                                 preproc_action = PipelineAction::Remove { index: idx };
                                                 self.popup_id = None;
                                             }
-                                            if ui.button("Ok").clicked{
+                                            if ui.button("Ok").clicked(){
                                                 self.popup_id = None;
                                             }
                                         });
@@ -100,7 +99,7 @@ impl PipelineWidget{
                                 });
                             }
                             if let PipelineAction::Remove { index } = preproc_action{
-                                inp.preprocessing_widget.staging.remove(index);
+                                inp.preprocessing_widget.remove(index);
                             }
                         });
                     }).response.rect;
@@ -112,7 +111,7 @@ impl PipelineWidget{
             ui.add_space(30.0);
 
             let weights_rect = ui.vertical(|ui|{
-                egui::Frame::none()
+                egui::Frame::new()
                 .inner_margin(egui::Margin::same(margin_width))
                 .fill(egui::Color32::from_rgb(0, 255, 0))
                 .show(ui, |ui|{
@@ -135,7 +134,7 @@ impl PipelineWidget{
             }).response.rect;
 
             let output_rects = ui.vertical(|ui|{
-                egui::Frame::none()
+                egui::Frame::new()
                 .inner_margin(egui::Margin::same(margin_width))
                 .fill(egui::Color32::from_rgb(0, 0, 255))
                 .show(ui, |ui|{

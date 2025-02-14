@@ -269,7 +269,7 @@ pub struct InputTensorWidgetRawData {
     pub description_widget: String,
     pub axes_widget: Vec<CollapsibleWidgetRawData<InputAxisWidget>>,
     pub test_tensor_widget: TestTensorWidgetRawData,
-    pub preprocessing_widget: Vec<CollapsibleWidgetRawData<PreprocessingWidget>>,
+    pub preprocessing_widget: Vec<PreprocessingWidgetRawData>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
