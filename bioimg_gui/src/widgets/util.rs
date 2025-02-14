@@ -2,6 +2,8 @@ use std::{ops::Deref, sync::mpsc::{Receiver, Sender}, time::Instant};
 
 use egui::InnerResponse;
 
+use super::StatefulWidget;
+
 pub trait DynamicImageExt {
     fn to_egui_texture_handle(&self, name: impl Into<String>, ctx: &egui::Context) -> egui::TextureHandle;
 }
@@ -125,6 +127,119 @@ impl Arrow{
             egui::Stroke{color: self.color, width: 2.0},
         );
         ui.painter().add(egui::Shape::Path(tip));
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum WidgetItemPosition{
+    #[allow(dead_code)]
+    Inline,
+    #[allow(dead_code)]
+    Block,
+}
+
+pub struct VecWidget<'a, W, F, NW>
+where
+    F: FnMut(&mut W, usize, &mut egui::Ui),
+    NW: FnMut() -> W,
+{
+    pub items: &'a mut Vec<W>,
+    pub item_label: &'a str,
+    pub show_reorder_buttons: bool,
+    pub item_position: WidgetItemPosition,
+    pub render_widget: F,
+    pub new_item: Option<NW>,
+}
+
+
+// impl<'a, W, F, NW> egui::Widget for VecWidget<'a, W, F, NW>{
+//     pub fn from_widgets(widgets: &mut Vec<W>) -> Self
+//     where
+//         W: StatefulWidget
+//     {
+//     }
+// }
+
+impl<'a, W, F, NW> egui::Widget for VecWidget<'a, W, F, NW>
+where
+    F: FnMut(&mut W, usize, &mut egui::Ui),
+    NW: FnMut() -> W,
+{
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        enum Action{
+            Nothing,
+            Remove(usize),
+            MoveUp(usize),
+            MoveDown(usize),
+        }
+
+        let Self{items, item_label, show_reorder_buttons, item_position, mut render_widget, mut new_item} = self;
+
+        let mut action: Action = Action::Nothing;
+        let resp = ui.vertical(|ui| {
+            let current_num_items = items.len();
+            items.iter_mut().enumerate().for_each(|(widget_idx, widget)| {
+                egui::Frame::new()
+                .fill(egui::Color32::BLACK)
+                .inner_margin(3.0)
+                .show(ui, |ui| ui.horizontal(|ui|{
+                    ui.add_enabled_ui(current_num_items > 1, |ui| {
+                        if ui.small_button("❌").on_hover_text(format!("Remove this {item_label}")).clicked(){
+                            action = Action::Remove(widget_idx);
+                        }
+                    });
+                    ui.spacing_mut().item_spacing.x = 0.0;
+
+                    if show_reorder_buttons{
+                        ui.add_enabled_ui(widget_idx > 0, |ui| {
+                            if ui.small_button("⬆").on_hover_text(format!("Move this {item_label} up")).clicked(){
+                                action = Action::MoveUp(widget_idx);
+                            }
+                        });
+                        ui.spacing_mut().item_spacing.x = 10.0;
+                        ui.add_enabled_ui(widget_idx != current_num_items.saturating_sub(1), |ui| {
+                            if ui.small_button("⬇").on_hover_text(format!("Move this {item_label} down")).clicked(){
+                                action = Action::MoveDown(widget_idx);
+                            }
+                        });
+                    }
+                    match item_position{
+                        WidgetItemPosition::Inline => render_widget(widget, widget_idx, ui),
+                        WidgetItemPosition::Block => {
+                            ui.small(format!("{item_label} #{} ", widget_idx + 1));
+                        },
+                    }
+                    ui.add_space(ui.available_width());
+                }));
+
+                if matches!(item_position, WidgetItemPosition::Block){
+                    render_widget(widget, widget_idx, ui);
+                }
+
+                match item_position{
+                    WidgetItemPosition::Inline => ui.add_space(5.0),
+                    WidgetItemPosition::Block => ui.add_space(10.0),
+                }
+            });
+
+            if let Some(new_item) = &mut new_item{
+                ui.separator();
+                if ui.button(format!("Add {item_label}")).clicked() {
+                    items.resize_with(items.len() + 1, new_item);
+                }
+            }
+            ui.add_space(10.0);
+        });
+
+        match action{
+            Action::Nothing => (),
+            Action::Remove(idx) => {
+                items.remove(idx);
+            },
+            Action::MoveUp(idx) => items.swap(idx - 1, idx),
+            Action::MoveDown(idx) => items.swap(idx, idx + 1),
+        };
+        resp.response
     }
 }
 
