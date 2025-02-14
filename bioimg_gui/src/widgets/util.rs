@@ -26,8 +26,8 @@ impl DynamicImageExt for image::DynamicImage {
 }
 
 pub fn group_frame<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui) -> R) -> InnerResponse<R> {
-    let margin = egui::Margin { left: 20.0, ..Default::default() };
-    let response = egui::Frame::none().inner_margin(margin).show(ui, add_contents);
+    let margin = egui::Margin { left: 20, ..Default::default() };
+    let response = egui::Frame::new().inner_margin(margin).show(ui, add_contents);
     let response_rect = response.response.rect;
     let line_start = response_rect.min;
     let line_end = line_start + egui::Vec2 { x: 0.0, y: response_rect.height() };

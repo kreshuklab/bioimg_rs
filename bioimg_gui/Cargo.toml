@@ -8,8 +8,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-egui = "0.30.0"
-eframe = { version = "0.30.0" }
+egui = { version = "0.31.0", features = ["serde"] }
+eframe = { version = "0.31.0" }
 log = "0.4"
 bioimg_spec = {path = "../bioimg_spec"}
 bioimg_runtime = {path = "../bioimg_runtime"}
@@ -21,7 +21,7 @@ thiserror = "1.0.50"
 rfd = { version = "0.15.1" }
 parking_lot = "0.12.1"
 image = "0.24.8"
-egui_extras = { version = "0.30.0", features = ["all_loaders", "syntect"] }
+egui_extras = { version = "0.31.0", features = ["all_loaders", "syntect"] }
 url = { version = "2.5.0", features = ["serde"] }
 strum = "0.26.1"
 ndarray = "0.15.6"
