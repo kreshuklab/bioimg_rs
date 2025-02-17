@@ -19,6 +19,12 @@ pub struct ZeroMeanUnitVarianceWidget{
     pub epsilon_widget: StagingFloat<modelrdfpreproc::PreprocessingEpsilon>,
 }
 
+impl ZeroMeanUnitVarianceWidget{
+    pub fn iconify(&self) -> Result<egui::WidgetText>{
+        let preproc = self.state()?;
+        Ok(preproc.to_string().into()) //FIXME?
+    }
+}
 
 impl ValueWidget for ZeroMeanUnitVarianceWidget{
     type Value<'v> = modelrdfpreproc::Zmuv;

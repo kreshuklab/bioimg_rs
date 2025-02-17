@@ -162,6 +162,13 @@ pub struct FixedZmuvWidget{
     pub along_axis_widget: FixedZmuvAlongAxisWidget,
 }
 
+impl FixedZmuvWidget{
+    pub fn iconify(&self) -> Result<egui::WidgetText>{
+        let preproc = self.state()?;
+        Ok(preproc.to_string().into()) //FIXME
+    }
+}
+
 impl ValueWidget for FixedZmuvWidget{
     type Value<'v> = preproc::FixedZmuv;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {

@@ -80,6 +80,13 @@ pub struct ScaleRangeWidget{
     pub reference_tensor: StagingOpt<StagingString<TensorId>>,
 }
 
+impl ScaleRangeWidget{
+    pub fn iconify(&self) -> Result<egui::WidgetText>{
+        let preproc = self.state()?;
+        Ok(preproc.to_string().into()) //FIXME?
+    }
+}
+
 impl ValueWidget for ScaleRangeWidget{
     type Value<'v> = modelrdfpreproc::ScaleRangeDescr;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {

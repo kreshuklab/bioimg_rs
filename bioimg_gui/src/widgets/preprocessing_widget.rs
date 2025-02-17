@@ -91,22 +91,18 @@ impl PreprocessingWidget{
             PreprocessingWidgetMode::Sigmoid => {
                 Ok("∫".into())
             },
-            _ => panic!(),
-            // PreprocessingWidgetMode::ZeroMeanUnitVariance => {
-            //     self.zero_mean_unit_variance_widget.draw_and_parse(ui, id.with("zero_mean_unit_variance_widget".as_ptr()))
-            // },
-            // PreprocessingWidgetMode::ScaleRange => {
-            //     self.scale_range_widget.draw_and_parse(ui, id.with("scale_range_widget".as_ptr()))
-            // },
-            // PreprocessingWidgetMode::EnsureDtype => {
-            //     ui.horizontal(|ui|{
-            //         ui.strong("Data Type: ");
-            //         self.ensure_dtype_widget.draw_and_parse(ui, id.with("ensure_dtype".as_ptr()))
-            //     });
-            // },
-            // PreprocessingWidgetMode::FixedZmuv => {
-            //     self.fixed_zmuv_widget.draw_and_parse(ui, id.with("fixed_zmuv".as_ptr()) )
-            // }
+            PreprocessingWidgetMode::ZeroMeanUnitVariance => {
+                self.zero_mean_unit_variance_widget.iconify()
+            },
+            PreprocessingWidgetMode::ScaleRange => {
+                self.scale_range_widget.iconify()
+            },
+            PreprocessingWidgetMode::EnsureDtype => {
+                Ok(self.ensure_dtype_widget.value.to_string().into())
+            },
+            PreprocessingWidgetMode::FixedZmuv => {
+                self.fixed_zmuv_widget.iconify()
+            },
         }
     }
 }
