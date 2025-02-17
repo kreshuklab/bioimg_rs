@@ -10,7 +10,7 @@ use super::util::{Arrow, EnumeratedItem};
 
 #[derive(Default)]
 pub struct PipelineWidget{
-    popup_id: Option<egui::Id>,
+    action: PipelineAction,
 }
 
 fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui::Response{
@@ -33,9 +33,12 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
     }
 }
 
+#[derive(Default,Clone)]
 enum PipelineAction{
+    #[default]
     Nothing,
-    Remove{index: usize}
+    Remove{input_idx: usize, preproc_idx: usize},
+    Open{input_idx: usize, preproc_idx: usize},
 }
 
 impl PipelineWidget{
@@ -50,70 +53,38 @@ impl PipelineWidget{
         let margin = egui::Margin::same(10);
         let red_stroke = egui::Stroke{color: egui::Color32::RED, width: 2.0};
 
-        let inputs_base_id = id.with("inputs".as_ptr());
+        let mut pipeline_action = self.action.clone();
 
         let (input_rects, weights_rect, _output_rects) = ui.horizontal(|ui|{
             let mut input_rects = Vec::<egui::Rect>::new();
 
             ui.vertical(|ui| {
-                for (idx, cw) in inputs.iter_mut().enumerate(){
+                let id = id.with("inputs".as_ptr());
+                for (input_idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
-                    let inp_id = inputs_base_id.with(idx);
+                    let id = id.with(input_idx);
 
                     let frame_resp = egui::Frame::new().inner_margin(margin).stroke(red_stroke).show(ui, |ui| {
                         ui.horizontal(|ui| {
                             ui.strong(&inp.id_widget.raw);
                             ui.spacing_mut().item_spacing.x = 1.0;
 
-                            let mut preproc_action = PipelineAction::Nothing;
 
-                            let response = egui_dnd::dnd(ui, inp_id.with("preprocs".as_ptr()))
-                                // Since egui_dnd's animations rely on the ids not
-                                // changing after the drag finished we need to disable animations
-                                .with_animation_time(0.0)
-                                .show(
-                                    inp.preprocessing_widget
-                                        .iter_mut()
-                                        .enumerate()
-                                        .map(|(i, item)| EnumeratedItem { item, index: i }),
-                                    |ui, item, handle, _state| {
-                                        ui.horizontal(|ui| {
-                                            handle.ui(ui, |ui| {
-                                                let preproc_id = inp_id.with(idx);
-                                                let preproc = item.item;
-                                                if draw_preproc_button(ui, preproc).clicked(){
-                                                    self.popup_id = Some(preproc_id);
-                                                }
-                                                let Some(id) = self.popup_id else{
-                                                    return
-                                                };
-                                                if id != preproc_id{
-                                                    return
-                                                }
-                                                egui::Modal::new(id.with("modal".as_ptr())).show(ui.ctx(), |ui| {
-                                                    ui.vertical(|ui|{
-                                                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                                                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                                                self.popup_id = None;
-                                                            }
-                                                        });
-                                                        preproc.draw_and_parse(ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr()));
-                                                        ui.separator();
-                                                        ui.horizontal(|ui|{
-                                                            if ui.button("Remove").clicked(){
-                                                                preproc_action = PipelineAction::Remove { index: idx };
-                                                                self.popup_id = None;
-                                                            }
-                                                            if ui.button("Ok").clicked(){
-                                                                self.popup_id = None;
-                                                            }
-                                                        });
-                                                    })
-                                                });
-                                            });
-                                        });
-                                    },
-                                );
+                            let response = egui_dnd::dnd(ui, id.with("dnd".as_ptr()))
+                            .with_animation_time(0.0)
+                            .show(
+                                inp.preprocessing_widget
+                                    .iter_mut()
+                                    .enumerate()
+                                    .map(|(i, item)| EnumeratedItem { item, index: i }),
+                                |ui, item, handle, _state| {
+                                    handle.ui(ui, |ui| {
+                                        if draw_preproc_button(ui, item.item).clicked(){
+                                            pipeline_action = PipelineAction::Open { input_idx, preproc_idx: item.index };
+                                        }
+                                    });
+                                },
+                            );
 
                             // Since the item id may not change while a drag is ongoing we need to wait
                             // until the drag is finished before updating the items
@@ -121,14 +92,48 @@ impl PipelineWidget{
                                 response.update_vec(&mut inp.preprocessing_widget);
                             }
 
-                            if let PipelineAction::Remove { index } = preproc_action{
-                                inp.preprocessing_widget.remove(index);
-                            }
+
                         });
                     });
                     input_rects.push(frame_resp.response.rect);
                 }
             });
+            self.action = pipeline_action;
+
+            self.action = match std::mem::take(&mut self.action) {
+                PipelineAction::Open { input_idx, preproc_idx } => {
+                    let id = id.with("modal".as_ptr());
+                    let mut out = PipelineAction::Open { input_idx, preproc_idx };
+                    egui::Modal::new(id).show(ui.ctx(), |ui| {
+                        ui.vertical(|ui|{
+                            ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                                if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                                    out = PipelineAction::Nothing;
+                                }
+                            });
+                            inputs[input_idx].inner.preprocessing_widget[preproc_idx].draw_and_parse(
+                                ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr())
+                            );
+                            ui.separator();
+                            ui.horizontal(|ui|{
+                                if ui.button("Remove").clicked(){
+                                    inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
+                                    out = PipelineAction::Nothing;
+                                }
+                                if ui.button("Ok").clicked(){
+                                    out = PipelineAction::Nothing;
+                                }
+                            });
+                        })
+                    });
+                    out
+                },
+                PipelineAction::Remove { input_idx, preproc_idx } => {
+                    inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
+                    PipelineAction::Nothing
+                },
+                PipelineAction::Nothing => PipelineAction::Nothing,
+            };
 
             ui.add_space(30.0);
 
