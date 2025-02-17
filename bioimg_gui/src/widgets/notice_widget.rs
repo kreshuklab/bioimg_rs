@@ -71,7 +71,7 @@ impl NotificationsWidget{
             .interactable(true);
         let area_resp = area.show(ui.ctx(), |ui| {
             let frame = egui::Frame::popup(&ui.ctx().style())
-                .rounding(egui::Rounding::default())
+                .corner_radius(egui::CornerRadius::default())
                 .outer_margin(0.0);
             frame.show(ui, |ui| {
                 self.messages.retain_mut(|msg|{
