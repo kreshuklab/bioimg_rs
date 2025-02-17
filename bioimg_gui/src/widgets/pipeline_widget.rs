@@ -53,13 +53,13 @@ impl PipelineWidget{
         let inputs_base_id = id.with("inputs".as_ptr());
 
         let (input_rects, weights_rect, _output_rects) = ui.horizontal(|ui|{
-            let input_rects: Vec<egui::Rect> = ui.vertical(|ui| {
-                let mut input_rects =  Vec::<egui::Rect>::new();
+            let mut input_rects = Vec::<egui::Rect>::new();
+            ui.vertical(|ui| {
                 for (idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
                     let inp_id = inputs_base_id.with(idx);
 
-                    let rect = egui::Frame::new().inner_margin(margin).stroke(red_stroke).show(ui, |ui| {
+                    let frame_resp = egui::Frame::new().inner_margin(margin).stroke(red_stroke).show(ui, |ui| {
                         ui.horizontal(|ui| {
                             ui.strong(&inp.id_widget.raw);
                             ui.spacing_mut().item_spacing.x = 1.0;
@@ -101,11 +101,10 @@ impl PipelineWidget{
                                 inp.preprocessing_widget.remove(index);
                             }
                         });
-                    }).response.rect;
-                    input_rects.push(rect);
+                    });
+                    input_rects.push(frame_resp.response.rect);
                 }
-                input_rects
-            }).inner;
+            });
 
             ui.add_space(30.0);
 
