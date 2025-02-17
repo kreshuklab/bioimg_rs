@@ -116,7 +116,7 @@ pub struct ScaleRangeDescr{
 
 impl Display for ScaleRangeDescr{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scale Range(ε={}, min={}%, max={}&", self.eps, self.percentiles.min(), self.percentiles.max())?;
+        write!(f, "Scale Range(ε={}, min={}%, max={}%", self.eps, self.percentiles.min(), self.percentiles.max())?;
         if let Some(ref_tensor) = &self.reference_tensor{
             write!(f, ", ref={ref_tensor}")?;
         }
