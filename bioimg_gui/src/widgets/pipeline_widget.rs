@@ -4,7 +4,7 @@ use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::inout_tensor_widget::InputTensorWidget;
 use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
-use super::util::Arrow;
+use super::util::{Arrow, EnumeratedItem};
 
 
 
@@ -54,6 +54,7 @@ impl PipelineWidget{
 
         let (input_rects, weights_rect, _output_rects) = ui.horizontal(|ui|{
             let mut input_rects = Vec::<egui::Rect>::new();
+
             ui.vertical(|ui| {
                 for (idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
@@ -65,38 +66,61 @@ impl PipelineWidget{
                             ui.spacing_mut().item_spacing.x = 1.0;
 
                             let mut preproc_action = PipelineAction::Nothing;
-                            for (idx, preproc) in inp.preprocessing_widget.iter_mut().enumerate(){
-                                let preproc_id = inp_id.with(idx);
-                                if draw_preproc_button(ui, preproc).clicked(){
-                                    self.popup_id = Some(preproc_id);
-                                }
-                                let Some(id) = self.popup_id else{
-                                    continue
-                                };
-                                if id != preproc_id{
-                                    continue
-                                }
-                                egui::Modal::new(id.with("modal".as_ptr())).show(ui.ctx(), |ui| {
-                                    ui.vertical(|ui|{
-                                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                                self.popup_id = None;
-                                            }
+
+                            let response = egui_dnd::dnd(ui, inp_id.with("preprocs".as_ptr()))
+                                // Since egui_dnd's animations rely on the ids not
+                                // changing after the drag finished we need to disable animations
+                                .with_animation_time(0.0)
+                                .show(
+                                    inp.preprocessing_widget
+                                        .iter_mut()
+                                        .enumerate()
+                                        .map(|(i, item)| EnumeratedItem { item, index: i }),
+                                    |ui, item, handle, _state| {
+                                        ui.horizontal(|ui| {
+                                            handle.ui(ui, |ui| {
+                                                let preproc_id = inp_id.with(idx);
+                                                let preproc = item.item;
+                                                if draw_preproc_button(ui, preproc).clicked(){
+                                                    self.popup_id = Some(preproc_id);
+                                                }
+                                                let Some(id) = self.popup_id else{
+                                                    return
+                                                };
+                                                if id != preproc_id{
+                                                    return
+                                                }
+                                                egui::Modal::new(id.with("modal".as_ptr())).show(ui.ctx(), |ui| {
+                                                    ui.vertical(|ui|{
+                                                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                                                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                                                                self.popup_id = None;
+                                                            }
+                                                        });
+                                                        preproc.draw_and_parse(ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr()));
+                                                        ui.separator();
+                                                        ui.horizontal(|ui|{
+                                                            if ui.button("Remove").clicked(){
+                                                                preproc_action = PipelineAction::Remove { index: idx };
+                                                                self.popup_id = None;
+                                                            }
+                                                            if ui.button("Ok").clicked(){
+                                                                self.popup_id = None;
+                                                            }
+                                                        });
+                                                    })
+                                                });
+                                            });
                                         });
-                                        preproc.draw_and_parse(ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr()));
-                                        ui.separator();
-                                        ui.horizontal(|ui|{
-                                            if ui.button("Remove").clicked(){
-                                                preproc_action = PipelineAction::Remove { index: idx };
-                                                self.popup_id = None;
-                                            }
-                                            if ui.button("Ok").clicked(){
-                                                self.popup_id = None;
-                                            }
-                                        });
-                                    })
-                                });
+                                    },
+                                );
+
+                            // Since the item id may not change while a drag is ongoing we need to wait
+                            // until the drag is finished before updating the items
+                            if response.is_drag_finished() {
+                                response.update_vec(&mut inp.preprocessing_widget);
                             }
+
                             if let PipelineAction::Remove { index } = preproc_action{
                                 inp.preprocessing_widget.remove(index);
                             }

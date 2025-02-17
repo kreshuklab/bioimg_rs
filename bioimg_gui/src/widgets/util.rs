@@ -2,6 +2,7 @@ use std::{ops::{Deref, Sub}, sync::mpsc::{Receiver, Sender}, time::Instant};
 
 use egui::InnerResponse;
 use egui::PopupCloseBehavior::CloseOnClickOutside;
+use egui_dnd::DragDropItem;
 
 pub trait DynamicImageExt {
     fn to_egui_texture_handle(&self, name: impl Into<String>, ctx: &egui::Context) -> egui::TextureHandle;
@@ -345,4 +346,16 @@ where
             }
         });
     });
+}
+
+// In order to use the index as id we need to implement DragDropItem for a wrapper struct
+pub struct EnumeratedItem<T> {
+    pub item: T,
+    pub index: usize,
+}
+
+impl<T> DragDropItem for EnumeratedItem<T> {
+    fn id(&self) -> egui::Id {
+        egui::Id::new(self.index)
+    }
 }
