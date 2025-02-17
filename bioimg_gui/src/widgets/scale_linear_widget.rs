@@ -1,4 +1,4 @@
-use bioimg_spec::rdf::model as modelrdf;
+use bioimg_spec::rdf::model::{self as modelrdf, preprocessing::ScaleLinearDescr};
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 
 use crate::{project_data::ScaleLinearModeRawData, result::{GuiError, Result, VecResultExt}};
@@ -156,6 +156,31 @@ pub struct ScaleLinearWidget{
     pub mode_widget: SearchAndPickWidget<ScaleLinearMode, false>,
     pub simple_widget: SimpleScaleLinearWidget,
     pub along_axis_widget: ScaleLinearAlongAxisWidget,
+}
+
+use itertools::Itertools;
+
+impl ScaleLinearWidget{
+    pub fn iconify(&self) -> Result<egui::WidgetText>{
+        let preproc = self.state().clone()?;
+        let text = match preproc{
+            ScaleLinearDescr::AlongAxis(preproc) => {
+                format!(
+                    "× ［{}］ + ［{}］",
+                    preproc.gain_offsets.iter()
+                        .map(|(gain, _)| gain)
+                        .join(", "),
+                    preproc.gain_offsets.iter()
+                        .map(|(_, offset)| offset)
+                        .join(", "),
+                )
+            },
+            ScaleLinearDescr::Simple(preproc) => {
+                format!("× {} + {}", preproc.gain, preproc.offset)
+            }
+        };
+        Ok(egui::RichText::new(text).into())
+    }
 }
 
 impl ValueWidget for ScaleLinearWidget{

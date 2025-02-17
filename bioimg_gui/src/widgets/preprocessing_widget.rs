@@ -85,9 +85,9 @@ impl PreprocessingWidget{
             PreprocessingWidgetMode::Clip => {
                 self.clip_widget.iconify()
             },
-            // PreprocessingWidgetMode::ScaleLinear => {
-            //     self.scale_linear_widget.draw_and_parse(ui, id.with("scale_linear_widget".as_ptr()))
-            // },
+            PreprocessingWidgetMode::ScaleLinear => {
+                self.scale_linear_widget.iconify()
+            },
             PreprocessingWidgetMode::Sigmoid => {
                 Ok("∫".into())
             },
