@@ -3,9 +3,8 @@ use egui::Widget;
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::inout_tensor_widget::InputTensorWidget;
-use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode};
+use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
 use super::util::Arrow;
-use super::StatefulWidget;
 
 
 
@@ -15,7 +14,7 @@ pub struct PipelineWidget{
 }
 
 fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui::Response{
-    let color = match preproc.mode_widget.value{
+    let color = match preproc.mode{
         PreprocessingWidgetMode::Binarize => egui::Color32::GOLD,
         PreprocessingWidgetMode::Clip => egui::Color32::BLUE,
         PreprocessingWidgetMode::ScaleLinear => egui::Color32::GREEN,
@@ -53,7 +52,7 @@ impl PipelineWidget{
 
         let inputs_base_id = id.with("inputs".as_ptr());
 
-        let (input_rects, weights_rect, output_rects) = ui.horizontal(|ui|{
+        let (input_rects, weights_rect, _output_rects) = ui.horizontal(|ui|{
             let input_rects: Vec<egui::Rect> = ui.vertical(|ui| {
                 let mut input_rects =  Vec::<egui::Rect>::new();
                 for (idx, cw) in inputs.iter_mut().enumerate(){
@@ -84,7 +83,7 @@ impl PipelineWidget{
                                                 self.popup_id = None;
                                             }
                                         });
-                                        preproc.draw_and_parse(ui, id.with("widget".as_ptr()));
+                                        preproc.draw_and_parse(ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr()));
                                         ui.separator();
                                         ui.horizontal(|ui|{
                                             if ui.button("Remove").clicked(){

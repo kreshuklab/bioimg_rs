@@ -11,7 +11,6 @@ use crate::widgets::input_axis_widget::InputAxisWidget;
 use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
 use crate::widgets::file_source_widget::FileSourceWidget;
 use crate::widgets::cite_widget::CiteEntryWidget;
-use crate::widgets::preprocessing_widget::PreprocessingWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
 use crate::widgets::weights_widget::{KerasHdf5WeightsWidget, TorchscriptWeightsWidget};
 use crate::widgets::Restore;
@@ -386,7 +385,7 @@ pub struct ScaleLinearWidgetRawData{
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PreprocessingWidgetRawData{
-    pub mode_widget: PreprocessingWidgetModeRawData,
+    pub mode: PreprocessingWidgetModeRawData,
     pub binarize_widget: BinarizePreprocessingWidgetRawData,
     pub clip_widget: ClipWidgetRawData,
     pub scale_linear_widget: ScaleLinearWidgetRawData,

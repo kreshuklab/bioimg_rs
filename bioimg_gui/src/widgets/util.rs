@@ -1,8 +1,7 @@
-use std::{ops::Deref, sync::mpsc::{Receiver, Sender}, time::Instant};
+use std::{ops::{Deref, Sub}, sync::mpsc::{Receiver, Sender}, time::Instant};
 
 use egui::InnerResponse;
-
-use super::StatefulWidget;
+use egui::PopupCloseBehavior::CloseOnClickOutside;
 
 pub trait DynamicImageExt {
     fn to_egui_texture_handle(&self, name: impl Into<String>, ctx: &egui::Context) -> egui::TextureHandle;
@@ -131,6 +130,7 @@ impl Arrow{
 }
 
 #[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub enum WidgetItemPosition{
     #[allow(dead_code)]
     Inline,
@@ -138,17 +138,18 @@ pub enum WidgetItemPosition{
     Block,
 }
 
-pub struct VecWidget<'a, W, F, NW>
+pub struct VecWidget<'a, Itm, RndLbl, RndItm, NewItm>
 where
-    F: FnMut(&mut W, usize, &mut egui::Ui),
-    NW: FnMut() -> W,
+    RndLbl: FnMut(&mut Itm, usize, &mut egui::Ui),
+    RndItm: FnMut(&mut Itm, usize, &mut egui::Ui),
+    NewItm: FnMut() -> Itm,
 {
-    pub items: &'a mut Vec<W>,
+    pub items: &'a mut Vec<Itm>,
     pub item_label: &'a str,
+    pub render_header: Option<RndLbl>,
     pub show_reorder_buttons: bool,
-    pub item_position: WidgetItemPosition,
-    pub render_widget: F,
-    pub new_item: Option<NW>,
+    pub render_widget: RndItm,
+    pub new_item: Option<NewItm>,
 }
 
 
@@ -160,10 +161,11 @@ where
 //     }
 // }
 
-impl<'a, W, F, NW> egui::Widget for VecWidget<'a, W, F, NW>
+impl<'a, Itm, RndLbl, RndItm, NewItm> egui::Widget for VecWidget<'a, Itm, RndLbl, RndItm, NewItm>
 where
-    F: FnMut(&mut W, usize, &mut egui::Ui),
-    NW: FnMut() -> W,
+    RndLbl: FnMut(&mut Itm, usize, &mut egui::Ui),
+    RndItm: FnMut(&mut Itm, usize, &mut egui::Ui),
+    NewItm: FnMut() -> Itm,
 {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         enum Action{
@@ -173,7 +175,7 @@ where
             MoveDown(usize),
         }
 
-        let Self{items, item_label, show_reorder_buttons, item_position, mut render_widget, mut new_item} = self;
+        let Self{items, item_label, mut render_header, show_reorder_buttons, mut render_widget, mut new_item} = self;
 
         let mut action: Action = Action::Nothing;
         let resp = ui.vertical(|ui| {
@@ -184,7 +186,7 @@ where
                 .inner_margin(3.0)
                 .show(ui, |ui| ui.horizontal(|ui|{
                     ui.add_enabled_ui(current_num_items > 1, |ui| {
-                        if ui.small_button("❌").on_hover_text(format!("Remove this {item_label}")).clicked(){
+                        if ui.small_button("❌").clicked(){
                             action = Action::Remove(widget_idx);
                         }
                     });
@@ -192,33 +194,32 @@ where
 
                     if show_reorder_buttons{
                         ui.add_enabled_ui(widget_idx > 0, |ui| {
-                            if ui.small_button("⬆").on_hover_text(format!("Move this {item_label} up")).clicked(){
+                            if ui.small_button("⬆").clicked(){
                                 action = Action::MoveUp(widget_idx);
                             }
                         });
                         ui.spacing_mut().item_spacing.x = 10.0;
                         ui.add_enabled_ui(widget_idx != current_num_items.saturating_sub(1), |ui| {
-                            if ui.small_button("⬇").on_hover_text(format!("Move this {item_label} down")).clicked(){
+                            if ui.small_button("⬇").clicked(){
                                 action = Action::MoveDown(widget_idx);
                             }
                         });
                     }
-                    match item_position{
-                        WidgetItemPosition::Inline => render_widget(widget, widget_idx, ui),
-                        WidgetItemPosition::Block => {
-                            ui.small(format!("{item_label} #{} ", widget_idx + 1));
-                        },
+                    match &mut render_header{
+                        None => render_widget(widget, widget_idx, ui),
+                        Some(render_header) => render_header(widget, widget_idx, ui),
                     }
                     ui.add_space(ui.available_width());
                 }));
 
-                if matches!(item_position, WidgetItemPosition::Block){
-                    render_widget(widget, widget_idx, ui);
-                }
-
-                match item_position{
-                    WidgetItemPosition::Inline => ui.add_space(5.0),
-                    WidgetItemPosition::Block => ui.add_space(10.0),
+                match &mut render_header{
+                    Some(_) => {
+                        render_widget(widget, widget_idx, ui);
+                        ui.add_space(10.0);
+                    },
+                    None => {
+                        ui.add_space(5.0);
+                    }
                 }
             });
 
@@ -243,3 +244,105 @@ where
     }
 }
 
+pub enum SearchVisibility{
+    Show,
+    #[allow(dead_code)]
+    Hide,
+}
+
+pub fn search_and_pick<T, F, D>(
+    search_visibility: SearchVisibility,
+    search: &mut String,
+    current: &mut Option<T>,
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    entries: impl Iterator<Item=T>,
+    display: F
+)
+where
+    T: Clone,
+    F: Fn(&T) -> D,
+    D: Into<egui::WidgetText>,
+{
+    let popup_id = id;
+    if !ui.memory(|mem| mem.is_popup_open(popup_id)){
+        search.clear();
+    }
+    let button_response = ui.small_button(match &current{
+        None => egui::WidgetText::from("-- select one -- ↕"),
+        Some(entry) => display(entry).into(),
+    });
+    let button_min = button_response.rect.min;
+    let button_max = button_response.rect.max;
+    if button_response.clicked() {
+        ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+    }
+
+    let vert_space_above_button = button_min.y;
+    let vert_space_under_button = ui.ctx().screen_rect().max.y - button_max.y;
+
+    let above_or_below = if vert_space_under_button > vert_space_above_button {
+        egui::AboveOrBelow::Below
+    } else {
+        egui::AboveOrBelow::Above
+    };
+    egui::popup::popup_above_or_below_widget(ui, popup_id, &button_response, above_or_below, CloseOnClickOutside, |ui| {
+        ui.set_min_width(200.0);
+        ui.set_min_height(vert_space_above_button.max(vert_space_under_button));
+        ui.set_max_height(vert_space_above_button.max(vert_space_under_button));
+        ui.vertical(|ui|{
+            let header_height = if matches!(search_visibility, SearchVisibility::Show){
+                let header_rect = ui.vertical(|ui|{
+                    ui.horizontal(|ui| {
+                        ui.label("🔎 ");
+                        let search_resp = ui.text_edit_singleline(search);
+                        search_resp.request_focus();
+                    });
+                    ui.add_space(10.0);
+                }).response.rect;
+                header_rect.max.y - header_rect.min.y
+            } else {
+                0.0
+            };
+
+            let lower_search = search.to_lowercase();
+            let lower_search_words: Vec<_> = lower_search.split_whitespace().collect();
+            let scroll_area = egui::ScrollArea::vertical()
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
+                .max_height(vert_space_above_button.max(vert_space_under_button).sub(header_height).max(0.0));
+            let (num_visible_entries, candidate) = scroll_area.show(ui, |ui| {
+                let mut candidate: Option<T> = None;
+                let num_visible_entries = entries
+                    .filter(|entry| {
+                        let widget_text = display(entry).into();
+                        let entry_display = widget_text.text().to_lowercase();
+                        for search_word in &lower_search_words{
+                            if !entry_display.contains(search_word){
+                                return false
+                            }
+                        }
+                        return true
+                    })
+                    .inspect(|entry| {
+                        candidate.replace(entry.clone());
+                        let widget_text = display(entry);
+                        if ui.button(widget_text).clicked() {
+                            current.replace(entry.clone());
+                            ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                            search.clear();
+                        }
+                    })
+                    .count();
+                (num_visible_entries, candidate)
+            }).inner;
+
+            if num_visible_entries == 1 && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                if let Some(candidate) = candidate {
+                    current.replace(candidate);
+                    ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                    search.clear();
+                }
+            }
+        });
+    });
+}

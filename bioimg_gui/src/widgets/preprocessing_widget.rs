@@ -1,7 +1,9 @@
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
+use strum::VariantArray;
 
 use crate::{project_data::PreprocessingWidgetModeRawData, result::Result};
+use super::util::{search_and_pick, SearchVisibility};
 use super::{Restore, StatefulWidget, ValueWidget};
 use super::binarize_widget::BinarizePreprocessingWidget;
 use super::zero_mean_unit_variance_widget::ZeroMeanUnitVarianceWidget;
@@ -61,7 +63,9 @@ impl Restore for PreprocessingWidgetMode{
 
 #[derive(Default, Restore)]
 pub struct PreprocessingWidget{
-    pub mode_widget: SearchAndPickWidget<PreprocessingWidgetMode>,
+    pub mode: PreprocessingWidgetMode,
+    #[restore_default]
+    pub mode_search: String,
     pub binarize_widget: BinarizePreprocessingWidget,
     pub clip_widget: ClipWidget,
     pub scale_linear_widget: ScaleLinearWidget,
@@ -74,7 +78,7 @@ pub struct PreprocessingWidget{
 
 impl PreprocessingWidget{
     pub fn iconify(&self) -> Result<egui::WidgetText> {
-        match self.mode_widget.value{
+        match self.mode{
             PreprocessingWidgetMode::Binarize => {
                 self.binarize_widget.iconify()
             },
@@ -112,34 +116,34 @@ impl ValueWidget for PreprocessingWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         match value{
             modelrdf::PreprocessingDescr::Binarize(binarize) => {
-                self.mode_widget.value = PreprocessingWidgetMode::Binarize;
+                self.mode = PreprocessingWidgetMode::Binarize;
                 self.binarize_widget.set_value(binarize)
             },
             modelrdf::PreprocessingDescr::Clip(clip) => {
-                self.mode_widget.value = PreprocessingWidgetMode::Clip;
+                self.mode = PreprocessingWidgetMode::Clip;
                 self.clip_widget.set_value(clip)
             },
             modelrdf::PreprocessingDescr::ScaleLinear(scale_linear) => {
-                self.mode_widget.value = PreprocessingWidgetMode::ScaleLinear;
+                self.mode = PreprocessingWidgetMode::ScaleLinear;
                 self.scale_linear_widget.set_value(scale_linear);
             },
             modelrdf::PreprocessingDescr::Sigmoid(_) => {
-                self.mode_widget.value = PreprocessingWidgetMode::Sigmoid;
+                self.mode = PreprocessingWidgetMode::Sigmoid;
             },
             modelrdf::PreprocessingDescr::ZeroMeanUnitVariance(val) => {
-                self.mode_widget.value = PreprocessingWidgetMode::ZeroMeanUnitVariance;
+                self.mode = PreprocessingWidgetMode::ZeroMeanUnitVariance;
                 self.zero_mean_unit_variance_widget.set_value(val);
             },
             modelrdf::PreprocessingDescr::ScaleRange(val) => {
-                self.mode_widget.value = PreprocessingWidgetMode::ScaleRange;
+                self.mode = PreprocessingWidgetMode::ScaleRange;
                 self.scale_range_widget.set_value(val);
             },
             modelrdf::PreprocessingDescr::EnsureDtype(val) => {
-                self.mode_widget.value = PreprocessingWidgetMode::EnsureDtype;
+                self.mode = PreprocessingWidgetMode::EnsureDtype;
                 self.ensure_dtype_widget.set_value(val.dtype);
             },
             modelrdf::PreprocessingDescr::FixedZeroMeanUnitVariance(val) => {
-                self.mode_widget.value = PreprocessingWidgetMode::FixedZmuv;
+                self.mode = PreprocessingWidgetMode::FixedZmuv;
                 self.fixed_zmuv_widget.set_value(val);
             }
         }
@@ -169,18 +173,36 @@ impl SummarizableWidget for PreprocessingWidget{
     }
 }
 
-impl StatefulWidget for PreprocessingWidget{
-    type Value<'p> = Result<modelrdfpreproc::PreprocessingDescr>;
+pub enum ShowPreprocTypePicker{
+    Show,
+    Hide,
+}
 
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+impl PreprocessingWidget {
+    pub fn draw_preproc_type_picker(&mut self, ui: &mut egui::Ui, id: egui::Id,){
+        let mut current = Some(self.mode);
+        search_and_pick(
+            SearchVisibility::Show,
+            &mut self.mode_search,
+            &mut current,
+            ui,
+            id,
+            PreprocessingWidgetMode::VARIANTS.iter().cloned(),
+            |mode|{ mode.to_string() }
+        );
+        self.mode = current.unwrap(); //FIXME: maybe use option for self.mode ?
+    }
+    pub fn draw_and_parse(&mut self, ui: &mut egui::Ui, show_type_picker: ShowPreprocTypePicker, id: egui::Id) {
         ui.vertical(|ui|{
-            ui.horizontal(|ui|{
-                ui.strong("Preprocessing Type: ").on_hover_text(
-                    "What function is to be applied onto the input before it's fed to the model weights"
-                );
-                self.mode_widget.draw_and_parse(ui, id.with("preproc type".as_ptr()));
-            });
-            match self.mode_widget.value{
+            if matches!(show_type_picker, ShowPreprocTypePicker::Show){
+                ui.horizontal(|ui|{
+                    ui.strong("Preprocessing Type: ").on_hover_text(
+                        "What function is to be applied onto the input before it's fed to the model weights"
+                    );
+                    self.draw_preproc_type_picker(ui, id.with("preproc type".as_ptr()));
+                });
+            }
+            match self.mode{
                 PreprocessingWidgetMode::Binarize => {
                     self.binarize_widget.draw_and_parse(ui, id.with("binarize_widget".as_ptr()));
                 },
@@ -212,8 +234,8 @@ impl StatefulWidget for PreprocessingWidget{
         });
     }
 
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(match self.mode_widget.value{
+    pub fn state<'p>(&'p self) -> Result<modelrdfpreproc::PreprocessingDescr> {
+        Ok(match self.mode {
             PreprocessingWidgetMode::Binarize => {
                 modelrdfpreproc::PreprocessingDescr::Binarize(self.binarize_widget.state()?)
             },

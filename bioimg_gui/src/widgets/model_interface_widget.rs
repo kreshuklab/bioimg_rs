@@ -41,13 +41,13 @@ impl Default for ModelInterfaceWidget {
                         cw.inner.preprocessing_widget = vec![
                             {
                                 let mut preproc: PreprocessingWidget = Default::default();
-                                preproc.mode_widget.value = PreprocessingWidgetMode::Binarize;
+                                preproc.mode = PreprocessingWidgetMode::Binarize;
                                 preproc.binarize_widget.simple_binarize_widget.threshold_widget.raw = "1.2".to_owned();
                                 preproc
                             },
                             {
                                 let mut preproc: PreprocessingWidget = Default::default();
-                                preproc.mode_widget.value = PreprocessingWidgetMode::Sigmoid;
+                                preproc.mode = PreprocessingWidgetMode::Sigmoid;
                                 preproc
                             }
                         ];

@@ -14,13 +14,13 @@ use bioimg_spec::rdf::model::input_tensor as rdfinput;
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::error_display::{show_error, show_if_error};
 use super::posstprocessing_widget::PostprocessingWidget;
-use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode};
+use super::preprocessing_widget::{PreprocessingWidget, ShowPreprocTypePicker};
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
 use super::input_axis_widget::InputAxisWidget;
 use super::output_axis_widget::OutputAxisWidget;
 use super::test_tensor_widget::{TestTensorWidget, TestTensorWidgetState};
-use super::util::{VecWidget, WidgetItemPosition};
+use super::util::VecWidget;
 use super::{Restore, StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
 
@@ -227,11 +227,13 @@ impl StatefulWidget for InputTensorWidget {
                 let vec_widget = VecWidget{
                     items: &mut self.preprocessing_widget,
                     item_label: "Preprocessing Step",
+                    render_header: Some(|widget: &mut PreprocessingWidget, _idx, ui: &mut egui::Ui|{
+                        widget.draw_preproc_type_picker(ui, id.with("preproc type".as_ptr()));
+                    }),
                     show_reorder_buttons: true,
-                    item_position: WidgetItemPosition::Block,
-                    render_widget: |widget: &mut PreprocessingWidget, index, ui|{
-                        widget.draw_and_parse(ui, id.with("preprocs".as_ptr()).with(index));
-                    },
+                    render_widget: |widget: &mut PreprocessingWidget, index, ui| widget.draw_and_parse(
+                        ui, ShowPreprocTypePicker::Hide, id.with("preprocs".as_ptr()).with(index)
+                    ),
                     new_item: Some(PreprocessingWidget::default),
                 };
                 ui.add(vec_widget);
