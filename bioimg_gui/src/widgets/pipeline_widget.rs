@@ -91,7 +91,7 @@ impl PipelineWidget{
 
         let mut pipeline_action = self.action.clone();
 
-        let (input_tips, weights_rect, _output_rects) = ui.horizontal(|ui|{
+        let (input_tips, weights_rect, output_tails) = ui.horizontal(|ui|{
             let mut input_tips = Vec::<egui::Pos2>::new();
             let mut output_tails = Vec::<egui::Pos2>::new();
 
@@ -254,29 +254,24 @@ impl PipelineWidget{
             (input_tips, weights_rect, output_tails)
         }).inner;
 
-        let input_height_incr = weights_rect.height() / (input_tips.len() + 1) as f32;
         let color = egui::Color32::GRAY;
 
-        let mut max_x = f32::NEG_INFINITY;
-        input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_x { max_x = x});
+        let input_height_incr = weights_rect.height() / (input_tips.len() + 1) as f32;
+        let mut max_inp_x = f32::NEG_INFINITY;
+        input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_inp_x { max_inp_x = x});
         let stroke = egui::Stroke{color, width: 2.0};
 
         for (idx, inp_tip) in input_tips.iter().enumerate(){
             ui.painter().circle_filled(*inp_tip, 5.0, color);
-            let curve_origin = egui::Pos2{x: max_x, y: inp_tip.y};
+            let curve_origin = egui::Pos2{x: max_inp_x, y: inp_tip.y};
             ui.painter().line_segment([*inp_tip, curve_origin], stroke);
             let target = egui::Pos2{
                 x: weights_rect.min.x,
                 y: weights_rect.min.y + ((idx + 1) as f32 * input_height_incr),
             };
 
-            // let control1 = egui::Pos2{x: origin.x + self.c1_x_offset, y: origin.y + self.c1_y_offset};
-            // let control2 = egui::Pos2{x: target.x + self.c2_x_offset, y: target.y + self.c2_y_offset};
             let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
             let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
-
-            // ui.painter().circle_filled(control1, 3.0, egui::Color32::YELLOW);
-            // ui.painter().circle_filled(control2, 3.0, egui::Color32::LIGHT_BLUE);
 
             ui.painter().add(egui::epaint::CubicBezierShape{
                 points: [
@@ -290,6 +285,32 @@ impl PipelineWidget{
                 stroke: stroke.into(),
             });
             Arrow::new(target, egui::Pos2{x: target.x + 10.0, y: target.y}).color(color).draw(ui);
+        }
+
+        let output_height_incr = weights_rect.height() / (output_tails.len() + 1) as f32;
+        for (idx, out_tail) in output_tails.iter().enumerate(){
+            Arrow::new(target, egui::Pos2{x: out_tail.x - 10.0, y: out_tail.y}).color(color).draw(ui);
+            let curve_target = out_tail;
+            let target = egui::Pos2{
+                x: weights_rect.min.x,
+                y: weights_rect.min.y + ((idx + 1) as f32 * input_height_incr),
+            };
+
+            let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
+            let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
+
+            ui.painter().add(egui::epaint::CubicBezierShape{
+                points: [
+                    curve_origin,
+                    control1,
+                    control2,
+                    target,
+                ],
+                closed: false,
+                fill: egui::Color32::TRANSPARENT,
+                stroke: stroke.into(),
+            });
+            ui.painter().circle_filled(*out_tail, 5.0, color);
         }
 
         self.action = match std::mem::take(&mut self.action) {
