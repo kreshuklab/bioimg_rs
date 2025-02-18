@@ -4,7 +4,7 @@ use egui::Widget;
 
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
-use super::inout_tensor_widget::InputTensorWidget;
+use super::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
 use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
 use super::util::{Arrow, EnumeratedItem};
 use super::StatefulWidget;
@@ -36,7 +36,7 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
     }
 }
 
-fn input_frame<R, F>(ui: &mut egui::Ui, f: F) -> egui::InnerResponse<R>
+fn slot_frame<R, F>(ui: &mut egui::Ui, f: F) -> egui::InnerResponse<R>
 where
     F: FnOnce(&mut egui::Ui) -> R
 {
@@ -75,6 +75,7 @@ enum PipelineAction{
     OpenInput{input_idx: usize},
     RemoveInput{input_idx: usize},
     OpenPreproc{input_idx: usize, preproc_idx: usize},
+    OpenPostproc{output_idx: usize, postproc_idx: usize},
 }
 
 impl PipelineWidget{
@@ -83,6 +84,7 @@ impl PipelineWidget{
         ui: &mut egui::Ui,
         id: egui::Id,
         inputs: &mut Vec<CollapsibleWidget<InputTensorWidget>>,
+        outputs: &mut Vec<CollapsibleWidget<OutputTensorWidget>>,
     ){
 
         let margin_width = 10;
@@ -91,6 +93,7 @@ impl PipelineWidget{
 
         let (input_tips, weights_rect, _output_rects) = ui.horizontal(|ui|{
             let mut input_tips = Vec::<egui::Pos2>::new();
+            let mut output_tails = Vec::<egui::Pos2>::new();
 
             ui.vertical(|ui| {
                 let id = id.with("inputs".as_ptr());
@@ -98,7 +101,7 @@ impl PipelineWidget{
                     let inp = &mut cw.inner;
                     let id = id.with(input_idx);
 
-                    let input_resp = input_frame(ui, |ui|{
+                    let input_resp = slot_frame(ui, |ui|{
                         if ui.button("🗙").clicked(){
                             pipeline_action = PipelineAction::RemoveInput{ input_idx };
                         }
@@ -154,67 +157,6 @@ impl PipelineWidget{
                     //FIXME: maybe open the editor?
                 }
             });
-            self.action = pipeline_action;
-
-            self.action = match std::mem::take(&mut self.action) {
-                PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
-                    let id = id.with("modal".as_ptr());
-                    let mut out = PipelineAction::OpenPreproc { input_idx, preproc_idx };
-                    egui::Modal::new(id).show(ui.ctx(), |ui| {
-                        ui.vertical(|ui|{
-                            ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                                if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                    out = PipelineAction::Nothing;
-                                }
-                            });
-                            inputs[input_idx].inner.preprocessing_widget[preproc_idx].draw_and_parse(
-                                ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr())
-                            );
-                            ui.separator();
-                            ui.horizontal(|ui|{
-                                if ui.button("Remove").clicked(){
-                                    inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
-                                    out = PipelineAction::Nothing;
-                                }
-                                if ui.button("Ok").clicked(){
-                                    out = PipelineAction::Nothing;
-                                }
-                            });
-                        })
-                    });
-                    out
-                },
-                PipelineAction::OpenInput { input_idx } => {
-                    let id = id.with(input_idx).with("modal".as_ptr());
-                    let mut out = PipelineAction::OpenInput { input_idx };
-                    egui::Modal::new(id).show(ui.ctx(), |ui| {
-                        ui.vertical(|ui|{
-                            ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                                if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                    out = PipelineAction::Nothing;
-                                }
-                            });
-                            inputs[input_idx].inner.draw_and_parse(ui, id.with("input widget".as_ptr()));
-                            ui.separator();
-                            ui.horizontal(|ui|{
-                                if ui.button("Remove").clicked(){
-                                    inputs.remove(input_idx);
-                                    out = PipelineAction::Nothing;
-                                }
-                                if ui.button("Ok").clicked(){
-                                    out = PipelineAction::Nothing;
-                                }
-                            });
-                        })
-                    });
-                    out
-                },
-                PipelineAction::RemoveInput { input_idx } => {
-                    inputs.remove(input_idx);
-                    PipelineAction::Nothing
-                },
-                PipelineAction::Nothing => PipelineAction::Nothing,
-            };
 
             ui.add_space(30.0);
 
@@ -241,19 +183,75 @@ impl PipelineWidget{
                 });
             }).response.rect;
 
-            let output_rects = ui.vertical(|ui|{
-                egui::Frame::new()
-                .inner_margin(egui::Margin::same(margin_width))
-                .fill(egui::Color32::from_rgb(0, 0, 255))
-                .show(ui, |ui|{
-                    let output_rects: Vec<_> = [1,2].iter()
-                        .map(|idx| ui.label(format!("Input #{idx}")).rect)
-                        .collect();
-                    output_rects
-                }).inner
-            }).inner;
+            ui.add_space(30.0);
 
-            (input_tips, weights_rect, output_rects)
+            ui.vertical(|ui| {
+                let id = id.with("outputs".as_ptr());
+                for (output_idx, cw) in outputs.iter_mut().enumerate(){
+                    let output = &mut cw.inner;
+                    let id = id.with(output_idx);
+
+                    let output_resp = slot_frame(ui, |ui|{
+                        if ui.button("🗙").clicked(){
+                            pipeline_action = PipelineAction::RemoveInput{ input_idx: output_idx };
+                        }
+                        ui.add_space(10.0);
+
+                        ui.horizontal(|ui| {
+                            let input_name = if output.id_widget.raw.len() == 0{
+                                egui::RichText::new("Unnamed output").weak()
+                            } else {
+                                egui::RichText::new(&output.id_widget.raw).strong()
+                            };
+                            if ui.add(egui::Label::new(input_name).sense(egui::Sense::click())).clicked(){
+                                pipeline_action = PipelineAction::OpenInput{input_idx: output_idx};
+                            }
+                            ui.spacing_mut().item_spacing.x = 1.0;
+
+                            let response = egui_dnd::dnd(ui, id.with("dnd".as_ptr()))
+                            .with_animation_time(0.0)
+                            .show(
+                                output.postprocessing_widget.staging
+                                    .iter_mut()
+                                    .enumerate()
+                                    .map(|(i, item)| EnumeratedItem { item, index: i }),
+                                |ui, item, handle, _state| {
+                                    handle.ui(ui, |ui| {
+                                        item.item.inner.draw_and_parse(ui, id.with(item.index));
+                                    });
+                                },
+                            );
+
+                            if response.is_drag_finished() {
+                                response.update_vec(&mut output.postprocessing_widget.staging);
+                            }
+
+                            ui.add_space(10.0);
+                            if ui.button("✚").on_hover_text("Add postprocessing step").clicked(){
+                                output.postprocessing_widget.staging.push(Default::default());
+                                let postproc_idx = output.postprocessing_widget.staging.len() - 1;
+                                pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx };
+                            }
+                        });
+                    });
+                    let output_rect = output_resp.response.rect;
+                    output_tails.push(egui::Pos2{
+                        x: output_rect.min.x,
+                        y: output_rect.center().y,
+                    });
+                }
+                if ui.button("✚ Add Model Output").clicked(){
+                    outputs.push(Default::default());
+                    //FIXME: maybe open the editor?
+                }
+            });
+
+
+
+            self.action = pipeline_action;
+
+
+            (input_tips, weights_rect, output_tails)
         }).inner;
 
         let input_height_incr = weights_rect.height() / (input_tips.len() + 1) as f32;
@@ -293,5 +291,93 @@ impl PipelineWidget{
             });
             Arrow::new(target, egui::Pos2{x: target.x + 10.0, y: target.y}).color(color).draw(ui);
         }
+
+        self.action = match std::mem::take(&mut self.action) {
+            PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
+                let id = id.with("modal".as_ptr()).with(input_idx).with(preproc_idx);
+                let mut out = PipelineAction::OpenPreproc { input_idx, preproc_idx };
+                egui::Modal::new(id).show(ui.ctx(), |ui| {
+                    ui.vertical(|ui|{
+                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                                out = PipelineAction::Nothing;
+                            }
+                        });
+                        inputs[input_idx].inner.preprocessing_widget[preproc_idx].draw_and_parse(
+                            ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr())
+                        );
+                        ui.separator();
+                        ui.horizontal(|ui|{
+                            if ui.button("Remove").clicked(){
+                                inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
+                                out = PipelineAction::Nothing;
+                            }
+                            if ui.button("Ok").clicked(){
+                                out = PipelineAction::Nothing;
+                            }
+                        });
+                    })
+                });
+                out
+            },
+            PipelineAction::OpenPostproc { output_idx, postproc_idx } => {
+                let id = id.with("modal".as_ptr()).with(output_idx).with(postproc_idx);
+                let mut out = PipelineAction::OpenPostproc { output_idx, postproc_idx };
+                egui::Modal::new(id).show(ui.ctx(), |ui| {
+                    ui.vertical(|ui|{
+                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                                out = PipelineAction::Nothing;
+                            }
+                        });
+                        outputs[output_idx].inner.postprocessing_widget.staging[postproc_idx].draw_and_parse(
+                            ui, id.with("widget".as_ptr())
+                        );
+                        ui.separator();
+                        ui.horizontal(|ui|{
+                            if ui.button("Remove").clicked(){
+                                outputs[output_idx].inner.postprocessing_widget.staging.remove(postproc_idx);
+                                out = PipelineAction::Nothing;
+                            }
+                            if ui.button("Ok").clicked(){
+                                out = PipelineAction::Nothing;
+                            }
+                        });
+                    })
+                });
+                out
+            }
+            PipelineAction::OpenInput { input_idx } => {
+                let id = id.with(input_idx).with("modal".as_ptr());
+                let mut out = PipelineAction::OpenInput { input_idx };
+                egui::Modal::new(id).show(ui.ctx(), |ui| {
+                    ui.vertical(|ui|{
+                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                                out = PipelineAction::Nothing;
+                            }
+                        });
+                        inputs[input_idx].inner.draw_and_parse(ui, id.with("input widget".as_ptr()));
+                        ui.separator();
+                        ui.horizontal(|ui|{
+                            if ui.button("Remove").clicked(){
+                                inputs.remove(input_idx);
+                                out = PipelineAction::Nothing;
+                            }
+                            if ui.button("Ok").clicked(){
+                                out = PipelineAction::Nothing;
+                            }
+                        });
+                    })
+                });
+                out
+            },
+            PipelineAction::RemoveInput { input_idx } => {
+                inputs.remove(input_idx);
+                PipelineAction::Nothing
+            },
+            PipelineAction::Nothing => PipelineAction::Nothing,
+        };
+
     }
 }
