@@ -69,7 +69,6 @@ impl PipelineWidget{
                             ui.strong(&inp.id_widget.raw);
                             ui.spacing_mut().item_spacing.x = 1.0;
 
-
                             let response = egui_dnd::dnd(ui, id.with("dnd".as_ptr()))
                             .with_animation_time(0.0)
                             .show(
@@ -86,13 +85,9 @@ impl PipelineWidget{
                                 },
                             );
 
-                            // Since the item id may not change while a drag is ongoing we need to wait
-                            // until the drag is finished before updating the items
                             if response.is_drag_finished() {
                                 response.update_vec(&mut inp.preprocessing_widget);
                             }
-
-
                         });
                     });
                     input_rects.push(frame_resp.response.rect);
