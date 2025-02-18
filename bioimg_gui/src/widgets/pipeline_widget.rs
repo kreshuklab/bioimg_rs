@@ -1,3 +1,5 @@
+use core::f32;
+
 use eframe::glow::MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS;
 use egui::Widget;
 
@@ -42,11 +44,9 @@ where
     let tip_length = 20.0;
     let frame_resp = ui.horizontal(|ui| {
         let resp = egui::Frame::new().inner_margin(egui::Margin::same(10)).show(ui, f);
-        println!("Inner resp: {:?}", resp.response.rect);
         ui.add_space(tip_length);
         resp.inner
     });
-    println!("Outter resp: {:?}", frame_resp.response.rect);
 
     let inp_rect = frame_resp.response.rect;
     let width = egui::Vec2{x: inp_rect.width() - tip_length, y: 0.0};
@@ -267,7 +267,14 @@ impl PipelineWidget{
         let input_height_incr = weights_rect.height() / (input_tips.len() + 1) as f32;
         let color = egui::Color32::GRAY;
 
+        let mut max_x = f32::NEG_INFINITY;
+        input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_x { max_x = x});
+        let stroke = egui::Stroke{color, width: 2.0};
+
         for (idx, inp_tip) in input_tips.iter().enumerate(){
+            ui.painter().circle_filled(*inp_tip, 5.0, color);
+            let curve_origin = egui::Pos2{x: max_x, y: inp_tip.y};
+            ui.painter().line_segment([*inp_tip, curve_origin], stroke);
             let target = egui::Pos2{
                 x: weights_rect.min.x,
                 y: weights_rect.min.y + ((idx + 1) as f32 * input_height_incr),
@@ -275,7 +282,7 @@ impl PipelineWidget{
 
             // let control1 = egui::Pos2{x: origin.x + self.c1_x_offset, y: origin.y + self.c1_y_offset};
             // let control2 = egui::Pos2{x: target.x + self.c2_x_offset, y: target.y + self.c2_y_offset};
-            let control1 = egui::Pos2{x: inp_tip.x + 20.0, y: inp_tip.y};
+            let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
             let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
 
             // ui.painter().circle_filled(control1, 3.0, egui::Color32::YELLOW);
@@ -283,16 +290,15 @@ impl PipelineWidget{
 
             ui.painter().add(egui::epaint::CubicBezierShape{
                 points: [
-                    *inp_tip,
+                    curve_origin,
                     control1,
                     control2,
                     target,
                 ],
                 closed: false,
                 fill: egui::Color32::TRANSPARENT,
-                stroke: egui::Stroke{color, width: 2.0}.into(),
+                stroke: stroke.into(),
             });
-            ui.painter().circle_filled(*inp_tip, 5.0, color);
             Arrow::new(target, egui::Pos2{x: target.x + 10.0, y: target.y}).color(color).draw(ui);
         }
     }
