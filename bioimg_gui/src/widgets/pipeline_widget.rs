@@ -1,6 +1,5 @@
 use core::f32;
 
-use eframe::glow::MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS;
 use egui::Widget;
 
 use super::collapsible_widget::CollapsibleWidget;
@@ -76,7 +75,6 @@ enum PipelineAction{
     OpenInput{input_idx: usize},
     RemoveInput{input_idx: usize},
     OpenPreproc{input_idx: usize, preproc_idx: usize},
-    RemovePreproc{input_idx: usize, preproc_idx: usize},
 }
 
 impl PipelineWidget{
@@ -88,8 +86,6 @@ impl PipelineWidget{
     ){
 
         let margin_width = 10;
-        let margin = egui::Margin::same(10);
-        let red_stroke = egui::Stroke{color: egui::Color32::RED, width: 2.0};
 
         let mut pipeline_action = self.action.clone();
 
@@ -187,10 +183,6 @@ impl PipelineWidget{
                         })
                     });
                     out
-                },
-                PipelineAction::RemovePreproc { input_idx, preproc_idx } => {
-                    inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
-                    PipelineAction::Nothing
                 },
                 PipelineAction::OpenInput { input_idx } => {
                     let id = id.with(input_idx).with("modal".as_ptr());
