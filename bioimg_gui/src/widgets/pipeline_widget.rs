@@ -57,7 +57,7 @@ where
     let bottom_right = top_right + height;
     let tip = egui::Pos2{x: inp_rect.max.x, y: inp_rect.center().y};
     
-    let stroke = egui::Stroke{width: 2.0, color: egui::Color32::RED};
+    let stroke = ui.visuals().window_stroke();
 
     ui.painter().line_segment([top_right, top_left], stroke);
     ui.painter().line_segment([top_left, bottom_left], stroke);
