@@ -227,8 +227,8 @@ impl StatefulWidget for InputTensorWidget {
                 let vec_widget = VecWidget{
                     items: &mut self.preprocessing_widget,
                     item_label: "Preprocessing Step",
-                    render_header: Some(|widget: &mut PreprocessingWidget, _idx, ui: &mut egui::Ui|{
-                        widget.draw_preproc_type_picker(ui, id.with("preproc type".as_ptr()));
+                    render_header: Some(|widget: &mut PreprocessingWidget, idx, ui: &mut egui::Ui|{
+                        widget.draw_preproc_type_picker(ui, id.with("preproc type".as_ptr()).with(idx));
                     }),
                     show_reorder_buttons: true,
                     render_widget: |widget: &mut PreprocessingWidget, index, ui| widget.draw_and_parse(
