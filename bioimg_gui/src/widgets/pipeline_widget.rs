@@ -36,6 +36,17 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
     }
 }
 
+fn modal(id: egui::Id, ui: &mut egui::Ui, draw_widgets: impl FnMut(&mut egui::Ui)){
+    egui::Modal::new(id).show(ui.ctx(), |ui| {
+        egui::ScrollArea::both()
+            .max_height(ui.ctx().screen_rect().max.y - 80.0)
+            .max_width(ui.ctx().screen_rect().max.x - 80.0)
+            .min_scrolled_height(ui.ctx().screen_rect().max.y - 80.0)
+            .min_scrolled_width(ui.ctx().screen_rect().max.x - 80.0)
+            .show(ui, draw_widgets);
+    });
+}
+
 fn slot_frame<R, F>(ui: &mut egui::Ui, f: F) -> egui::InnerResponse<R>
 where
     F: FnOnce(&mut egui::Ui) -> R
@@ -327,7 +338,7 @@ impl PipelineWidget{
             PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
                 let id = id.with("modal".as_ptr()).with(input_idx).with(preproc_idx);
                 let mut out = PipelineAction::OpenPreproc { input_idx, preproc_idx };
-                egui::Modal::new(id).show(ui.ctx(), |ui| {
+                modal(id, ui, |ui| {
                     ui.vertical(|ui|{
                         ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
                             if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
@@ -347,14 +358,14 @@ impl PipelineWidget{
                                 out = PipelineAction::Nothing;
                             }
                         });
-                    })
+                    });
                 });
                 out
             },
             PipelineAction::OpenPostproc { output_idx, postproc_idx } => {
                 let id = id.with("modal".as_ptr()).with(output_idx).with(postproc_idx);
                 let mut out = PipelineAction::OpenPostproc { output_idx, postproc_idx };
-                egui::Modal::new(id).show(ui.ctx(), |ui| {
+                modal(id, ui, |ui| {
                     ui.vertical(|ui|{
                         ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
                             if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
@@ -374,14 +385,14 @@ impl PipelineWidget{
                                 out = PipelineAction::Nothing;
                             }
                         });
-                    })
+                    });
                 });
                 out
             }
             PipelineAction::OpenInput { input_idx } => {
                 let id = id.with(input_idx).with("modal".as_ptr());
                 let mut out = PipelineAction::OpenInput { input_idx };
-                egui::Modal::new(id).show(ui.ctx(), |ui| {
+                modal(id, ui, |ui| {
                     ui.vertical(|ui|{
                         ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
                             if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
@@ -399,7 +410,7 @@ impl PipelineWidget{
                                 out = PipelineAction::Nothing;
                             }
                         });
-                    })
+                    });
                 });
                 out
             },
