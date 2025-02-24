@@ -1,4 +1,4 @@
-use core::f32;
+use std::ops::Mul;
 
 use egui::Widget;
 
@@ -256,19 +256,27 @@ impl PipelineWidget{
 
         let color = egui::Color32::GRAY;
 
-        let input_height_incr = weights_rect.height() / (input_tips.len() + 1) as f32;
-        let mut max_inp_x = f32::NEG_INFINITY;
-        input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_inp_x { max_inp_x = x});
+        let weights_rect_offset = egui::Vec2{
+            x: 0.0,
+            y: weights_rect.height() / (input_tips.len() as f32 + 1.0),
+        };
+        let max_inp_x = {
+            let mut max_inp_x = f32::NEG_INFINITY;
+            input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_inp_x { max_inp_x = x});
+            max_inp_x
+        };
         let stroke = egui::Stroke{color, width: 2.0};
+        let arrow_offset = egui::Vec2{x: 10.0, y: 0.0};
 
         for (idx, inp_tip) in input_tips.iter().enumerate(){
             ui.painter().circle_filled(*inp_tip, 5.0, color);
+
             let curve_origin = egui::Pos2{x: max_inp_x, y: inp_tip.y};
             ui.painter().line_segment([*inp_tip, curve_origin], stroke);
-            let target = egui::Pos2{
-                x: weights_rect.min.x,
-                y: weights_rect.min.y + ((idx + 1) as f32 * input_height_incr),
-            };
+
+            let target = weights_rect.min
+                + weights_rect_offset.mul((idx + 1) as f32)
+                - arrow_offset;
 
             let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
             let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
@@ -284,17 +292,19 @@ impl PipelineWidget{
                 fill: egui::Color32::TRANSPARENT,
                 stroke: stroke.into(),
             });
-            Arrow::new(target, egui::Pos2{x: target.x + 10.0, y: target.y}).color(color).draw(ui);
+            Arrow::new(target, target + arrow_offset).color(color).draw(ui);
         }
 
-        let output_height_incr = weights_rect.height() / (output_tails.len() + 1) as f32;
+        let weights_rect_offset = egui::Vec2{
+            x: 0.0,
+            y: weights_rect.height() / (output_tails.len() + 1) as f32,
+        };
+        let weights_widget_top_right = egui::Pos2{ x: weights_rect.max.x, y: weights_rect.min.y };
         for (idx, out_tail) in output_tails.iter().enumerate(){
-            Arrow::new(target, egui::Pos2{x: out_tail.x - 10.0, y: out_tail.y}).color(color).draw(ui);
-            let curve_target = out_tail;
-            let target = egui::Pos2{
-                x: weights_rect.min.x,
-                y: weights_rect.min.y + ((idx + 1) as f32 * input_height_incr),
-            };
+            let curve_origin = weights_widget_top_right + weights_rect_offset.mul(idx as f32 + 1.0);
+            ui.painter().circle_filled(curve_origin, 5.0, color);
+
+            let target = *out_tail - arrow_offset;
 
             let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
             let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
@@ -310,7 +320,7 @@ impl PipelineWidget{
                 fill: egui::Color32::TRANSPARENT,
                 stroke: stroke.into(),
             });
-            ui.painter().circle_filled(*out_tail, 5.0, color);
+            Arrow::new(target, *out_tail).color(color).draw(ui);
         }
 
         self.action = match std::mem::take(&mut self.action) {
