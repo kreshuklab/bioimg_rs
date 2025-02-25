@@ -297,7 +297,9 @@ where
                     ui.horizontal(|ui| {
                         ui.label("🔎 ");
                         let search_resp = ui.text_edit_singleline(search);
-                        search_resp.request_focus();
+                        if button_response.clicked(){
+                            search_resp.request_focus();
+                        }
                     });
                     ui.add_space(10.0);
                 }).response.rect;
