@@ -5,6 +5,7 @@ use egui::Widget;
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
+use super::posstprocessing_widget::{PostprocessingWidget, PostprocessingWidgetMode, ShowPostprocTypePicker};
 use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
 use super::util::{Arrow, EnumeratedItem};
 use super::StatefulWidget;
@@ -28,6 +29,27 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
         PreprocessingWidgetMode::FixedZmuv => egui::Color32::KHAKI,
     };
     match preproc.iconify(){
+        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(color).ui(ui),
+        Err(err) => {
+            let text = egui::RichText::new("!").color(egui::Color32::WHITE);
+            egui::Button::new(text).fill(egui::Color32::RED).ui(ui).on_hover_ui(|ui| show_error(ui, err))
+        }
+    }
+}
+
+fn draw_postproc_button(ui: &mut egui::Ui, postproc: &PostprocessingWidget) -> egui::Response{
+    let color = match postproc.mode{
+        PostprocessingWidgetMode::Binarize => egui::Color32::GOLD,
+        PostprocessingWidgetMode::Clip => egui::Color32::BLUE,
+        PostprocessingWidgetMode::ScaleLinear => egui::Color32::GREEN,
+        PostprocessingWidgetMode::Sigmoid => egui::Color32::ORANGE,
+        PostprocessingWidgetMode::ZeroMeanUnitVariance => egui::Color32::BROWN,
+        PostprocessingWidgetMode::ScaleRange => egui::Color32::DARK_GREEN,
+        PostprocessingWidgetMode::EnsureDtype => egui::Color32::LIGHT_GRAY,
+        PostprocessingWidgetMode::FixedZmuv => egui::Color32::KHAKI,
+        PostprocessingWidgetMode::ScaleMeanVariance => egui::Color32::CYAN,
+    };
+    match postproc.iconify(){
         Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(color).ui(ui),
         Err(err) => {
             let text = egui::RichText::new("!").color(egui::Color32::WHITE);
@@ -314,25 +336,27 @@ impl PipelineWidget{
                             let response = egui_dnd::dnd(ui, id.with("dnd".as_ptr()))
                             .with_animation_time(0.0)
                             .show(
-                                output.postprocessing_widget.staging
+                                output.postprocessing_widgets
                                     .iter_mut()
                                     .enumerate()
                                     .map(|(i, item)| EnumeratedItem { item, index: i }),
                                 |ui, item, handle, _state| {
                                     handle.ui(ui, |ui| {
-                                        item.item.inner.draw_and_parse(ui, id.with(item.index));
+                                        if draw_postproc_button(ui, &item.item.inner).clicked(){
+                                            pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx: item.index };
+                                        }
                                     });
                                 },
                             );
 
                             if response.is_drag_finished() {
-                                response.update_vec(&mut output.postprocessing_widget.staging);
+                                response.update_vec(&mut output.postprocessing_widgets);
                             }
 
                             ui.add_space(10.0);
                             if ui.button("✚").on_hover_text("Add postprocessing step").clicked(){
-                                output.postprocessing_widget.staging.push(Default::default());
-                                let postproc_idx = output.postprocessing_widget.staging.len() - 1;
+                                output.postprocessing_widgets.push(Default::default());
+                                let postproc_idx = output.postprocessing_widgets.len() - 1;
                                 pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx };
                             }
                         });
@@ -395,13 +419,13 @@ impl PipelineWidget{
                 modal(id, ui, |ui| {
                     ui.vertical(|ui|{
                         modal_header(ui, &mut out);
-                        outputs[output_idx].inner.postprocessing_widget.staging[postproc_idx].draw_and_parse(
-                            ui, id.with("widget".as_ptr())
+                        outputs[output_idx].inner.postprocessing_widgets[postproc_idx].inner.draw_and_parse(
+                            ui, ShowPostprocTypePicker::Show, id.with("widget".as_ptr())
                         );
                         ui.separator();
                         ui.horizontal(|ui|{
                             if ui.button("Remove").clicked(){
-                                outputs[output_idx].inner.postprocessing_widget.staging.remove(postproc_idx);
+                                outputs[output_idx].inner.postprocessing_widgets.remove(postproc_idx);
                                 out = PipelineAction::Nothing;
                             }
                             if ui.button("Ok").clicked(){

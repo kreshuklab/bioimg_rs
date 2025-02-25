@@ -454,7 +454,7 @@ pub struct ScaleMeanVarianceWidgetRawData{
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PostprocessingWidgetRawData{
-    pub mode_widget: PostprocessingWidgetModeRawData,
+    pub mode: PostprocessingWidgetModeRawData,
     pub binarize_widget: BinarizePreprocessingWidgetRawData,
     pub clip_widget: ClipWidgetRawData,
     pub scale_linear_widget: ScaleLinearWidgetRawData,
@@ -472,7 +472,7 @@ pub struct OutputTensorWidgetRawData {
     pub description_widget: String,
     pub axes_widget: Vec<CollapsibleWidgetRawData<OutputAxisWidget>>,
     pub test_tensor_widget: TestTensorWidgetRawData,
-    pub postprocessing_widget: Vec<CollapsibleWidgetRawData<PostprocessingWidget>>,
+    pub postprocessing_widgets: Vec<CollapsibleWidgetRawData<PostprocessingWidget>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

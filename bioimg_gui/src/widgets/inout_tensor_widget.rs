@@ -7,13 +7,13 @@ use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
 use bioimg_runtime::npy_array::ArcNpyArray;
 use bioimg_runtime::NpyArray;
 
-use crate::result::{GuiError, Result, VecResultExt};
+use crate::result::{GuiError, Result};
 use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use super::error_display::{show_error, show_if_error};
-use super::posstprocessing_widget::PostprocessingWidget;
+use super::posstprocessing_widget::{PostprocessingWidget, ShowPostprocTypePicker};
 use super::preprocessing_widget::{PreprocessingWidget, ShowPreprocTypePicker};
 use super::staging_string::StagingString;
 use super::staging_vec::StagingVec;
@@ -256,7 +256,7 @@ pub struct OutputTensorWidget {
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
     pub axes_widget: StagingVec<CollapsibleWidget<OutputAxisWidget>>,
     pub test_tensor_widget: TestTensorWidget,
-    pub postprocessing_widget: StagingVec<CollapsibleWidget<PostprocessingWidget>>,
+    pub postprocessing_widgets: Vec<CollapsibleWidget<PostprocessingWidget>>,
 
     #[restore_on_update]
     pub parsed: Result<OutputSlot<Arc<NpyArray>>>,
@@ -271,7 +271,7 @@ impl Default for OutputTensorWidget{
             description_widget: Default::default(),
             axes_widget: Default::default(),
             test_tensor_widget: Default::default(),
-            postprocessing_widget: Default::default(),
+            postprocessing_widgets: Default::default(),
             parsed: Err(GuiError::new("empty".to_owned()))
         }
     }
@@ -281,7 +281,13 @@ impl ValueWidget for OutputTensorWidget{
     type Value<'v> = OutputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
-        self.postprocessing_widget.set_value(value.tensor_meta.postprocessing().clone());
+        self.postprocessing_widgets = value.tensor_meta.postprocessing().iter()
+            .map(|descr| {
+                let mut w = CollapsibleWidget::<PostprocessingWidget>::default();
+                w.set_value(descr.clone());
+                w
+            })
+            .collect();
         self.id_widget.set_value(value.tensor_meta.id);
         self.description_widget.set_value(value.tensor_meta.description);
         self.test_tensor_widget.set_value(value.test_tensor);
@@ -361,7 +367,9 @@ impl OutputTensorWidget{
             let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
             let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
                 id: self.id_widget.state()?.clone(),
-                postprocessing: self.postprocessing_widget.state().collect_result()?,
+                postprocessing: self.postprocessing_widgets.iter()
+                    .map(|w| w.inner.state())
+                    .collect::<Result<_>>()?,
                 description: self.description_widget.state()?.clone(),
                 axes: axis_group,
             };
@@ -431,7 +439,20 @@ impl StatefulWidget for OutputTensorWidget {
                     A list of postprocessing steps that will be applied to this output tensor \
                     after it is produced by the network models."
                 ));
-                self.postprocessing_widget.draw_and_parse(ui, id.with("postproc".as_ptr()));
+
+                let vec_widget = VecWidget{
+                    items: &mut self.postprocessing_widgets,
+                    item_label: "Postprocessing Step",
+                    render_header: Some(|widget: &mut CollapsibleWidget<PostprocessingWidget>, idx, ui: &mut egui::Ui|{
+                        widget.inner.draw_type_picker(ui, id.with("postproc type".as_ptr()).with(idx));
+                    }),
+                    show_reorder_buttons: true,
+                    render_widget: |widget: &mut CollapsibleWidget<PostprocessingWidget>, index, ui| widget.inner.draw_and_parse(
+                        ui, ShowPostprocTypePicker::Hide, id.with("postprocs".as_ptr()).with(index)
+                    ),
+                    new_item: Some(Default::default),
+                };
+                ui.add(vec_widget);
             });
             show_if_error(ui, &self.parsed);
         });

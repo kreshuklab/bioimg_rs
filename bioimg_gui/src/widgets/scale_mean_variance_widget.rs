@@ -18,6 +18,15 @@ pub struct ScaleMeanVarianceWidget{
     pub eps_widget: StagingFloat<preproc::PreprocessingEpsilon>,
 }
 
+impl ScaleMeanVarianceWidget{
+    pub fn iconify(&self) -> Result<egui::WidgetText> {
+        let prep = self.state()?;
+        Ok(egui::RichText::new(format!(
+            "⚖ {}", prep.reference_tensor
+        )).into())
+    }
+}
+
 impl ValueWidget for ScaleMeanVarianceWidget{
     type Value<'v> = postproc::ScaleMeanVarianceDescr;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
