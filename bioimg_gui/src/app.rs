@@ -59,6 +59,18 @@ pub enum TaskResult{
     ModelImport(Box<rt::zoo_model::ZooModel>),
 }
 
+pub struct MyWidget{
+    id: egui::Id,
+    #[allow(dead_code)]
+    text: String,
+}
+
+impl std::hash::Hash for MyWidget{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
+    }
+}
+
 #[derive(Restore)]
 pub struct AppState1 {
     pub staging_name: StagingString<ModelRdfName>,
@@ -437,7 +449,12 @@ impl eframe::App for AppState1 {
                 });
                 ui.add_space(10.0);
 
-                self.pipeline_widget.draw(ui, egui::Id::from("pipeline"), &mut self.model_interface_widget.inputs_widget.staging);
+                self.pipeline_widget.draw(
+                    ui,
+                    egui::Id::from("pipeline"),
+                    &mut self.model_interface_widget.inputs_widget.staging,
+                    &mut self.model_interface_widget.outputs_widget.staging,
+                );
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Cover Images: ").on_hover_text(

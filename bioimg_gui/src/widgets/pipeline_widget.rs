@@ -7,7 +7,7 @@ use super::error_display::show_error;
 use super::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
 use super::posstprocessing_widget::{PostprocessingWidget, PostprocessingWidgetMode, ShowPostprocTypePicker};
 use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
-use super::util::{Arrow, EnumeratedItem};
+use super::util::Arrow;
 use super::StatefulWidget;
 
 
@@ -224,7 +224,7 @@ impl PipelineWidget{
                 let id = id.with("inputs".as_ptr());
                 for (input_idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
-                    let id = id.with(input_idx);
+                    let _id = id.with(input_idx);
 
                     let input_resp = slot_frame(ui, |ui|{
                         if ui.button("🗙").clicked(){
@@ -243,25 +243,11 @@ impl PipelineWidget{
                             }
                             ui.spacing_mut().item_spacing.x = 1.0;
 
-                            let response = egui_dnd::dnd(ui, id.with("dnd".as_ptr()))
-                            .with_animation_time(0.0)
-                            .show(
-                                inp.preprocessing_widget
-                                    .iter_mut()
-                                    .enumerate()
-                                    .map(|(i, item)| EnumeratedItem { item, index: i }),
-                                |ui, item, handle, _state| {
-                                    handle.ui(ui, |ui| {
-                                        if draw_preproc_button(ui, item.item).clicked(){
-                                            pipeline_action = PipelineAction::OpenPreproc { input_idx, preproc_idx: item.index };
-                                        }
-                                    });
-                                },
-                            );
-
-                            if response.is_drag_finished() {
-                                response.update_vec(&mut inp.preprocessing_widget);
-                            }
+                            inp.preprocessing_widget.iter().enumerate().for_each(|(idx, preproc)|{
+                                if draw_preproc_button(ui, preproc).clicked(){
+                                    pipeline_action = PipelineAction::OpenPreproc { input_idx, preproc_idx: idx };
+                                }
+                            });
 
                             ui.add_space(10.0);
                             if ui.button("✚").on_hover_text("Add preprocesing step").clicked(){
@@ -314,7 +300,7 @@ impl PipelineWidget{
                 let id = id.with("outputs".as_ptr());
                 for (output_idx, cw) in outputs.iter_mut().enumerate(){
                     let output = &mut cw.inner;
-                    let id = id.with(output_idx);
+                    let _id = id.with(output_idx);
 
                     let output_resp = slot_frame(ui, |ui|{
                         if ui.button("🗙").clicked(){
@@ -333,24 +319,10 @@ impl PipelineWidget{
                             }
                             ui.spacing_mut().item_spacing.x = 1.0;
 
-                            let response = egui_dnd::dnd(ui, id.with("dnd".as_ptr()))
-                            .with_animation_time(0.0)
-                            .show(
-                                output.postprocessing_widgets
-                                    .iter_mut()
-                                    .enumerate()
-                                    .map(|(i, item)| EnumeratedItem { item, index: i }),
-                                |ui, item, handle, _state| {
-                                    handle.ui(ui, |ui| {
-                                        if draw_postproc_button(ui, &item.item.inner).clicked(){
-                                            pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx: item.index };
-                                        }
-                                    });
-                                },
-                            );
-
-                            if response.is_drag_finished() {
-                                response.update_vec(&mut output.postprocessing_widgets);
+                            for (idx, postproc) in output.postprocessing_widgets.iter().enumerate(){
+                                if draw_postproc_button(ui, &postproc.inner).clicked(){
+                                    pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx: idx };
+                                }
                             }
 
                             ui.add_space(10.0);
