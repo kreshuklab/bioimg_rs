@@ -36,15 +36,105 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
     }
 }
 
-fn modal(id: egui::Id, ui: &mut egui::Ui, draw_widgets: impl FnMut(&mut egui::Ui)){
+fn modal(id: egui::Id, ui: &mut egui::Ui, mut draw_widgets: impl FnMut(&mut egui::Ui)){
     egui::Modal::new(id).show(ui.ctx(), |ui| {
         egui::ScrollArea::both()
-            .max_height(ui.ctx().screen_rect().max.y - 80.0)
-            .max_width(ui.ctx().screen_rect().max.x - 80.0)
-            .min_scrolled_height(ui.ctx().screen_rect().max.y - 80.0)
-            .min_scrolled_width(ui.ctx().screen_rect().max.x - 80.0)
-            .show(ui, draw_widgets);
+        // .max_height(ui.ctx().screen_rect().max.y - 80.0)
+        // .max_width(ui.ctx().screen_rect().max.x - 80.0)
+        .min_scrolled_height(ui.ctx().screen_rect().max.y - 80.0)
+        .min_scrolled_width(ui.ctx().screen_rect().max.x - 80.0)
+        .show(ui, |ui|{
+            ui.vertical(|ui|{
+                ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                    draw_widgets(ui)
+                });
+            });
+        });
     });
+}
+
+fn modal_header(ui: &mut egui::Ui, out: &mut PipelineAction){
+    ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+        if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+            *out = PipelineAction::Nothing;
+        }
+    });
+}
+
+fn draw_input_connections(
+    ui: &mut egui::Ui, input_tips: &[egui::Pos2], weights_rect: egui::Rect, stroke: egui::Stroke
+){
+    let weights_rect_offset = egui::Vec2{
+        x: 0.0,
+        y: weights_rect.height() / (input_tips.len() as f32 + 1.0),
+    };
+    let max_inp_x = {
+        let mut max_inp_x = f32::NEG_INFINITY;
+        input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_inp_x { max_inp_x = x});
+        max_inp_x
+    };
+    let arrow_offset = egui::Vec2{x: 10.0, y: 0.0};
+
+    for (idx, inp_tip) in input_tips.iter().enumerate(){
+        ui.painter().circle_filled(*inp_tip, 5.0, stroke.color);
+
+        let curve_origin = egui::Pos2{x: max_inp_x, y: inp_tip.y};
+        ui.painter().line_segment([*inp_tip, curve_origin], stroke);
+
+        let target = weights_rect.min
+            + weights_rect_offset.mul((idx + 1) as f32)
+            - arrow_offset;
+
+        let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
+        let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
+
+        ui.painter().add(egui::epaint::CubicBezierShape{
+            points: [
+                curve_origin,
+                control1,
+                control2,
+                target,
+            ],
+            closed: false,
+            fill: egui::Color32::TRANSPARENT,
+            stroke: stroke.into(),
+        });
+        Arrow::new(target, target + arrow_offset).color(stroke.color).draw(ui);
+    }
+}
+
+fn draw_output_connections(
+    ui: &mut egui::Ui, output_tails: &[egui::Pos2], weights_rect: egui::Rect, stroke: egui::Stroke
+){
+    let weights_rect_offset = egui::Vec2{
+        x: 0.0,
+        y: weights_rect.height() / (output_tails.len() + 1) as f32,
+    };
+    let weights_widget_top_right = egui::Pos2{ x: weights_rect.max.x, y: weights_rect.min.y };
+    let arrow_offset = egui::Vec2{x: 10.0, y: 0.0};
+
+    for (idx, out_tail) in output_tails.iter().enumerate(){
+        let curve_origin = weights_widget_top_right + weights_rect_offset.mul(idx as f32 + 1.0);
+        ui.painter().circle_filled(curve_origin, 5.0, stroke.color);
+
+        let target = *out_tail - arrow_offset;
+
+        let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
+        let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
+
+        ui.painter().add(egui::epaint::CubicBezierShape{
+            points: [
+                curve_origin,
+                control1,
+                control2,
+                target,
+            ],
+            closed: false,
+            fill: egui::Color32::TRANSPARENT,
+            stroke: stroke.into(),
+        });
+        Arrow::new(target, *out_tail).color(stroke.color).draw(ui);
+    }
 }
 
 fn slot_frame<R, F>(ui: &mut egui::Ui, f: F) -> egui::InnerResponse<R>
@@ -83,6 +173,8 @@ where
 enum PipelineAction{
     #[default]
     Nothing,
+    OpenOutput{output_idx: usize},
+    RemoveOutput{output_idx: usize},
     OpenInput{input_idx: usize},
     RemoveInput{input_idx: usize},
     OpenPreproc{input_idx: usize, preproc_idx: usize},
@@ -204,7 +296,7 @@ impl PipelineWidget{
 
                     let output_resp = slot_frame(ui, |ui|{
                         if ui.button("🗙").clicked(){
-                            pipeline_action = PipelineAction::RemoveInput{ input_idx: output_idx };
+                            pipeline_action = PipelineAction::RemoveOutput{ output_idx };
                         }
                         ui.add_space(10.0);
 
@@ -215,7 +307,7 @@ impl PipelineWidget{
                                 egui::RichText::new(&output.id_widget.raw).strong()
                             };
                             if ui.add(egui::Label::new(input_name).sense(egui::Sense::click())).clicked(){
-                                pipeline_action = PipelineAction::OpenInput{input_idx: output_idx};
+                                pipeline_action = PipelineAction::OpenOutput{output_idx};
                             }
                             ui.spacing_mut().item_spacing.x = 1.0;
 
@@ -265,78 +357,13 @@ impl PipelineWidget{
             (input_tips, weights_rect, output_tails)
         }).inner;
 
-        let color = egui::Color32::GRAY;
-
-        let weights_rect_offset = egui::Vec2{
-            x: 0.0,
-            y: weights_rect.height() / (input_tips.len() as f32 + 1.0),
-        };
-        let max_inp_x = {
-            let mut max_inp_x = f32::NEG_INFINITY;
-            input_tips.iter().map(|tip| tip.x).for_each(|x| if x > max_inp_x { max_inp_x = x});
-            max_inp_x
-        };
-        let stroke = egui::Stroke{color, width: 2.0};
-        let arrow_offset = egui::Vec2{x: 10.0, y: 0.0};
-
-        for (idx, inp_tip) in input_tips.iter().enumerate(){
-            ui.painter().circle_filled(*inp_tip, 5.0, color);
-
-            let curve_origin = egui::Pos2{x: max_inp_x, y: inp_tip.y};
-            ui.painter().line_segment([*inp_tip, curve_origin], stroke);
-
-            let target = weights_rect.min
-                + weights_rect_offset.mul((idx + 1) as f32)
-                - arrow_offset;
-
-            let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
-            let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
-
-            ui.painter().add(egui::epaint::CubicBezierShape{
-                points: [
-                    curve_origin,
-                    control1,
-                    control2,
-                    target,
-                ],
-                closed: false,
-                fill: egui::Color32::TRANSPARENT,
-                stroke: stroke.into(),
-            });
-            Arrow::new(target, target + arrow_offset).color(color).draw(ui);
-        }
-
-        let weights_rect_offset = egui::Vec2{
-            x: 0.0,
-            y: weights_rect.height() / (output_tails.len() + 1) as f32,
-        };
-        let weights_widget_top_right = egui::Pos2{ x: weights_rect.max.x, y: weights_rect.min.y };
-        for (idx, out_tail) in output_tails.iter().enumerate(){
-            let curve_origin = weights_widget_top_right + weights_rect_offset.mul(idx as f32 + 1.0);
-            ui.painter().circle_filled(curve_origin, 5.0, color);
-
-            let target = *out_tail - arrow_offset;
-
-            let control1 = egui::Pos2{x: curve_origin.x + 20.0, y: curve_origin.y};
-            let control2 = egui::Pos2{x: target.x + -20.0, y: target.y};
-
-            ui.painter().add(egui::epaint::CubicBezierShape{
-                points: [
-                    curve_origin,
-                    control1,
-                    control2,
-                    target,
-                ],
-                closed: false,
-                fill: egui::Color32::TRANSPARENT,
-                stroke: stroke.into(),
-            });
-            Arrow::new(target, *out_tail).color(color).draw(ui);
-        }
+        let stroke = egui::Stroke{color: egui::Color32::GRAY, width: 2.0};
+        draw_input_connections(ui, &input_tips, weights_rect, stroke);
+        draw_output_connections(ui, &output_tails, weights_rect, stroke);
 
         self.action = match std::mem::take(&mut self.action) {
             PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
-                let id = id.with("modal".as_ptr()).with(input_idx).with(preproc_idx);
+                let id = id.with("preproc modal".as_ptr()).with(input_idx).with(preproc_idx);
                 let mut out = PipelineAction::OpenPreproc { input_idx, preproc_idx };
                 modal(id, ui, |ui| {
                     ui.vertical(|ui|{
@@ -363,15 +390,11 @@ impl PipelineWidget{
                 out
             },
             PipelineAction::OpenPostproc { output_idx, postproc_idx } => {
-                let id = id.with("modal".as_ptr()).with(output_idx).with(postproc_idx);
+                let id = id.with("postproc modal".as_ptr()).with(output_idx).with(postproc_idx);
                 let mut out = PipelineAction::OpenPostproc { output_idx, postproc_idx };
                 modal(id, ui, |ui| {
                     ui.vertical(|ui|{
-                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                out = PipelineAction::Nothing;
-                            }
-                        });
+                        modal_header(ui, &mut out);
                         outputs[output_idx].inner.postprocessing_widget.staging[postproc_idx].draw_and_parse(
                             ui, id.with("widget".as_ptr())
                         );
@@ -390,32 +413,49 @@ impl PipelineWidget{
                 out
             }
             PipelineAction::OpenInput { input_idx } => {
-                let id = id.with(input_idx).with("modal".as_ptr());
+                let id = id.with(input_idx).with("input modal".as_ptr());
                 let mut out = PipelineAction::OpenInput { input_idx };
                 modal(id, ui, |ui| {
-                    ui.vertical(|ui|{
-                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                out = PipelineAction::Nothing;
-                            }
-                        });
-                        inputs[input_idx].inner.draw_and_parse(ui, id.with("input widget".as_ptr()));
-                        ui.separator();
-                        ui.horizontal(|ui|{
-                            if ui.button("Remove").clicked(){
-                                inputs.remove(input_idx);
-                                out = PipelineAction::Nothing;
-                            }
-                            if ui.button("Ok").clicked(){
-                                out = PipelineAction::Nothing;
-                            }
-                        });
+                    modal_header(ui, &mut out);
+                    inputs[input_idx].inner.draw_and_parse(ui, id.with("input widget".as_ptr()));
+                    ui.separator();
+                    ui.horizontal(|ui|{
+                        if ui.button("Remove").clicked(){
+                            inputs.remove(input_idx);
+                            out = PipelineAction::Nothing;
+                        }
+                        if ui.button("Ok").clicked(){
+                            out = PipelineAction::Nothing;
+                        }
+                    });
+                });
+                out
+            },
+            PipelineAction::OpenOutput { output_idx: input_idx } => {
+                let id = id.with(input_idx).with("output modal".as_ptr());
+                let mut out = PipelineAction::OpenOutput { output_idx: input_idx };
+                modal(id, ui, |ui| {
+                    modal_header(ui, &mut out);
+                    outputs[input_idx].inner.draw_and_parse(ui, id.with("output widget".as_ptr()));
+                    ui.separator();
+                    ui.horizontal(|ui|{
+                        if ui.button("Remove").clicked(){
+                            outputs.remove(input_idx);
+                            out = PipelineAction::Nothing;
+                        }
+                        if ui.button("Ok").clicked(){
+                            out = PipelineAction::Nothing;
+                        }
                     });
                 });
                 out
             },
             PipelineAction::RemoveInput { input_idx } => {
                 inputs.remove(input_idx);
+                PipelineAction::Nothing
+            },
+            PipelineAction::RemoveOutput{ output_idx: input_idx } => {
+                outputs.remove(input_idx);
                 PipelineAction::Nothing
             },
             PipelineAction::Nothing => PipelineAction::Nothing,
