@@ -305,6 +305,7 @@ impl PipelineWidget{
             let mut output_tails = Vec::<egui::Pos2>::new();
 
             ui.vertical(|ui| {
+                ui.label("Inputs:");
                 let id = id.with("inputs".as_ptr());
                 for (input_idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
@@ -359,6 +360,7 @@ impl PipelineWidget{
             ui.add_space(30.0);
 
             ui.vertical(|ui| {
+                ui.label("Outputs:");
                 let id = id.with("outputs".as_ptr());
                 for (output_idx, cw) in outputs.iter_mut().enumerate(){
                     let output = &mut cw.inner;

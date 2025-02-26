@@ -449,13 +449,6 @@ impl eframe::App for AppState1 {
                 });
                 ui.add_space(10.0);
 
-                self.pipeline_widget.draw(
-                    ui,
-                    egui::Id::from("pipeline"),
-                    &mut self.model_interface_widget.inputs_widget.staging,
-                    &mut self.model_interface_widget.outputs_widget.staging,
-                );
-
                 ui.horizontal_top(|ui| {
                     ui.strong("Cover Images: ").on_hover_text(
                         "Images to be shown to users on the model zoo, preferrably showing what the input \
@@ -580,27 +573,40 @@ impl eframe::App for AppState1 {
                     ui.strong("License: ").on_hover_text("A standard software licence, specifying how this model can be used and for what purposes.");
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 });
+                ui.add_space(20.0);
 
-                self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
+                ui.heading("Model Interface");
+                ui.separator();
+                self.pipeline_widget.draw(
+                    ui,
+                    egui::Id::from("pipeline"),
+                    &mut self.model_interface_widget.inputs_widget.staging,
+                    &mut self.weights_widget,
+                    &mut self.model_interface_widget.outputs_widget.staging,
+                );
+                ui.add_space(20.0);
 
-                ui.horizontal(|ui| {
-                    ui.strong("Model Weights: ").on_hover_text(indoc!("
-                        The serialized weights and biases underlying this model.
+                // self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
 
-                        Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
-                        intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
-                        arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
-                        Further, pytorch state dicts essentially require client applications to either be written in Python or \
-                        to ship the Python interpreter embedded into them.
+                // ui.horizontal(|ui| {
+                //     ui.strong("Model Weights: ").on_hover_text(indoc!("
+                //         The serialized weights and biases underlying this model.
 
-                        You can include mutiple flavors of your model weights, but they all MUST produce the same results"
-                    ));
-                    group_frame(ui, |ui| {
-                        self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
-                    });
+                //         Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
+                //         intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
+                //         arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
+                //         Further, pytorch state dicts essentially require client applications to either be written in Python or \
+                //         to ship the Python interpreter embedded into them.
 
-                });
+                //         You can include mutiple flavors of your model weights, but they all MUST produce the same results"
+                //     ));
+                //     group_frame(ui, |ui| {
+                //         self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
+                //     });
 
+                // });
+
+                ui.separator();
                 ui.horizontal(|ui| {
                     let save_button_clicked = ui.button("Save Model")
                         .on_hover_text("Save this model to a .zip file, ready to be used or uploaded to the Model Zoo")
