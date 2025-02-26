@@ -112,6 +112,7 @@ pub struct KerasHdf5WeightsDescr{
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(derive_more::Display)]
 pub struct OnnxOpsetVersion(u32);
 impl TryFrom<u32> for OnnxOpsetVersion{
     type Error = ModelWeightsParsingError;

@@ -257,8 +257,8 @@ pub struct KerasHdf5WeightsWidgetRawData{
 pub struct WeightsWidgetRawData{
     pub keras_weights_widget: Option<CollapsibleWidgetRawData<KerasHdf5WeightsWidget>>,
     pub torchscript_weights_widget: Option<CollapsibleWidgetRawData<TorchscriptWeightsWidget>>,
-    pub pytorch_state_dict_widget: Option<CollapsibleWidgetRawData<PytorchStateDictWidget>>,
-    pub onnx_eights_widget: Option<CollapsibleWidgetRawData<OnnxWeightsWidget>>,
+    pub pytorch_state_dict_weights_widget: Option<CollapsibleWidgetRawData<PytorchStateDictWidget>>,
+    pub onnx_weights_widget: Option<CollapsibleWidgetRawData<OnnxWeightsWidget>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

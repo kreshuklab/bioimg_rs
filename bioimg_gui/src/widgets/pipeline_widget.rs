@@ -2,15 +2,26 @@ use std::ops::Mul;
 
 use egui::Widget;
 
+use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
+use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
+
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
 use super::posstprocessing_widget::{PostprocessingWidget, PostprocessingWidgetMode, ShowPostprocTypePicker};
 use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
 use super::util::Arrow;
+use super::weights_widget::{KerasHdf5WeightsWidget, TorchscriptWeightsWidget, WeightsWidget};
 use super::StatefulWidget;
 
 
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum WeightsFlavor{
+    Keras,
+    Torchscript,
+    PytorchStateDict,
+    Onnx,
+}
 
 #[derive(Default)]
 pub struct PipelineWidget{
@@ -58,7 +69,12 @@ fn draw_postproc_button(ui: &mut egui::Ui, postproc: &PostprocessingWidget) -> e
     }
 }
 
-fn modal(id: egui::Id, ui: &mut egui::Ui, mut draw_widgets: impl FnMut(&mut egui::Ui)){
+fn modal(
+    id: egui::Id,
+    ui: &mut egui::Ui,
+    mut draw_widgets: impl FnMut(&mut egui::Ui) -> Option<PipelineAction>
+) -> Option<PipelineAction>{
+    let mut out = None;
     egui::Modal::new(id).show(ui.ctx(), |ui| {
         egui::ScrollArea::both()
         // .max_height(ui.ctx().screen_rect().max.y - 80.0)
@@ -68,19 +84,15 @@ fn modal(id: egui::Id, ui: &mut egui::Ui, mut draw_widgets: impl FnMut(&mut egui
         .show(ui, |ui|{
             ui.vertical(|ui|{
                 ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                    draw_widgets(ui)
+                    if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                        out = Some(PipelineAction::Nothing);
+                    }
                 });
+                draw_widgets(ui).map(|val| out.insert(val))
             });
         });
     });
-}
-
-fn modal_header(ui: &mut egui::Ui, out: &mut PipelineAction){
-    ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-        if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-            *out = PipelineAction::Nothing;
-        }
-    });
+    out
 }
 
 fn draw_input_connections(
@@ -191,10 +203,83 @@ where
     frame_resp
 }
 
+fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widget: &mut WeightsWidget) -> egui::Response {
+    ui.vertical(|ui|{
+        egui::Frame::new()
+        .inner_margin(egui::Margin::same(10))
+        .stroke(ui.style().visuals.window_stroke)
+        .corner_radius(10.0)
+        .show(ui, |ui|{
+            ui.heading("Model Weights");
+            let keras_resp = match &weights_widget.keras_weights_widget.0 {
+                None => ui.button("Keras: Empty"),
+                Some(kw) => match kw.inner.state(){
+                    Err(e) => ui.button(egui::RichText::new(format!("Keras: {e}")).color(egui::Color32::RED)),
+                    Ok(state) => ui.button(egui::RichText::new(format!(
+                        "Keras: tensorflow v{} {}",
+                        state.tensorflow_version,
+                        state.weights.source.to_string(),
+                    )))
+                }
+            };
+            if keras_resp.clicked(){
+                *out = PipelineAction::OpenSpewcificWeights { flavor: WeightsFlavor::Keras };
+            }
+
+            let torchscript_resp = match &weights_widget.torchscript_weights_widget.0 {
+                None => ui.button("Torchscript: Empty"),
+                Some(w) => match w.inner.state(){
+                    Err(e) => ui.button(egui::RichText::new(format!("Torchscript: {e}")).color(egui::Color32::RED)),
+                    Ok(state) => ui.button(egui::RichText::new(format!(
+                        "Torchscript: pytorch v{} {}",
+                        state.pytorch_version,
+                        state.weights.source.to_string(),
+                    )))
+                }
+            };
+            if torchscript_resp.clicked(){
+                *out = PipelineAction::OpenSpewcificWeights { flavor: WeightsFlavor::Torchscript};
+            }
+
+            let state_dict_resp = match &weights_widget.pytorch_state_dict_weights_widget.0 {
+                None => ui.button("Pytorch State Dict: Empty"),
+                Some(w) => match w.inner.state(){
+                    Err(e) => ui.button(egui::RichText::new(format!("Pytorch State Dict: {e}")).color(egui::Color32::RED)),
+                    Ok(state) => ui.button(egui::RichText::new(format!(
+                        "Pytorch State Dict: pytorch v{} {}",
+                        state.pytorch_version,
+                        state.weights.source.to_string(),
+                    )))
+                }
+            };
+            if state_dict_resp.clicked(){
+                *out = PipelineAction::OpenSpewcificWeights { flavor: WeightsFlavor::PytorchStateDict};
+            }
+
+            let onnx_dict_resp = match &weights_widget.onnx_weights_widget.0 {
+                None => ui.button("Onnx: Empty"),
+                Some(w) => match w.inner.state(){
+                    Err(e) => ui.button(egui::RichText::new(format!("Onnx: {e}")).color(egui::Color32::RED)),
+                    Ok(state) => ui.button(egui::RichText::new(format!(
+                        "Onnx: opset v{} {}",
+                        state.opset_version,
+                        state.weights.source.to_string(),
+                    )))
+                }
+            };
+            if onnx_dict_resp.clicked(){
+                *out = PipelineAction::OpenSpewcificWeights { flavor: WeightsFlavor::Onnx};
+            }
+        });
+    }).response
+}
+
 #[derive(Default,Clone)]
 enum PipelineAction{
     #[default]
     Nothing,
+    OpenWeights,
+    OpenSpewcificWeights{flavor: WeightsFlavor},
     OpenOutput{output_idx: usize},
     RemoveOutput{output_idx: usize},
     OpenInput{input_idx: usize},
@@ -209,10 +294,9 @@ impl PipelineWidget{
         ui: &mut egui::Ui,
         id: egui::Id,
         inputs: &mut Vec<CollapsibleWidget<InputTensorWidget>>,
+        weights_widget: &mut WeightsWidget,
         outputs: &mut Vec<CollapsibleWidget<OutputTensorWidget>>,
     ){
-
-        let margin_width = 10;
 
         let mut pipeline_action = self.action.clone();
 
@@ -271,29 +355,7 @@ impl PipelineWidget{
 
             ui.add_space(30.0);
 
-            let weights_rect = ui.vertical(|ui|{
-                egui::Frame::new()
-                .inner_margin(egui::Margin::same(margin_width))
-                .fill(egui::Color32::from_rgb(0, 255, 0))
-                .show(ui, |ui|{
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                    ui.label("Weights go ehre xxxxxxxxxxxxxxxxxxxxxx");
-                });
-            }).response.rect;
-
+            let weights_rect = draw_weights_widget(ui, &mut pipeline_action, weights_widget).rect;
             ui.add_space(30.0);
 
             ui.vertical(|ui| {
@@ -357,17 +419,80 @@ impl PipelineWidget{
         draw_input_connections(ui, &input_tips, weights_rect, stroke);
         draw_output_connections(ui, &output_tails, weights_rect, stroke);
 
+        macro_rules! weights_modal {($flavor:ident, $weights_widget:ty) => { paste::paste!{ {
+            use itertools::Itertools;
+            let id = id.with(stringify!([<$flavor _modal>]));
+            modal(id, ui, |ui| {
+                let mut action = None;
+
+                let mut model_header = stringify!([<$flavor:snake>]).split("_").join(" ");
+                model_header += " Weights";
+                ui.heading(model_header);
+                ui.separator();
+
+                weights_widget.[<$flavor:snake _weights_widget>].0 = match std::mem::take(&mut weights_widget.[<$flavor _weights_widget>].0) {
+                    None => {
+                        let mut widget: CollapsibleWidget<$weights_widget> = Default::default();
+                        widget.inner.draw_and_parse(ui, id.with("weights"));
+                        Some(widget)
+                    },
+                    Some(mut widget) => {
+                        widget.inner.draw_and_parse(ui, id.with("weights"));
+                        Some(widget)
+                    },
+                };
+
+                ui.horizontal(|ui|{
+                    if ui.button("Remove").clicked(){
+                        weights_widget.[<$flavor:snake _weights_widget>].0 = None;
+                        action.replace(PipelineAction::Nothing);
+                    }
+                    if ui.button("Ok").clicked(){
+                        action.replace(PipelineAction::Nothing);
+                    }
+                });
+                action
+            }).unwrap_or(PipelineAction::OpenSpewcificWeights { flavor: WeightsFlavor::[<$flavor:camel>] })
+        } }};}
+
         self.action = match std::mem::take(&mut self.action) {
+            PipelineAction::OpenWeights => {
+                let modal_id = egui::Id::from("weights modal");
+                modal(modal_id, ui, |ui|{
+                    let mut action = None;
+                    weights_widget.draw_and_parse(ui, modal_id.with("weights widget".as_ptr()));
+                    ui.separator();
+                    ui.horizontal(|ui|{
+                        // if ui.button("Remove").clicked(){
+                        //     inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
+                        //     out = PipelineAction::Nothing;
+                        // }
+                        if ui.button("Ok").clicked(){
+                            action.replace(PipelineAction::Nothing);
+                        }
+                    });
+                    action
+                }).unwrap_or(PipelineAction::OpenWeights)
+            },
+            PipelineAction::OpenSpewcificWeights { flavor } => match flavor {
+                WeightsFlavor::Keras => {
+                    weights_modal!(keras, KerasHdf5WeightsWidget)
+                },
+                WeightsFlavor::Torchscript => {
+                    weights_modal!(torchscript, TorchscriptWeightsWidget)
+                },
+                WeightsFlavor::PytorchStateDict => {
+                    weights_modal!(pytorch_state_dict, PytorchStateDictWidget)
+                },
+                WeightsFlavor::Onnx => {
+                    weights_modal!(onnx, OnnxWeightsWidget)
+                },
+            }
             PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
                 let id = id.with("preproc modal".as_ptr()).with(input_idx).with(preproc_idx);
-                let mut out = PipelineAction::OpenPreproc { input_idx, preproc_idx };
                 modal(id, ui, |ui| {
+                    let mut action = None;
                     ui.vertical(|ui|{
-                        ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                            if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                                out = PipelineAction::Nothing;
-                            }
-                        });
                         inputs[input_idx].inner.preprocessing_widget[preproc_idx].draw_and_parse(
                             ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr())
                         );
@@ -375,22 +500,21 @@ impl PipelineWidget{
                         ui.horizontal(|ui|{
                             if ui.button("Remove").clicked(){
                                 inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
-                                out = PipelineAction::Nothing;
+                                action.replace(PipelineAction::Nothing);
                             }
                             if ui.button("Ok").clicked(){
-                                out = PipelineAction::Nothing;
+                                action.replace(PipelineAction::Nothing);
                             }
                         });
                     });
-                });
-                out
+                    action
+                }).unwrap_or(PipelineAction::OpenPreproc { input_idx, preproc_idx })
             },
             PipelineAction::OpenPostproc { output_idx, postproc_idx } => {
                 let id = id.with("postproc modal".as_ptr()).with(output_idx).with(postproc_idx);
-                let mut out = PipelineAction::OpenPostproc { output_idx, postproc_idx };
                 modal(id, ui, |ui| {
+                    let mut action = None;
                     ui.vertical(|ui|{
-                        modal_header(ui, &mut out);
                         outputs[output_idx].inner.postprocessing_widgets[postproc_idx].inner.draw_and_parse(
                             ui, ShowPostprocTypePicker::Show, id.with("widget".as_ptr())
                         );
@@ -398,53 +522,51 @@ impl PipelineWidget{
                         ui.horizontal(|ui|{
                             if ui.button("Remove").clicked(){
                                 outputs[output_idx].inner.postprocessing_widgets.remove(postproc_idx);
-                                out = PipelineAction::Nothing;
+                                action.replace(PipelineAction::Nothing);
                             }
                             if ui.button("Ok").clicked(){
-                                out = PipelineAction::Nothing;
+                                action.replace(PipelineAction::Nothing);
                             }
                         });
                     });
-                });
-                out
+                    action
+                }).unwrap_or(PipelineAction::OpenPostproc { output_idx, postproc_idx })
             }
             PipelineAction::OpenInput { input_idx } => {
                 let id = id.with(input_idx).with("input modal".as_ptr());
-                let mut out = PipelineAction::OpenInput { input_idx };
                 modal(id, ui, |ui| {
-                    modal_header(ui, &mut out);
+                    let mut action = None;
                     inputs[input_idx].inner.draw_and_parse(ui, id.with("input widget".as_ptr()));
                     ui.separator();
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
                             inputs.remove(input_idx);
-                            out = PipelineAction::Nothing;
+                            action.replace(PipelineAction::Nothing);
                         }
                         if ui.button("Ok").clicked(){
-                            out = PipelineAction::Nothing;
+                            action.replace(PipelineAction::Nothing);
                         }
                     });
-                });
-                out
+                    action
+                }).unwrap_or(PipelineAction::OpenInput { input_idx })
             },
             PipelineAction::OpenOutput { output_idx: input_idx } => {
                 let id = id.with(input_idx).with("output modal".as_ptr());
-                let mut out = PipelineAction::OpenOutput { output_idx: input_idx };
                 modal(id, ui, |ui| {
-                    modal_header(ui, &mut out);
+                    let mut action = None;
                     outputs[input_idx].inner.draw_and_parse(ui, id.with("output widget".as_ptr()));
                     ui.separator();
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
                             outputs.remove(input_idx);
-                            out = PipelineAction::Nothing;
+                            action.replace(PipelineAction::Nothing);
                         }
                         if ui.button("Ok").clicked(){
-                            out = PipelineAction::Nothing;
+                            action.replace(PipelineAction::Nothing);
                         }
                     });
-                });
-                out
+                    action
+                }).unwrap_or(PipelineAction::OpenOutput { output_idx: input_idx })
             },
             PipelineAction::RemoveInput { input_idx } => {
                 inputs.remove(input_idx);
