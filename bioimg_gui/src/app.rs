@@ -430,7 +430,8 @@ impl eframe::App for AppState1 {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.style_mut().spacing.item_spacing = egui::Vec2 { x: 10.0, y: 10.0 };
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.heading("Model Properties");
+                ui.heading("Model Metadata");
+                ui.separator();
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Name: ").on_hover_text(
@@ -562,18 +563,20 @@ impl eframe::App for AppState1 {
                 });
                 ui.add_space(10.0);
 
-                ui.horizontal_top(|ui| {
-                    ui.strong("Documentation (markdown): ").on_hover_text(
-                        "All model documentation should be written here. This field accepts Markdown syntax"
-                    );
-                    self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
-                });
-
                 ui.horizontal(|ui| {
                     ui.strong("License: ").on_hover_text("A standard software licence, specifying how this model can be used and for what purposes.");
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 });
                 ui.add_space(20.0);
+
+
+                ui.heading("Documentation (markdown): ").on_hover_text(
+                    "All model documentation should be written here. This field accepts Markdown syntax"
+                );
+                ui.separator();
+                self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
+                ui.add_space(20.0);
+
 
                 ui.heading("Model Interface");
                 ui.separator();

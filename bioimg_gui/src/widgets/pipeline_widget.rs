@@ -1,6 +1,7 @@
 use std::ops::Mul;
 
 use egui::Widget;
+use indoc::indoc;
 
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
@@ -210,7 +211,17 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
         .stroke(ui.style().visuals.window_stroke)
         .corner_radius(10.0)
         .show(ui, |ui|{
-            ui.heading("Model Weights");
+            ui.strong("Model Weights: ").on_hover_text(indoc!("
+                The serialized weights and biases underlying this model.
+
+                Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
+                intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
+                arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
+                Further, pytorch state dicts essentially require client applications to either be written in Python or \
+                to ship the Python interpreter embedded into them.
+
+                You can include mutiple flavors of your model weights, but they all MUST produce the same results"
+            ));
             let keras_resp = match &weights_widget.keras_weights_widget.0 {
                 None => ui.button("Keras: Empty"),
                 Some(kw) => match kw.inner.state(){
@@ -305,7 +316,7 @@ impl PipelineWidget{
             let mut output_tails = Vec::<egui::Pos2>::new();
 
             ui.vertical(|ui| {
-                ui.label("Inputs:");
+                ui.strong("Inputs:");
                 let id = id.with("inputs".as_ptr());
                 for (input_idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
@@ -360,7 +371,7 @@ impl PipelineWidget{
             ui.add_space(30.0);
 
             ui.vertical(|ui| {
-                ui.label("Outputs:");
+                ui.strong("Outputs:");
                 let id = id.with("outputs".as_ptr());
                 for (output_idx, cw) in outputs.iter_mut().enumerate(){
                     let output = &mut cw.inner;
