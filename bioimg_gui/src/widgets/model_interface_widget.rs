@@ -60,6 +60,19 @@ impl ModelInterfaceWidget{
     }
 }
 
+pub static MODEL_INPUTS_TIP: &'static str = indoc!("
+    During runtime, the model weights will be fed with input data. This input data must be \
+    in a particular shape, order, and of a particular data type (e.g. int32, float64, etc) \
+    to be accepted by the overall Zoo Model.
+
+    This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights."
+);
+
+pub static MODEL_OUTPUTS_TIP: &'static str = indoc!("
+    The data comming out of the model weights is postprocessed (as specified in the 'postprocessing' \
+    field), and ultimately returned in the shape, order and data type specified in these fields."
+);
+
 impl StatefulWidget for ModelInterfaceWidget {
     type Value<'p> = &'p Result<specrt::ModelInterface<ArcNpyArray>>;
 
@@ -67,20 +80,11 @@ impl StatefulWidget for ModelInterfaceWidget {
         self.update();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                ui.strong("Model Inputs: ").on_hover_text(indoc!("
-                    During runtime, the model weights will be fed with input data. This input data must be \
-                    in a particular shape, order, and of a particular data type (e.g. int32, float64, etc) \
-                    to be accepted by the overall Zoo Model.
-
-                    This data is preprocessed in a pipeline described in the 'preprocessing' fields, and then fed into the model weights."
-                ));
+                ui.strong("Model Inputs: ").on_hover_text(MODEL_INPUTS_TIP);
                 self.inputs_widget.draw_and_parse(ui, id.with("in"));
             });
             ui.horizontal(|ui| {
-                ui.strong("Model Outputs: ").on_hover_text(indoc!("
-                    The data comming out of the model weights is postprocessed (as specified in the 'postprocessing' \
-                    field), and ultimately returned in the shape, order and data type specified in these fields."
-                ));
+                ui.strong("Model Outputs: ").on_hover_text(MODEL_OUTPUTS_TIP);
                 self.outputs_widget.draw_and_parse(ui, id.with("out"));
             });
 

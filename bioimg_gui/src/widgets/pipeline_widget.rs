@@ -3,6 +3,7 @@ use std::ops::Mul;
 use egui::Widget;
 use indoc::indoc;
 
+use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
 
@@ -316,7 +317,7 @@ impl PipelineWidget{
             let mut output_tails = Vec::<egui::Pos2>::new();
 
             ui.vertical(|ui| {
-                ui.strong("Inputs:");
+                ui.strong("Inputs: ").on_hover_text(MODEL_INPUTS_TIP);
                 let id = id.with("inputs".as_ptr());
                 for (input_idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
@@ -371,7 +372,9 @@ impl PipelineWidget{
             ui.add_space(30.0);
 
             ui.vertical(|ui| {
-                ui.add(egui::Label::new(egui::RichText::new("Outputs: ").strong()).wrap_mode(egui::TextWrapMode::Extend));
+                let outputs_text = egui::RichText::new("Outputs: ").strong();
+                ui.add(egui::Label::new(outputs_text).wrap_mode(egui::TextWrapMode::Extend))
+                    .on_hover_text(MODEL_OUTPUTS_TIP);
                 let id = id.with("outputs".as_ptr());
                 for (output_idx, cw) in outputs.iter_mut().enumerate(){
                     let output = &mut cw.inner;
