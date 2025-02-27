@@ -371,7 +371,7 @@ impl PipelineWidget{
             ui.add_space(30.0);
 
             ui.vertical(|ui| {
-                ui.strong("Outputs:");
+                ui.add(egui::Label::new(egui::RichText::new("Outputs: ").strong()).wrap_mode(egui::TextWrapMode::Extend));
                 let id = id.with("outputs".as_ptr());
                 for (output_idx, cw) in outputs.iter_mut().enumerate(){
                     let output = &mut cw.inner;

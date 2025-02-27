@@ -580,13 +580,15 @@ impl eframe::App for AppState1 {
 
                 ui.heading("Model Interface");
                 ui.separator();
-                self.pipeline_widget.draw(
-                    ui,
-                    egui::Id::from("pipeline"),
-                    &mut self.model_interface_widget.inputs_widget.staging,
-                    &mut self.weights_widget,
-                    &mut self.model_interface_widget.outputs_widget.staging,
-                );
+                egui::ScrollArea::horizontal().show(ui, |ui|{
+                    self.pipeline_widget.draw(
+                        ui,
+                        egui::Id::from("pipeline"),
+                        &mut self.model_interface_widget.inputs_widget.staging,
+                        &mut self.weights_widget,
+                        &mut self.model_interface_widget.outputs_widget.staging,
+                    );
+                });
                 ui.add_space(20.0);
 
                 // self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
