@@ -212,7 +212,9 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
         .stroke(ui.style().visuals.window_stroke)
         .corner_radius(10.0)
         .show(ui, |ui|{
-            ui.strong("Model Weights: ").on_hover_text(indoc!("
+            let label = egui::Label::new(egui::RichText::new("Model Weights:").strong())
+                .sense(egui::Sense::click());
+            let label_resp = ui.add(label).on_hover_text(indoc!("
                 The serialized weights and biases underlying this model.
 
                 Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
@@ -223,6 +225,9 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
 
                 You can include mutiple flavors of your model weights, but they all MUST produce the same results"
             ));
+            if label_resp.clicked(){
+                *out = PipelineAction::OpenWeights;
+            }
             let keras_resp = match &weights_widget.keras_weights_widget.0 {
                 None => ui.button("Keras: Empty"),
                 Some(kw) => match kw.inner.state(){
