@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::ops::Mul;
 
 use egui::Widget;
@@ -6,6 +7,7 @@ use indoc::indoc;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
+use crate::widgets::util::clickable_label;
 
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
@@ -212,9 +214,8 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
         .stroke(ui.style().visuals.window_stroke)
         .corner_radius(10.0)
         .show(ui, |ui|{
-            let label = egui::Label::new(egui::RichText::new("Model Weights:").strong())
-                .sense(egui::Sense::click());
-            let label_resp = ui.add(label).on_hover_text(indoc!("
+            let weights_text = egui::RichText::new("Model Weights:").strong();
+            let label_resp = clickable_label(ui, weights_text).on_hover_text(indoc!("
                 The serialized weights and biases underlying this model.
 
                 Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
@@ -340,7 +341,7 @@ impl PipelineWidget{
                             } else {
                                 egui::RichText::new(&inp.id_widget.raw).strong()
                             };
-                            if ui.add(egui::Label::new(input_name).sense(egui::Sense::click())).clicked(){
+                            if clickable_label(ui, input_name).clicked(){
                                 pipeline_action = PipelineAction::OpenInput{input_idx};
                             }
                             ui.spacing_mut().item_spacing.x = 1.0;
@@ -392,12 +393,12 @@ impl PipelineWidget{
                         ui.add_space(10.0);
 
                         ui.horizontal(|ui| {
-                            let input_name = if output.id_widget.raw.len() == 0{
+                            let output_name = if output.id_widget.raw.len() == 0{
                                 egui::RichText::new("Unnamed output").weak()
                             } else {
                                 egui::RichText::new(&output.id_widget.raw).strong()
                             };
-                            if ui.add(egui::Label::new(input_name).sense(egui::Sense::click())).clicked(){
+                            if clickable_label(ui, output_name).clicked(){
                                 pipeline_action = PipelineAction::OpenOutput{output_idx};
                             }
                             ui.spacing_mut().item_spacing.x = 1.0;
