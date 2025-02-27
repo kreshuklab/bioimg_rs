@@ -330,7 +330,7 @@ impl PipelineWidget{
                     let _id = id.with(input_idx);
 
                     let input_resp = slot_frame(ui, |ui|{
-                        if ui.button("🗙").clicked(){
+                        if ui.button("🗙").on_hover_text("Remove this input").clicked(){
                             pipeline_action = PipelineAction::RemoveInput{ input_idx };
                         }
                         ui.add_space(10.0);
@@ -387,7 +387,7 @@ impl PipelineWidget{
                     let _id = id.with(output_idx);
 
                     let output_resp = slot_frame(ui, |ui|{
-                        if ui.button("🗙").clicked(){
+                        if ui.button("🗙").on_hover_text("Remove this output").clicked(){
                             pipeline_action = PipelineAction::RemoveOutput{ output_idx };
                         }
                         ui.add_space(10.0);
