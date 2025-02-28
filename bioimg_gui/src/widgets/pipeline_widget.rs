@@ -1,13 +1,13 @@
-use std::borrow::BorrowMut;
 use std::ops::Mul;
 
 use egui::Widget;
 use indoc::indoc;
 
+use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
-use crate::widgets::util::clickable_label;
+use crate::widgets::util::{clickable_label, VecWidget};
 
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
@@ -297,6 +297,7 @@ enum PipelineAction{
     #[default]
     Nothing,
     OpenWeights,
+    OpenInputs,
     OpenSpewcificWeights{flavor: WeightsFlavor},
     OpenOutput{output_idx: usize},
     RemoveOutput{output_idx: usize},
@@ -323,7 +324,9 @@ impl PipelineWidget{
             let mut output_tails = Vec::<egui::Pos2>::new();
 
             ui.vertical(|ui| {
-                ui.strong("Inputs: ").on_hover_text(MODEL_INPUTS_TIP);
+                if clickable_label(ui, egui::RichText::new("Inputs:").strong()).on_hover_text(MODEL_INPUTS_TIP).clicked(){
+                    pipeline_action = PipelineAction::OpenInputs;
+                }
                 let id = id.with("inputs".as_ptr());
                 for (input_idx, cw) in inputs.iter_mut().enumerate(){
                     let inp = &mut cw.inner;
@@ -478,6 +481,25 @@ impl PipelineWidget{
         } }};}
 
         self.action = match std::mem::take(&mut self.action) {
+            PipelineAction::OpenInputs => {
+                modal(id.with("all inputs".as_ptr()), ui, |ui|{
+                    let vec_widget = VecWidget{
+                        items: inputs,
+                        item_label: "Model Input",
+                        // render_header: None as Option<fn(&mut CollapsibleWidget<InputTensorWidget>, usize, &mut egui::Ui)>,
+                        render_header: Some(|item: &mut CollapsibleWidget<InputTensorWidget>, idx: usize, ui: &mut egui::Ui|{
+                            item.inner.summarize(ui, id.with(idx));
+                        }),
+                        show_reorder_buttons: true,
+                        render_widget: |item, idx, ui|{
+                            item.inner.draw_and_parse(ui, id.with(idx));
+                        },
+                        new_item: Some(Default::default),
+                    };
+                    ui.add(vec_widget);
+                    None
+                }).unwrap_or(PipelineAction::OpenInputs)
+            },
             PipelineAction::OpenWeights => {
                 let modal_id = egui::Id::from("weights modal");
                 modal(modal_id, ui, |ui|{
