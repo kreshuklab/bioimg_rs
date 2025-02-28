@@ -190,7 +190,7 @@ where
             let current_num_items = items.len();
             items.iter_mut().enumerate().for_each(|(widget_idx, widget)| {
                 egui::Frame::new()
-                .fill(egui::Color32::BLACK)
+                .fill(ui.visuals().extreme_bg_color)
                 .inner_margin(3.0)
                 .show(ui, |ui| ui.horizontal(|ui|{
                     ui.add_enabled_ui(current_num_items > 1, |ui| {
