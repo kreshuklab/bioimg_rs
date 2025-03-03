@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, marker::PhantomData};
 use std::sync::Arc;
 use std::io::Cursor;
 use std::error::Error;
@@ -259,7 +259,7 @@ impl StatefulWidget for ImageWidget2{
 
 pub struct SpecialImageWidget<I>{
     image_widget: ImageWidget2,
-    parsed: Result<I>,
+    marker: PhantomData<I>
 }
 
 impl<I> ValueWidget for SpecialImageWidget<I>
@@ -288,7 +288,7 @@ impl<I> Default for SpecialImageWidget<I>{
     fn default() -> Self {
         Self{
             image_widget: Default::default(),
-            parsed: Err(GuiError::new("empty".to_owned())),
+            marker: Default::default(),
         }
     }
 }
@@ -298,20 +298,17 @@ where
     I : TryFrom<Arc<image::DynamicImage>>,
     <I as TryFrom<Arc<image::DynamicImage>>>::Error: Error,
 {
-    type Value<'p> = Result<&'p I> where I: 'p;
+    type Value<'p> = Result<I> where I: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.horizontal(|ui|{
             self.image_widget.draw_and_parse(ui, id.with("img widget".as_ptr()));
-            let Ok(gui_img) = self.image_widget.state() else {
-                return;
-            };
-            //FIXME: is it always ok to do this every frame?
-            self.parsed = I::try_from(gui_img).map_err(|err| GuiError::from(err))
         });
     }
 
-    fn state<'p>(&'p self) -> Result<&'p I>{
-        self.parsed.as_ref().map_err(|err| err.clone())
+    fn state<'p>(&'p self) -> Result<I>{
+        let gui_img = self.image_widget.state()?;
+        //FIXME: is it always ok to do this every frame?
+        I::try_from(gui_img).map_err(|err| GuiError::from(err))
     } 
 }
