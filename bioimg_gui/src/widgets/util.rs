@@ -146,28 +146,18 @@ pub enum WidgetItemPosition{
     Block,
 }
 
-pub struct VecWidget<'a, Itm, RndLbl, RndItm, NewItm>
+pub struct VecWidget<'a, Itm, RndHdr, RndBdy, NewItm>
 where
-    RndLbl: FnMut(&mut Itm, usize, &mut egui::Ui),
-    RndItm: FnMut(&mut Itm, usize, &mut egui::Ui),
+    RndHdr: FnMut(&mut Itm, usize, &mut egui::Ui),
+    RndBdy: FnMut(&mut Itm, usize, &mut egui::Ui),
     NewItm: FnMut() -> Itm,
 {
     pub items: &'a mut Vec<Itm>,
     pub item_label: &'a str,
-    pub render_header: Option<RndLbl>,
     pub show_reorder_buttons: bool,
-    pub render_widget: RndItm,
+    pub item_renderer: VecItemRender<Itm, RndHdr, RndBdy>,
     pub new_item: Option<NewItm>,
 }
-
-
-// impl<'a, W, F, NW> egui::Widget for VecWidget<'a, W, F, NW>{
-//     pub fn from_widgets(widgets: &mut Vec<W>) -> Self
-//     where
-//         W: StatefulWidget
-//     {
-//     }
-// }
 
 
 pub enum VecItemRender<Itm, RndHdr, RndBdy>
@@ -180,7 +170,8 @@ where
     },
     HeaderAndBody{
         render_header: RndHdr,
-        render_item: RndBdy,
+        render_body: RndBdy,
+        collapsible_id_source: Option<egui::Id>,
         marker: PhantomData<Itm>,
     }
 }
@@ -199,50 +190,63 @@ where
             MoveDown(usize),
         }
 
-        let Self{items, item_label, mut render_header, show_reorder_buttons, mut render_widget, mut new_item} = self;
+        let Self{
+            items,
+            item_label,
+            show_reorder_buttons,
+            mut item_renderer,
+            mut new_item,
+        } = self;
+
+        let current_num_items = items.len();
+
+        let draw_controls = |ui: &mut egui::Ui, widget_idx: usize, action: &mut Action|{
+            ui.add_enabled_ui(current_num_items > 1, |ui| {
+                if ui.small_button("❌").clicked(){
+                    *action = Action::Remove(widget_idx);
+                }
+            });
+            ui.spacing_mut().item_spacing.x = 0.0;
+
+            if show_reorder_buttons{
+                ui.add_enabled_ui(widget_idx > 0, |ui| {
+                    if ui.small_button("⬆").clicked(){
+                        *action = Action::MoveUp(widget_idx);
+                    }
+                });
+                ui.spacing_mut().item_spacing.x = 10.0;
+                ui.add_enabled_ui(widget_idx != current_num_items.saturating_sub(1), |ui| {
+                    if ui.small_button("⬇").clicked(){
+                        *action = Action::MoveDown(widget_idx);
+                    }
+                });
+            }
+        };
 
         let mut action: Action = Action::Nothing;
         let resp = ui.vertical(|ui| {
-            let current_num_items = items.len();
             items.iter_mut().enumerate().for_each(|(widget_idx, widget)| {
-                egui::Frame::new()
-                .fill(ui.visuals().extreme_bg_color)
-                .inner_margin(3.0)
-                .show(ui, |ui| ui.horizontal(|ui|{
-                    ui.add_enabled_ui(current_num_items > 1, |ui| {
-                        if ui.small_button("❌").clicked(){
-                            action = Action::Remove(widget_idx);
-                        }
-                    });
-                    ui.spacing_mut().item_spacing.x = 0.0;
-
-                    if show_reorder_buttons{
-                        ui.add_enabled_ui(widget_idx > 0, |ui| {
-                            if ui.small_button("⬆").clicked(){
-                                action = Action::MoveUp(widget_idx);
-                            }
-                        });
-                        ui.spacing_mut().item_spacing.x = 10.0;
-                        ui.add_enabled_ui(widget_idx != current_num_items.saturating_sub(1), |ui| {
-                            if ui.small_button("⬇").clicked(){
-                                action = Action::MoveDown(widget_idx);
-                            }
-                        });
-                    }
-                    match &mut render_header{
-                        None => render_widget(widget, widget_idx, ui),
-                        Some(render_header) => render_header(widget, widget_idx, ui),
-                    }
-                    ui.add_space(ui.available_width());
-                }));
-
-                match &mut render_header{
-                    Some(_) => {
-                        render_widget(widget, widget_idx, ui);
-                        ui.add_space(10.0);
+                match &mut item_renderer{
+                    VecItemRender::HeaderOnly { render_header } => {
+                        render_header(widget, widget_idx, ui);
                     },
-                    None => {
-                        ui.add_space(5.0);
+                    VecItemRender::HeaderAndBody { render_header, render_body, collapsible_id_source, ..} => {
+                        if let Some(id_source) = collapsible_id_source{
+                            let id = ui.make_persistent_id(id_source.with(widget_idx));
+                            egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)
+                                .show_header(ui, |ui| {
+                                    draw_controls(ui, widget_idx, &mut action);
+                                    render_header(widget, widget_idx, ui)
+                                })
+                                .body(|ui| render_body(widget, widget_idx, ui));
+                        } else {
+                            ui.horizontal(|ui|{
+                                draw_controls(ui, widget_idx, &mut action);
+                                render_header(widget, widget_idx, ui);
+                            });
+                            render_body(widget, widget_idx, ui);
+                        }
+                        ui.add_space(10.0);
                     }
                 }
             });

@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -19,7 +20,7 @@ use super::staging_vec::StagingVec;
 use super::input_axis_widget::InputAxisWidget;
 use super::output_axis_widget::OutputAxisWidget;
 use super::test_tensor_widget::{TestTensorWidget, TestTensorWidgetState};
-use super::util::VecWidget;
+use super::util::{VecItemRender, VecWidget};
 use super::{Restore, StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
 
@@ -201,13 +202,17 @@ impl InputTensorWidget{
                 let vec_widget = VecWidget{
                     items: &mut self.preprocessing_widget,
                     item_label: "Preprocessing Step",
-                    render_header: Some(|widget: &mut PreprocessingWidget, idx, ui: &mut egui::Ui|{
-                        widget.draw_preproc_type_picker(ui, id.with("preproc type".as_ptr()).with(idx));
-                    }),
+                    item_renderer: VecItemRender::HeaderAndBody {
+                        render_header: |widget: &mut PreprocessingWidget, idx, ui: &mut egui::Ui|{
+                            widget.draw_preproc_type_picker(ui, id.with("preproc type".as_ptr()).with(idx));
+                        },
+                        render_body: |widget: &mut PreprocessingWidget, index, ui| widget.draw_and_parse(
+                            ui, ShowPreprocTypePicker::Hide, id.with("preprocs".as_ptr()).with(index)
+                        ),
+                        collapsible_id_source: Some(id.with("preproc list")),
+                        marker: PhantomData
+                    },
                     show_reorder_buttons: true,
-                    render_widget: |widget: &mut PreprocessingWidget, index, ui| widget.draw_and_parse(
-                        ui, ShowPreprocTypePicker::Hide, id.with("preprocs".as_ptr()).with(index)
-                    ),
                     new_item: Some(PreprocessingWidget::default),
                 };
                 ui.add(vec_widget);
@@ -401,13 +406,17 @@ impl OutputTensorWidget{
                 let vec_widget = VecWidget{
                     items: &mut self.postprocessing_widgets,
                     item_label: "Postprocessing Step",
-                    render_header: Some(|widget: &mut CollapsibleWidget<PostprocessingWidget>, idx, ui: &mut egui::Ui|{
-                        widget.inner.draw_type_picker(ui, id.with("postproc type".as_ptr()).with(idx));
-                    }),
+                    item_renderer: VecItemRender::HeaderAndBody {
+                        render_header: |widget: &mut CollapsibleWidget<PostprocessingWidget>, idx, ui: &mut egui::Ui|{
+                            widget.inner.draw_type_picker(ui, id.with("postproc type".as_ptr()).with(idx));
+                        },
+                        render_body: |widget: &mut CollapsibleWidget<PostprocessingWidget>, index, ui| widget.inner.draw_and_parse(
+                            ui, ShowPostprocTypePicker::Hide, id.with("postprocs".as_ptr()).with(index)
+                        ),
+                        collapsible_id_source: Some(id.with("posproc list")),
+                        marker: PhantomData,
+                    },
                     show_reorder_buttons: true,
-                    render_widget: |widget: &mut CollapsibleWidget<PostprocessingWidget>, index, ui| widget.inner.draw_and_parse(
-                        ui, ShowPostprocTypePicker::Hide, id.with("postprocs".as_ptr()).with(index)
-                    ),
                     new_item: Some(Default::default),
                 };
                 ui.add(vec_widget);

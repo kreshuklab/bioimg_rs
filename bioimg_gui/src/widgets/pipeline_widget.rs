@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::ops::Mul;
 
 use egui::Widget;
@@ -7,7 +8,7 @@ use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
-use crate::widgets::util::{clickable_label, VecWidget};
+use crate::widgets::util::{clickable_label, VecItemRender, VecWidget};
 
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
@@ -500,13 +501,17 @@ impl PipelineWidget{
                         items: &mut interface_widget.input_widgets,
                         item_label: "Model Input",
                         // render_header: None as Option<fn(&mut CollapsibleWidget<InputTensorWidget>, usize, &mut egui::Ui)>,
-                        render_header: Some(|item: &mut InputTensorWidget, idx: usize, ui: &mut egui::Ui|{
-                            item.summarize(ui, id.with(idx));
-                        }),
-                        show_reorder_buttons: true,
-                        render_widget: |item, idx, ui|{
-                            item.draw(ui, id.with(idx));
+                        item_renderer: VecItemRender::HeaderAndBody {
+                            render_header: |item: &mut InputTensorWidget, idx: usize, ui: &mut egui::Ui|{
+                                item.summarize(ui, id.with(idx));
+                            },
+                            render_body: |item, idx, ui|{
+                                item.draw(ui, id.with(idx));
+                            },
+                            collapsible_id_source: Some(id.with("all inputs")),
+                            marker: PhantomData,
                         },
+                        show_reorder_buttons: true,
                         new_item: Some(Default::default),
                     };
                     ui.add(vec_widget);
