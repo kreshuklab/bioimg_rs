@@ -290,6 +290,13 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
             if onnx_dict_resp.clicked(){
                 *out = PipelineAction::OpenSpewcificWeights { flavor: WeightsFlavor::Onnx};
             }
+
+            if weights_widget.keras_weights_widget.0.is_none() &&
+            weights_widget.torchscript_weights_widget.0.is_none() &&
+            weights_widget.pytorch_state_dict_weights_widget.0.is_none() &&
+            weights_widget.onnx_weights_widget.0.is_none(){
+                show_error(ui, "No weights");
+            }
         });
     }).response
 }
@@ -375,10 +382,8 @@ impl PipelineWidget{
                     interface_widget.input_widgets.push(Default::default());
                     //FIXME: maybe open the editor?
                 }
-                for (idx, input_widget) in interface_widget.input_widgets.iter().enumerate() {
-                    if let Err(err) = input_widget.parse(){
-                        show_error(ui, format!("Input #{}: {err}", idx + 1));
-                    }
+                if interface_widget.input_widgets.len() == 0 {
+                    show_error(ui, "No inputs");
                 }
             });
 
@@ -439,10 +444,8 @@ impl PipelineWidget{
                     interface_widget.output_widgets.push(Default::default());
                     //FIXME: maybe open the editor?
                 }
-                for (idx, output) in interface_widget.output_widgets.iter().enumerate() {
-                    if let Err(err) = output.parse(){
-                        show_error(ui, format!("Output #{}: {err}", idx + 1));
-                    }
+                if interface_widget.output_widgets.len() == 0 {
+                    show_error(ui, "No outputs");
                 }
             });
 

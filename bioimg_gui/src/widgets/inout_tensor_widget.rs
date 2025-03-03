@@ -217,7 +217,6 @@ impl InputTensorWidget{
                 };
                 ui.add(vec_widget);
             });
-            show_if_error(ui, &self.parse());
         });
     }
 }
@@ -421,7 +420,6 @@ impl OutputTensorWidget{
                 };
                 ui.add(vec_widget);
             });
-            show_if_error(ui, &self.parse());
         });
     }
 }
