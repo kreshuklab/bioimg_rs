@@ -525,7 +525,7 @@ impl PipelineWidget{
                 let modal_id = egui::Id::from("weights modal");
                 modal(modal_id, ui, |ui|{
                     let mut action = None;
-                    weights_widget.draw_and_parse(ui, modal_id.with("weights widget".as_ptr()));
+                    weights_widget.draw(ui, modal_id.with("weights widget".as_ptr()));
                     ui.separator();
                     ui.horizontal(|ui|{
                         // if ui.button("Remove").clicked(){

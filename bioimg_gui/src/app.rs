@@ -257,7 +257,7 @@ impl AppState1{
         let license = self.staging_license.state();
         let model_interface = self.model_interface_widget.get_value()
             .map_err(|_| GuiError::new("Check model interface for errors"))?;
-        let weights = self.weights_widget.state()
+        let weights = self.weights_widget.get_value()
             .map_err(|e| GuiError::new_with_rect("Check model weights for errors", e.failed_widget_rect))?
             .as_ref().clone();
 

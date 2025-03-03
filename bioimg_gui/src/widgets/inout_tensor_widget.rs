@@ -12,7 +12,7 @@ use bioimg_spec::rdf::model as modelrdf;
 use bioimg_spec::rdf::model::input_tensor as rdfinput;
 
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
-use super::error_display::{show_error, show_if_error};
+use super::error_display::show_error;
 use super::posstprocessing_widget::{PostprocessingWidget, ShowPostprocTypePicker};
 use super::preprocessing_widget::{PreprocessingWidget, ShowPreprocTypePicker};
 use super::staging_string::StagingString;
