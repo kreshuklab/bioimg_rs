@@ -1,63 +1,18 @@
 use indoc::indoc;
 
-use super::collapsible_widget::CollapsibleWidget;
 use super::{Restore, ValueWidget};
-use super::{
-    error_display::show_if_error,
-    inout_tensor_widget::{InputTensorWidget, OutputTensorWidget},
-    staging_vec::StagingVec,
-    StatefulWidget,
-};
-use bioimg_runtime as specrt;
+use super::
+    inout_tensor_widget::{InputTensorWidget, OutputTensorWidget}
+;
+use bioimg_runtime as rt;
 use bioimg_runtime::npy_array::ArcNpyArray;
 
 use crate::result::{GuiError, Result};
 
-#[derive(Restore)]
+#[derive(Restore, Default)]
 pub struct ModelInterfaceWidget {
-    pub inputs_widget: StagingVec<CollapsibleWidget<InputTensorWidget>>,
-    pub outputs_widget: StagingVec<CollapsibleWidget<OutputTensorWidget>>,
-    #[restore_on_update]
-    pub parsed: Result<specrt::ModelInterface<ArcNpyArray>>,
-}
-
-impl ModelInterfaceWidget{
-    pub fn set_value(&mut self, value: specrt::ModelInterface<ArcNpyArray>){
-        self.inputs_widget.set_value(value.inputs().clone().into_inner());
-        self.outputs_widget.set_value(value.outputs().clone().into_inner());
-    }
-}
-
-impl Default for ModelInterfaceWidget {
-    fn default() -> Self {
-        Self {
-            inputs_widget: StagingVec::default(),
-            outputs_widget: StagingVec::default(),
-            parsed: Err(GuiError::new("emtpy")), //FIXME?
-        }
-    }
-}
-
-impl ModelInterfaceWidget{
-    pub fn update(&mut self){
-        // self.inputs_widget.update();
-        // self.outputs_widget.update();
-        let inputs = match self.inputs_widget.state().into_iter().map(|i| i.clone()).collect::<Result<Vec<_>>>() {
-            Ok(inps) => inps,
-            Err(e) => {
-                self.parsed = Err(GuiError::new_with_rect("Check inputs for errors", e.failed_widget_rect));
-                return;
-            }
-        };
-        let outputs = match self.outputs_widget.state().into_iter().map(|i| i.clone()).collect::<Result<Vec<_>>>() {
-            Ok(outs) => outs,
-            Err(e) => {
-                self.parsed = Err(GuiError::new_with_rect("Check outputs for errors", e.failed_widget_rect));
-                return;
-            }
-        };
-        self.parsed = specrt::ModelInterface::try_build(inputs, outputs).map_err(|err| GuiError::from(err));
-    }
+    pub input_widgets: Vec<InputTensorWidget>,
+    pub output_widgets: Vec<OutputTensorWidget>,
 }
 
 pub static MODEL_INPUTS_TIP: &'static str = indoc!("
@@ -73,26 +28,33 @@ pub static MODEL_OUTPUTS_TIP: &'static str = indoc!("
     field), and ultimately returned in the shape, order and data type specified in these fields."
 );
 
-impl StatefulWidget for ModelInterfaceWidget {
-    type Value<'p> = &'p Result<specrt::ModelInterface<ArcNpyArray>>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.update();
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                ui.strong("Model Inputs: ").on_hover_text(MODEL_INPUTS_TIP);
-                self.inputs_widget.draw_and_parse(ui, id.with("in"));
-            });
-            ui.horizontal(|ui| {
-                ui.strong("Model Outputs: ").on_hover_text(MODEL_OUTPUTS_TIP);
-                self.outputs_widget.draw_and_parse(ui, id.with("out"));
-            });
-
-            show_if_error(ui, &self.parsed);
-        });
+impl ModelInterfaceWidget {
+    pub fn set_value(&mut self, value: rt::ModelInterface<ArcNpyArray>){
+        self.input_widgets = value.inputs().iter()
+            .map(|item| {
+                let mut widget = InputTensorWidget::default();
+                widget.set_value(item.clone());
+                widget
+            })
+            .collect();
+        self.output_widgets = value.outputs().iter()
+            .map(|item| {
+                let mut widget = OutputTensorWidget::default();
+                widget.set_value(item.clone());
+                widget
+            })
+            .collect();
     }
 
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        &self.parsed
+    pub fn get_value<'p>(&'p self) -> Result<rt::ModelInterface<ArcNpyArray>> {
+        let inputs = self.input_widgets.iter()
+            .map(|i| i.parse())
+            .collect::<Result<Vec<_>>>()
+            .map_err(|err| GuiError::new_with_rect("Check inputs for errors", err.failed_widget_rect))?;
+        let outputs = self.output_widgets.iter()
+            .map(|i| i.parse())
+            .collect::<Result<Vec<_>>>()
+            .map_err(|err| GuiError::new_with_rect("Check outputs for errors", err.failed_widget_rect))?;
+        rt::ModelInterface::try_build(inputs, outputs).map_err(|err| GuiError::from(err))
     }
 }

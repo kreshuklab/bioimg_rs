@@ -1,4 +1,4 @@
-use std::{ops::{Deref, Sub}, sync::mpsc::{Receiver, Sender}, time::Instant};
+use std::{marker::PhantomData, ops::{Deref, Sub}, sync::mpsc::{Receiver, Sender}, time::Instant};
 
 use egui::InnerResponse;
 use egui::PopupCloseBehavior::CloseOnClickOutside;
@@ -168,6 +168,22 @@ where
 //     {
 //     }
 // }
+
+
+pub enum VecItemRender<Itm, RndHdr, RndBdy>
+where
+    RndHdr: FnMut(&mut Itm, usize, &mut egui::Ui),
+    RndBdy: FnMut(&mut Itm, usize, &mut egui::Ui),
+{
+    HeaderOnly{
+        render_header: RndHdr,
+    },
+    HeaderAndBody{
+        render_header: RndHdr,
+        render_item: RndBdy,
+        marker: PhantomData<Itm>,
+    }
+}
 
 impl<'a, Itm, RndLbl, RndItm, NewItm> egui::Widget for VecWidget<'a, Itm, RndLbl, RndItm, NewItm>
 where

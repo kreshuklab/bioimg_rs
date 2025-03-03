@@ -8,7 +8,6 @@ use crate::widgets::output_axis_widget::OutputAxisWidget;
 use crate::widgets::posstprocessing_widget::PostprocessingWidget;
 use crate::widgets::input_axis_widget::InputAxisWidget;
 
-use crate::widgets::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
 use crate::widgets::file_source_widget::FileSourceWidget;
 use crate::widgets::cite_widget::CiteEntryWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
@@ -477,8 +476,8 @@ pub struct OutputTensorWidgetRawData {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ModelInterfaceWidgetRawData {
-    pub inputs_widget: Vec<CollapsibleWidgetRawData<InputTensorWidget>>,
-    pub outputs_widget: Vec<CollapsibleWidgetRawData<OutputTensorWidget>>,
+    pub input_widgets: Vec<InputTensorWidgetRawData>,
+    pub output_widgets: Vec<OutputTensorWidgetRawData>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, strum::VariantNames)]

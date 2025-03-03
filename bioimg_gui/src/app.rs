@@ -255,9 +255,7 @@ impl AppState1{
             .cloned();
         let documentation = self.staging_documentation.state().to_owned();
         let license = self.staging_license.state();
-        let model_interface = self.model_interface_widget.state()
-            .as_ref()
-            .map(|interf| interf.clone())
+        let model_interface = self.model_interface_widget.get_value()
             .map_err(|_| GuiError::new("Check model interface for errors"))?;
         let weights = self.weights_widget.state()
             .map_err(|e| GuiError::new_with_rect("Check model weights for errors", e.failed_widget_rect))?
@@ -584,9 +582,8 @@ impl eframe::App for AppState1 {
                     self.pipeline_widget.draw(
                         ui,
                         egui::Id::from("pipeline"),
-                        &mut self.model_interface_widget.inputs_widget.staging,
+                        &mut self.model_interface_widget,
                         &mut self.weights_widget,
-                        &mut self.model_interface_widget.outputs_widget.staging,
                     );
                 });
                 ui.add_space(20.0);

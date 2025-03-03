@@ -5,7 +5,6 @@ use indoc::indoc;
 
 use bioimg_runtime::model_interface::{InputSlot, OutputSlot};
 use bioimg_runtime::npy_array::ArcNpyArray;
-use bioimg_runtime::NpyArray;
 
 use crate::result::{GuiError, Result};
 use bioimg_spec::rdf::model as modelrdf;
@@ -24,7 +23,7 @@ use super::util::VecWidget;
 use super::{Restore, StatefulWidget, ValueWidget};
 use crate::widgets::staging_vec::ItemWidgetConf;
 
-#[derive(Restore)]
+#[derive(Restore, Default)]
 pub struct InputTensorWidget {
     #[restore_default]
     adjust_num_axes_on_file_selected: bool,
@@ -35,26 +34,8 @@ pub struct InputTensorWidget {
     pub axes_widget: StagingVec<CollapsibleWidget<InputAxisWidget>>,
     pub test_tensor_widget: TestTensorWidget,
     pub preprocessing_widget: Vec<PreprocessingWidget>,
-
-    #[restore_on_update]
-    pub parsed: Result<InputSlot<Arc<NpyArray>>>,
 }
 
-
-impl Default for InputTensorWidget{
-    fn default() -> Self {
-        Self{
-            adjust_num_axes_on_file_selected: false,
-            id_widget: Default::default(),
-            is_optional: Default::default(),
-            description_widget: Default::default(),
-            axes_widget: Default::default(),
-            test_tensor_widget: Default::default(),
-            preprocessing_widget: Default::default(),
-            parsed: Err(GuiError::new("empty".to_owned())),
-        }
-    }
-}
 
 impl ValueWidget for InputTensorWidget{
     type Value<'v> = InputSlot<ArcNpyArray>;
@@ -84,8 +65,8 @@ impl ItemWidgetConf for CollapsibleWidget<InputTensorWidget>{
 
 impl SummarizableWidget for InputTensorWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
-        self.update();
-        match self.state(){
+        self.autofill_from_test_tensor();
+        match self.parse(){
             Ok(slot) => {
                 ui.label(slot.to_string());
             },
@@ -97,75 +78,68 @@ impl SummarizableWidget for InputTensorWidget{
 }
 
 impl InputTensorWidget{
-    pub fn update(&mut self){
-        'auto_adjust_axes: {
-            let state_guard = self.test_tensor_widget.state();
-            let state: &TestTensorWidgetState = state_guard.deref();
-            let TestTensorWidgetState::Loaded { path, data: gui_npy_arr } = state else {
-                self.adjust_num_axes_on_file_selected = true;
-                break 'auto_adjust_axes;
-            };
-            if !self.adjust_num_axes_on_file_selected{
-                break 'auto_adjust_axes;
-            }
-            self.adjust_num_axes_on_file_selected = false;
-            if self.id_widget.raw.is_empty() {
-                if let Some(path) = path{
-                    self.id_widget.raw = path
-                        .file_stem()
-                        .map(|osstr| String::from(osstr.to_string_lossy()))
-                        .unwrap_or(String::default());
-                }
-            }
-            let sample_shape = gui_npy_arr.shape();
-            let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
-
-            while let Some(extent) = extents.next() {
-                let mut axis_widget = InputAxisWidget::default();
-                axis_widget.axis_type_widget.value = if *extent == 1{
-                    modelrdf::AxisType::Channel
-                } else {
-                    modelrdf::AxisType::Space
-                };
-                axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
-                self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
+    fn autofill_from_test_tensor(&mut self){
+        let state_guard = self.test_tensor_widget.state();
+        let state: &TestTensorWidgetState = state_guard.deref();
+        let TestTensorWidgetState::Loaded { path, data: gui_npy_arr } = state else {
+            self.adjust_num_axes_on_file_selected = true;
+            return;
+        };
+        if !self.adjust_num_axes_on_file_selected{
+            return;
+        }
+        self.adjust_num_axes_on_file_selected = false;
+        if self.id_widget.raw.is_empty() {
+            if let Some(path) = path{
+                self.id_widget.raw = path
+                    .file_stem()
+                    .map(|osstr| String::from(osstr.to_string_lossy()))
+                    .unwrap_or(String::default());
             }
         }
-        self.parsed = || -> Result<InputSlot<ArcNpyArray>> {
-            let state_guard = self.test_tensor_widget.state();
-            let state: &TestTensorWidgetState = state_guard.deref(); 
-            let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
-                return Err(GuiError::new("Test tensor is missing"));
+        let sample_shape = gui_npy_arr.shape();
+        let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
+
+        while let Some(extent) = extents.next() {
+            let mut axis_widget = InputAxisWidget::default();
+            axis_widget.axis_type_widget.value = if *extent == 1{
+                modelrdf::AxisType::Channel
+            } else {
+                modelrdf::AxisType::Space
             };
-            let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
-            let sample_shape = gui_npy_array.shape();
-            if sample_shape.len() != axes.len(){
-                return Err(GuiError::new(format!(
-                    "Example tensor has {} dimensions but there are {} axes defined", sample_shape.len(), axes.len()
-                )))
-            }
-            let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
-            let meta_msg = rdfinput::InputTensorMetadataMsg{
-                id: self.id_widget.state()?.clone(),
-                optional: self.is_optional,
-                preprocessing: self.preprocessing_widget.iter()
-                    .map(|w| w.state())
-                    .collect::<Result<_>>()?,
-                description: self.description_widget.state()?.clone(),
-                axes: input_axis_group,
-            };
-            Ok(
-                InputSlot{ tensor_meta: meta_msg.try_into()?, test_tensor: Arc::clone(gui_npy_array) }
-            )
-        }();
+            axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
+            self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
+        }
     }
-}
-
-impl StatefulWidget for InputTensorWidget {
-    type Value<'p> = &'p Result<InputSlot<ArcNpyArray>>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.update();
+    pub fn parse(&self) -> Result<InputSlot<ArcNpyArray>>{
+        let state_guard = self.test_tensor_widget.state();
+        let state: &TestTensorWidgetState = state_guard.deref(); 
+        let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
+            return Err(GuiError::new("Test tensor is missing"));
+        };
+        let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+        let sample_shape = gui_npy_array.shape();
+        if sample_shape.len() != axes.len(){
+            return Err(GuiError::new(format!(
+                "Example tensor has {} dimensions but there are {} axes defined", sample_shape.len(), axes.len()
+            )))
+        }
+        let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?;
+        let meta_msg = rdfinput::InputTensorMetadataMsg{
+            id: self.id_widget.state()?.clone(),
+            optional: self.is_optional,
+            preprocessing: self.preprocessing_widget.iter()
+                .map(|w| w.state())
+                .collect::<Result<_>>()?,
+            description: self.description_widget.state()?.clone(),
+            axes: input_axis_group,
+        };
+        return Ok(
+            InputSlot{ tensor_meta: meta_msg.try_into()?, test_tensor: Arc::clone(gui_npy_array) }
+        );
+    }
+    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id) {
+        self.autofill_from_test_tensor();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.strong("Test Sample Input: ").on_hover_text(indoc!("
@@ -238,12 +212,8 @@ impl StatefulWidget for InputTensorWidget {
                 };
                 ui.add(vec_widget);
             });
-            show_if_error(ui, &self.parsed);
+            show_if_error(ui, &self.parse());
         });
-    }
-
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        &self.parsed
     }
 }
 
@@ -257,11 +227,7 @@ pub struct OutputTensorWidget {
     pub axes_widget: StagingVec<CollapsibleWidget<OutputAxisWidget>>,
     pub test_tensor_widget: TestTensorWidget,
     pub postprocessing_widgets: Vec<CollapsibleWidget<PostprocessingWidget>>,
-
-    #[restore_on_update]
-    pub parsed: Result<OutputSlot<Arc<NpyArray>>>,
 }
-
 
 impl Default for OutputTensorWidget{
     fn default() -> Self {
@@ -272,7 +238,6 @@ impl Default for OutputTensorWidget{
             axes_widget: Default::default(),
             test_tensor_widget: Default::default(),
             postprocessing_widgets: Default::default(),
-            parsed: Err(GuiError::new("empty".to_owned()))
         }
     }
 }
@@ -304,8 +269,8 @@ impl ItemWidgetConf for CollapsibleWidget<OutputTensorWidget>{
 
 impl SummarizableWidget for OutputTensorWidget{
     fn summarize(&mut self, ui: &mut egui::Ui, _id: egui::Id) {
-        self.update();
-        match self.state(){
+        self.autofill_from_test_tensor();
+        match self.parse(){
             Ok(slot) => {
                 ui.label(slot.to_string());
             },
@@ -317,74 +282,67 @@ impl SummarizableWidget for OutputTensorWidget{
 }
 
 impl OutputTensorWidget{
-    pub fn update(&mut self){
-        'auto_adjust_axes: {
-            let state_guard = self.test_tensor_widget.state();
-            let state: &TestTensorWidgetState = state_guard.deref();
-            let TestTensorWidgetState::Loaded { path, data: gui_npy_arr } = state else {
-                self.adjust_num_axes_on_file_selected = true;
-                break 'auto_adjust_axes;
-            };
-            if !self.adjust_num_axes_on_file_selected{
-                break 'auto_adjust_axes;
-            }
-            self.adjust_num_axes_on_file_selected = false;
-            if self.id_widget.raw.is_empty() {
-                if let Some(path) = path{
-                    self.id_widget.raw = path
-                        .file_stem()
-                        .map(|osstr| String::from(osstr.to_string_lossy()))
-                        .unwrap_or(String::default());
-                }
-            }
-            let sample_shape = gui_npy_arr.shape();
-            let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
-
-            while let Some(extent) = extents.next() {
-                let mut axis_widget = OutputAxisWidget::default();
-                axis_widget.axis_type_widget.value = if *extent == 1{
-                    modelrdf::AxisType::Channel
-                } else {
-                    modelrdf::AxisType::Space
-                };
-                axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
-                self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
+    fn autofill_from_test_tensor(&mut self){
+        let state_guard = self.test_tensor_widget.state();
+        let state: &TestTensorWidgetState = state_guard.deref();
+        let TestTensorWidgetState::Loaded { path, data: gui_npy_arr } = state else {
+            self.adjust_num_axes_on_file_selected = true;
+            return;
+        };
+        if !self.adjust_num_axes_on_file_selected{
+            return;
+        }
+        self.adjust_num_axes_on_file_selected = false;
+        if self.id_widget.raw.is_empty() {
+            if let Some(path) = path{
+                self.id_widget.raw = path
+                    .file_stem()
+                    .map(|osstr| String::from(osstr.to_string_lossy()))
+                    .unwrap_or(String::default());
             }
         }
-        self.parsed = || -> Result<OutputSlot<ArcNpyArray>> {
-            let state_guard = self.test_tensor_widget.state();
-            let state: &TestTensorWidgetState = state_guard.deref();
-            let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
-                return Err(GuiError::new("Test tensor is missing"));
+        let sample_shape = gui_npy_arr.shape();
+        let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
+
+        while let Some(extent) = extents.next() {
+            let mut axis_widget = OutputAxisWidget::default();
+            axis_widget.axis_type_widget.value = if *extent == 1{
+                modelrdf::AxisType::Channel
+            } else {
+                modelrdf::AxisType::Space
             };
-            let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
-            let sample_shape = gui_npy_array.shape();
-            if sample_shape.len() != axes.len(){
-                return Err(GuiError::new(format!(
-                    "Example tensor has {} dimensions but there are {} axes defined", sample_shape.len(), axes.len()
-                )))
-            }
-            let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
-            let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
-                id: self.id_widget.state()?.clone(),
-                postprocessing: self.postprocessing_widgets.iter()
-                    .map(|w| w.inner.state())
-                    .collect::<Result<_>>()?,
-                description: self.description_widget.state()?.clone(),
-                axes: axis_group,
-            };
-            Ok(
-                OutputSlot{ tensor_meta: meta_msg.try_into()?, test_tensor: Arc::clone(gui_npy_array) }
-            )
-        }();
+            axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
+            self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
+        }
     }
-}
 
-impl StatefulWidget for OutputTensorWidget {
-    type Value<'p> = &'p Result<OutputSlot<ArcNpyArray>>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id) {
-        self.update();
+    pub fn parse(&self) -> Result<OutputSlot<ArcNpyArray>> {
+        let state_guard = self.test_tensor_widget.state();
+        let state: &TestTensorWidgetState = state_guard.deref();
+        let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
+            return Err(GuiError::new("Test tensor is missing"));
+        };
+        let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+        let sample_shape = gui_npy_array.shape();
+        if sample_shape.len() != axes.len(){
+            return Err(GuiError::new(format!(
+                "Example tensor has {} dimensions but there are {} axes defined", sample_shape.len(), axes.len()
+            )))
+        }
+        let axis_group = modelrdf::OutputAxisGroup::try_from(axes)?; //FIXME: parse in draw_and_parse?
+        let meta_msg = modelrdf::output_tensor::OutputTensorMetadataMsg{
+            id: self.id_widget.state()?.clone(),
+            postprocessing: self.postprocessing_widgets.iter()
+                .map(|w| w.inner.state())
+                .collect::<Result<_>>()?,
+            description: self.description_widget.state()?.clone(),
+            axes: axis_group,
+        };
+        Ok(
+            OutputSlot{ tensor_meta: meta_msg.try_into()?, test_tensor: Arc::clone(gui_npy_array) }
+        )
+    }
+    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id) {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.strong("Expected Test Output: ").on_hover_text(indoc!("
@@ -454,11 +412,7 @@ impl StatefulWidget for OutputTensorWidget {
                 };
                 ui.add(vec_widget);
             });
-            show_if_error(ui, &self.parsed);
+            show_if_error(ui, &self.parse());
         });
-    }
-
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        &self.parsed
     }
 }

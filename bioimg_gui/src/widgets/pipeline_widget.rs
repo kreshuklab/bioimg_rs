@@ -11,7 +11,8 @@ use crate::widgets::util::{clickable_label, VecWidget};
 
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
-use super::inout_tensor_widget::{InputTensorWidget, OutputTensorWidget};
+use super::inout_tensor_widget::InputTensorWidget;
+use super::model_interface_widget::ModelInterfaceWidget;
 use super::posstprocessing_widget::{PostprocessingWidget, PostprocessingWidgetMode, ShowPostprocTypePicker};
 use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
 use super::util::Arrow;
@@ -312,11 +313,9 @@ impl PipelineWidget{
         &mut self,
         ui: &mut egui::Ui,
         id: egui::Id,
-        inputs: &mut Vec<CollapsibleWidget<InputTensorWidget>>,
+        interface_widget: &mut ModelInterfaceWidget,
         weights_widget: &mut WeightsWidget,
-        outputs: &mut Vec<CollapsibleWidget<OutputTensorWidget>>,
     ){
-
         let mut pipeline_action = self.action.clone();
 
         let (input_tips, weights_rect, output_tails) = ui.horizontal(|ui|{
@@ -328,8 +327,7 @@ impl PipelineWidget{
                     pipeline_action = PipelineAction::OpenInputs;
                 }
                 let id = id.with("inputs".as_ptr());
-                for (input_idx, cw) in inputs.iter_mut().enumerate(){
-                    let inp = &mut cw.inner;
+                for (input_idx, inp) in interface_widget.input_widgets.iter_mut().enumerate(){
                     let _id = id.with(input_idx);
 
                     let input_resp = slot_frame(ui, |ui|{
@@ -339,11 +337,14 @@ impl PipelineWidget{
                         ui.add_space(10.0);
 
                         ui.horizontal(|ui| {
-                            let input_name = if inp.id_widget.raw.len() == 0{
+                            let mut input_name = if inp.id_widget.raw.len() == 0{
                                 egui::RichText::new("Unnamed input").weak()
                             } else {
                                 egui::RichText::new(&inp.id_widget.raw).strong()
                             };
+                            if inp.parse().is_err(){
+                                input_name = input_name.color(egui::Color32::RED);
+                            }
                             if clickable_label(ui, input_name).clicked(){
                                 pipeline_action = PipelineAction::OpenInput{input_idx};
                             }
@@ -370,8 +371,13 @@ impl PipelineWidget{
                     });
                 }
                 if ui.button("✚ Add Model Input").clicked(){
-                    inputs.push(Default::default());
+                    interface_widget.input_widgets.push(Default::default());
                     //FIXME: maybe open the editor?
+                }
+                for (idx, input_widget) in interface_widget.input_widgets.iter().enumerate() {
+                    if let Err(err) = input_widget.parse(){
+                        show_error(ui, format!("Input #{}: {err}", idx + 1));
+                    }
                 }
             });
 
@@ -385,8 +391,7 @@ impl PipelineWidget{
                 ui.add(egui::Label::new(outputs_text).wrap_mode(egui::TextWrapMode::Extend))
                     .on_hover_text(MODEL_OUTPUTS_TIP);
                 let id = id.with("outputs".as_ptr());
-                for (output_idx, cw) in outputs.iter_mut().enumerate(){
-                    let output = &mut cw.inner;
+                for (output_idx, output) in interface_widget.output_widgets.iter_mut().enumerate(){
                     let _id = id.with(output_idx);
 
                     let output_resp = slot_frame(ui, |ui|{
@@ -396,11 +401,14 @@ impl PipelineWidget{
                         ui.add_space(10.0);
 
                         ui.horizontal(|ui| {
-                            let output_name = if output.id_widget.raw.len() == 0{
+                            let mut output_name = if output.id_widget.raw.len() == 0{
                                 egui::RichText::new("Unnamed output").weak()
                             } else {
                                 egui::RichText::new(&output.id_widget.raw).strong()
                             };
+                            if output.parse().is_err(){
+                                output_name = output_name.color(egui::Color32::RED);
+                            }
                             if clickable_label(ui, output_name).clicked(){
                                 pipeline_action = PipelineAction::OpenOutput{output_idx};
                             }
@@ -427,8 +435,13 @@ impl PipelineWidget{
                     });
                 }
                 if ui.button("✚ Add Model Output").clicked(){
-                    outputs.push(Default::default());
+                    interface_widget.output_widgets.push(Default::default());
                     //FIXME: maybe open the editor?
+                }
+                for (idx, output) in interface_widget.output_widgets.iter().enumerate() {
+                    if let Err(err) = output.parse(){
+                        show_error(ui, format!("Output #{}: {err}", idx + 1));
+                    }
                 }
             });
 
@@ -484,15 +497,15 @@ impl PipelineWidget{
             PipelineAction::OpenInputs => {
                 modal(id.with("all inputs".as_ptr()), ui, |ui|{
                     let vec_widget = VecWidget{
-                        items: inputs,
+                        items: &mut interface_widget.input_widgets,
                         item_label: "Model Input",
                         // render_header: None as Option<fn(&mut CollapsibleWidget<InputTensorWidget>, usize, &mut egui::Ui)>,
-                        render_header: Some(|item: &mut CollapsibleWidget<InputTensorWidget>, idx: usize, ui: &mut egui::Ui|{
-                            item.inner.summarize(ui, id.with(idx));
+                        render_header: Some(|item: &mut InputTensorWidget, idx: usize, ui: &mut egui::Ui|{
+                            item.summarize(ui, id.with(idx));
                         }),
                         show_reorder_buttons: true,
                         render_widget: |item, idx, ui|{
-                            item.inner.draw_and_parse(ui, id.with(idx));
+                            item.draw(ui, id.with(idx));
                         },
                         new_item: Some(Default::default),
                     };
@@ -537,13 +550,13 @@ impl PipelineWidget{
                 modal(id, ui, |ui| {
                     let mut action = None;
                     ui.vertical(|ui|{
-                        inputs[input_idx].inner.preprocessing_widget[preproc_idx].draw_and_parse(
+                        interface_widget.input_widgets[input_idx].preprocessing_widget[preproc_idx].draw_and_parse(
                             ui, ShowPreprocTypePicker::Show, id.with("widget".as_ptr())
                         );
                         ui.separator();
                         ui.horizontal(|ui|{
                             if ui.button("Remove").clicked(){
-                                inputs[input_idx].inner.preprocessing_widget.remove(preproc_idx);
+                                interface_widget.input_widgets[input_idx].preprocessing_widget.remove(preproc_idx);
                                 action.replace(PipelineAction::Nothing);
                             }
                             if ui.button("Ok").clicked(){
@@ -559,13 +572,13 @@ impl PipelineWidget{
                 modal(id, ui, |ui| {
                     let mut action = None;
                     ui.vertical(|ui|{
-                        outputs[output_idx].inner.postprocessing_widgets[postproc_idx].inner.draw_and_parse(
+                        interface_widget.output_widgets[output_idx].postprocessing_widgets[postproc_idx].inner.draw_and_parse(
                             ui, ShowPostprocTypePicker::Show, id.with("widget".as_ptr())
                         );
                         ui.separator();
                         ui.horizontal(|ui|{
                             if ui.button("Remove").clicked(){
-                                outputs[output_idx].inner.postprocessing_widgets.remove(postproc_idx);
+                                interface_widget.output_widgets[output_idx].postprocessing_widgets.remove(postproc_idx);
                                 action.replace(PipelineAction::Nothing);
                             }
                             if ui.button("Ok").clicked(){
@@ -580,11 +593,11 @@ impl PipelineWidget{
                 let id = id.with(input_idx).with("input modal".as_ptr());
                 modal(id, ui, |ui| {
                     let mut action = None;
-                    inputs[input_idx].inner.draw_and_parse(ui, id.with("input widget".as_ptr()));
+                    interface_widget.input_widgets[input_idx].draw(ui, id.with("input widget".as_ptr()));
                     ui.separator();
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
-                            inputs.remove(input_idx);
+                            interface_widget.input_widgets.remove(input_idx);
                             action.replace(PipelineAction::Nothing);
                         }
                         if ui.button("Ok").clicked(){
@@ -598,11 +611,11 @@ impl PipelineWidget{
                 let id = id.with(input_idx).with("output modal".as_ptr());
                 modal(id, ui, |ui| {
                     let mut action = None;
-                    outputs[input_idx].inner.draw_and_parse(ui, id.with("output widget".as_ptr()));
+                    interface_widget.output_widgets[input_idx].draw(ui, id.with("output widget".as_ptr()));
                     ui.separator();
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
-                            outputs.remove(input_idx);
+                            interface_widget.output_widgets.remove(input_idx);
                             action.replace(PipelineAction::Nothing);
                         }
                         if ui.button("Ok").clicked(){
@@ -613,11 +626,11 @@ impl PipelineWidget{
                 }).unwrap_or(PipelineAction::OpenOutput { output_idx: input_idx })
             },
             PipelineAction::RemoveInput { input_idx } => {
-                inputs.remove(input_idx);
+                interface_widget.input_widgets.remove(input_idx);
                 PipelineAction::Nothing
             },
             PipelineAction::RemoveOutput{ output_idx: input_idx } => {
-                outputs.remove(input_idx);
+                interface_widget.output_widgets.remove(input_idx);
                 PipelineAction::Nothing
             },
             PipelineAction::Nothing => PipelineAction::Nothing,
