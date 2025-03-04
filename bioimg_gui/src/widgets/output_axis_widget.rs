@@ -252,6 +252,18 @@ pub struct OutputAxisWidget {
     pub time_axis_widget: OutputTimeAxisWidget,
 }
 
+impl OutputAxisWidget{
+    pub fn raw_axis_id(&self) -> &str{
+        match self.axis_type_widget.value{
+            AxisType::Space => &self.space_axis_widget.id_widget.raw,
+            AxisType::Time => &self.time_axis_widget.id_widget.raw,
+            AxisType::Batch => "batch",
+            AxisType::Channel => "channel",
+            AxisType::Index => "index",
+        }
+    }
+}
+
 impl ItemWidgetConf for OutputAxisWidget{
     const ITEM_NAME: &'static str = "Output Axis";
 }

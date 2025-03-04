@@ -4,7 +4,6 @@ use bioimg_spec::rdf::model::{self as modelrdf, AxisType};
 use crate::widgets::author_widget::AuthorWidget;
 use crate::widgets::maintainer_widget::MaintainerWidget;
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
-use crate::widgets::output_axis_widget::OutputAxisWidget;
 use crate::widgets::posstprocessing_widget::PostprocessingWidget;
 
 use crate::widgets::file_source_widget::FileSourceWidget;
@@ -468,7 +467,7 @@ pub struct PostprocessingWidgetRawData{
 pub struct OutputTensorWidgetRawData {
     pub id_widget: String,
     pub description_widget: String,
-    pub axes_widget: Vec<CollapsibleWidgetRawData<OutputAxisWidget>>,
+    pub axis_widgets: Vec<OutputAxisWidgetRawData>,
     pub test_tensor_widget: TestTensorWidgetRawData,
     pub postprocessing_widgets: Vec<CollapsibleWidgetRawData<PostprocessingWidget>>,
 }
