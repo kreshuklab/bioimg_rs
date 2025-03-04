@@ -6,7 +6,6 @@ use crate::widgets::maintainer_widget::MaintainerWidget;
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::output_axis_widget::OutputAxisWidget;
 use crate::widgets::posstprocessing_widget::PostprocessingWidget;
-use crate::widgets::input_axis_widget::InputAxisWidget;
 
 use crate::widgets::file_source_widget::FileSourceWidget;
 use crate::widgets::cite_widget::CiteEntryWidget;
@@ -265,7 +264,7 @@ pub struct InputTensorWidgetRawData {
     pub id_widget: String,
     pub is_optional: bool,
     pub description_widget: String,
-    pub axes_widget: Vec<CollapsibleWidgetRawData<InputAxisWidget>>,
+    pub axes_widget: Vec<InputAxisWidgetRawData>,
     pub test_tensor_widget: TestTensorWidgetRawData,
     pub preprocessing_widget: Vec<PreprocessingWidgetRawData>,
 }

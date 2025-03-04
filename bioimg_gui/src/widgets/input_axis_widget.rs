@@ -146,6 +146,15 @@ impl InputAxisWidget{
         }
         out
     }
+    pub fn raw_axis_id(&self) -> &str{
+        match self.axis_type_widget.value{
+            AxisType::Space => &self.space_axis_widget.id_widget.raw,
+            AxisType::Time => &self.time_axis_widget.id_widget.raw,
+            AxisType::Batch => "batch",
+            AxisType::Channel => "channel",
+            AxisType::Index => "index",
+        }
+    }
 }
 
 impl ValueWidget for InputAxisWidget{

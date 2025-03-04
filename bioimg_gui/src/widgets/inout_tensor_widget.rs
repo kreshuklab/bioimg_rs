@@ -32,7 +32,7 @@ pub struct InputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub is_optional: bool,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
-    pub axes_widget: StagingVec<CollapsibleWidget<InputAxisWidget>>,
+    pub axes_widget: Vec<InputAxisWidget>,
     pub test_tensor_widget: TestTensorWidget,
     pub preprocessing_widget: Vec<PreprocessingWidget>,
 }
@@ -41,7 +41,13 @@ pub struct InputTensorWidget {
 impl ValueWidget for InputTensorWidget{
     type Value<'v> = InputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.axes_widget.set_value(value.tensor_meta.axes().to_vec()); //FIXME
+        self.axes_widget = value.tensor_meta.axes().iter()
+            .map(|descr|{
+                let mut w = InputAxisWidget::default();
+                w.set_value(descr.clone());
+                w
+            })
+            .collect();
         self.preprocessing_widget = value.tensor_meta.preprocessing().iter()
             .map(|descr| {
                 let mut w = PreprocessingWidget::default();
@@ -99,7 +105,7 @@ impl InputTensorWidget{
             }
         }
         let sample_shape = gui_npy_arr.shape();
-        let mut extents = sample_shape.iter().skip(self.axes_widget.staging.len());
+        let mut extents = sample_shape.iter().skip(self.axes_widget.len());
 
         while let Some(extent) = extents.next() {
             let mut axis_widget = InputAxisWidget::default();
@@ -109,7 +115,7 @@ impl InputTensorWidget{
                 modelrdf::AxisType::Space
             };
             axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
-            self.axes_widget.staging.push(CollapsibleWidget { is_closed: false, inner: axis_widget })
+            self.axes_widget.push(axis_widget)
         }
     }
     pub fn parse(&self) -> Result<InputSlot<ArcNpyArray>>{
@@ -118,7 +124,7 @@ impl InputTensorWidget{
         let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
             return Err(GuiError::new("Test tensor is missing"));
         };
-        let axes = self.axes_widget.state().into_iter().collect::<Result<Vec<_>>>()?;
+        let axes = self.axes_widget.iter().map(|w| w.state()).collect::<Result<Vec<_>>>()?;
         let sample_shape = gui_npy_array.shape();
         if sample_shape.len() != axes.len(){
             return Err(GuiError::new(format!(
@@ -192,7 +198,31 @@ impl InputTensorWidget{
                     that the axis should be given in C-order, i.e., that last axis given is the one that changes \
                     more quickly when going through the bytes of the tensor.
                 "));
-                self.axes_widget.draw_and_parse(ui, id.with("Axes"));
+                let vec_widget = VecWidget{
+                    items: &mut self.axes_widget,
+                    item_label: "Axis",
+                    show_reorder_buttons: true,
+                    item_renderer: VecItemRender::HeaderAndBody {
+                        render_header: |widget: &mut InputAxisWidget, idx, ui|{
+                            let label = if widget.raw_axis_id().len() == 0{
+                                egui::RichText::new(format!("Axis #{}", idx + 1))
+                            } else {
+                                egui::RichText::new(widget.raw_axis_id())
+                            };
+                            match widget.state(){
+                                Ok(_) => ui.label(label),
+                                Err(err) => ui.label(label.color(egui::Color32::RED)).on_hover_text(err.to_string()),
+                            };
+                        },
+                        render_body: |widget: &mut InputAxisWidget, idx, ui|{
+                            widget.draw_and_parse(ui, id.with("input axis").with(idx));
+                        },
+                        collapsible_id_source: Some(id.with("axis list")),
+                        marker: PhantomData,
+                    },
+                    new_item: Some(InputAxisWidget::default),
+                };
+                ui.add(vec_widget);
             });
             ui.horizontal(|ui| {
                 ui.strong("Preprocessing: ").on_hover_text(indoc!("
