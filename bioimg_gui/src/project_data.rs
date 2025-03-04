@@ -263,7 +263,7 @@ pub struct InputTensorWidgetRawData {
     pub id_widget: String,
     pub is_optional: bool,
     pub description_widget: String,
-    pub axes_widget: Vec<InputAxisWidgetRawData>,
+    pub axis_widgets: Vec<InputAxisWidgetRawData>,
     pub test_tensor_widget: TestTensorWidgetRawData,
     pub preprocessing_widget: Vec<PreprocessingWidgetRawData>,
 }

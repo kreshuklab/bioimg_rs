@@ -31,7 +31,7 @@ pub struct InputTensorWidget {
     pub id_widget: StagingString<modelrdf::TensorId>,
     pub is_optional: bool,
     pub description_widget: StagingString<modelrdf::TensorTextDescription>,
-    pub axes_widget: Vec<InputAxisWidget>,
+    pub axis_widgets: Vec<InputAxisWidget>,
     pub test_tensor_widget: TestTensorWidget,
     pub preprocessing_widget: Vec<PreprocessingWidget>,
 }
@@ -40,7 +40,7 @@ pub struct InputTensorWidget {
 impl ValueWidget for InputTensorWidget{
     type Value<'v> = InputSlot<ArcNpyArray>;
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
-        self.axes_widget = value.tensor_meta.axes().iter()
+        self.axis_widgets = value.tensor_meta.axes().iter()
             .map(|descr|{
                 let mut w = InputAxisWidget::default();
                 w.set_value(descr.clone());
@@ -104,7 +104,7 @@ impl InputTensorWidget{
             }
         }
         let sample_shape = gui_npy_arr.shape();
-        let mut extents = sample_shape.iter().skip(self.axes_widget.len());
+        let mut extents = sample_shape.iter().skip(self.axis_widgets.len());
 
         while let Some(extent) = extents.next() {
             let mut axis_widget = InputAxisWidget::default();
@@ -114,7 +114,7 @@ impl InputTensorWidget{
                 modelrdf::AxisType::Space
             };
             axis_widget.space_axis_widget.prefil_parameterized_size(*extent);
-            self.axes_widget.push(axis_widget)
+            self.axis_widgets.push(axis_widget)
         }
     }
     pub fn parse(&self) -> Result<InputSlot<ArcNpyArray>>{
@@ -123,7 +123,7 @@ impl InputTensorWidget{
         let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
             return Err(GuiError::new("Test tensor is missing"));
         };
-        let axes = self.axes_widget.iter().map(|w| w.state()).collect::<Result<Vec<_>>>()?;
+        let axes = self.axis_widgets.iter().map(|w| w.state()).collect::<Result<Vec<_>>>()?;
         let sample_shape = gui_npy_array.shape();
         if sample_shape.len() != axes.len(){
             return Err(GuiError::new(format!(
@@ -198,7 +198,7 @@ impl InputTensorWidget{
                     more quickly when going through the bytes of the tensor.
                 "));
                 let vec_widget = VecWidget{
-                    items: &mut self.axes_widget,
+                    items: &mut self.axis_widgets,
                     item_label: "Axis",
                     show_reorder_buttons: true,
                     item_renderer: VecItemRender::HeaderAndBody {
