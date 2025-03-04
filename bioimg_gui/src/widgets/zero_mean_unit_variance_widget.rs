@@ -21,8 +21,8 @@ pub struct ZeroMeanUnitVarianceWidget{
 
 impl ZeroMeanUnitVarianceWidget{
     pub fn iconify(&self) -> Result<egui::WidgetText>{
-        let preproc = self.state()?;
-        Ok(preproc.to_string().into()) //FIXME?
+        let _preproc = self.state()?;
+        Ok("μ=0 σ²=1".into())
     }
 }
 
