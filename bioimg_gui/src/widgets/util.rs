@@ -250,7 +250,9 @@ where
             });
 
             if let Some(new_item) = &mut new_item{
-                ui.separator();
+                if items.len() > 0{
+                    ui.separator();
+                }
                 if ui.button(format!("Add {item_label}")).clicked() {
                     items.resize_with(items.len() + 1, new_item);
                 }
