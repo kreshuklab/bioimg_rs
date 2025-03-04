@@ -201,11 +201,9 @@ where
         let current_num_items = items.len();
 
         let draw_controls = |ui: &mut egui::Ui, widget_idx: usize, action: &mut Action|{
-            ui.add_enabled_ui(current_num_items > 1, |ui| {
-                if ui.small_button("❌").clicked(){
-                    *action = Action::Remove(widget_idx);
-                }
-            });
+            if ui.small_button("❌").clicked(){
+                *action = Action::Remove(widget_idx);
+            }
             ui.spacing_mut().item_spacing.x = 0.0;
 
             if show_reorder_buttons{
