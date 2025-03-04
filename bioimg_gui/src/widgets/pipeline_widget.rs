@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::ops::Mul;
 
-use egui::Widget;
+use egui::{Sense, Widget};
 use indoc::indoc;
 
 use crate::widgets::collapsible_widget::SummarizableWidget;
@@ -305,6 +305,7 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
 enum PipelineAction{
     #[default]
     Nothing,
+    OpenInputAxis{input_idx: usize, axis_idx: usize},
     OpenWeights,
     OpenInputs,
     OpenSpewcificWeights{flavor: WeightsFlavor},
@@ -325,6 +326,7 @@ impl PipelineWidget{
         weights_widget: &mut WeightsWidget,
     ){
         let mut pipeline_action = self.action.clone();
+        let stroke = egui::Stroke{color: egui::Color32::GRAY, width: 2.0};
 
         let (input_tips, weights_rect, output_tails) = ui.horizontal(|ui|{
             let mut input_tips = Vec::<egui::Pos2>::new();
@@ -356,6 +358,55 @@ impl PipelineWidget{
                             if clickable_label(ui, input_name).clicked(){
                                 pipeline_action = PipelineAction::OpenInput{input_idx};
                             }
+
+                            let axes_rect = ui.vertical(|ui|{ egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
+                                ui.spacing_mut().item_spacing.y = 1.0;
+                                for (axis_idx, axis_widget) in inp.axis_widgets.iter().enumerate(){
+                                    let label_text = egui::Button::new(axis_widget.name_label(axis_idx).small()).frame(false);
+                                    if ui.add(label_text).clicked(){
+                                        pipeline_action = PipelineAction::OpenInputAxis { input_idx, axis_idx };
+                                    }
+                                }
+                            }) }).response.rect;
+
+                            if inp.axis_widgets.len() > 0{
+                                let stroke = ui.visuals().window_stroke();
+                                let min_to_max = axes_rect.max - axes_rect.min;
+                                let left_to_right = egui::Vec2{y: 0.0, ..min_to_max};
+                                let top_to_bot = egui::Vec2{x: 0.0, ..min_to_max};
+
+                                let top_right = axes_rect.min + left_to_right;
+                                let bot_left = axes_rect.min + top_to_bot;
+                                let bot_right = bot_left + left_to_right;
+
+                                ui.painter().line_segment(
+                                    [axes_rect.min, axes_rect.min + left_to_right * 0.2],
+                                    stroke,
+                                );
+                                ui.painter().line_segment(
+                                    [top_right, top_right - left_to_right * 0.2],
+                                    stroke,
+                                );
+
+                                ui.painter().line_segment(
+                                    [axes_rect.min, axes_rect.min + top_to_bot],
+                                    stroke,
+                                );
+                                ui.painter().line_segment(
+                                    [axes_rect.max, axes_rect.max - top_to_bot],
+                                    stroke,
+                                );
+
+                                ui.painter().line_segment(
+                                    [bot_left, bot_left + left_to_right * 0.2],
+                                    stroke,
+                                );
+                                ui.painter().line_segment(
+                                    [bot_right, bot_right - left_to_right * 0.2],
+                                    stroke,
+                                );
+                            }
+                            
                             ui.spacing_mut().item_spacing.x = 1.0;
 
                             inp.preprocessing_widget.iter().enumerate().for_each(|(idx, preproc)|{
@@ -457,7 +508,6 @@ impl PipelineWidget{
             (input_tips, weights_rect, output_tails)
         }).inner;
 
-        let stroke = egui::Stroke{color: egui::Color32::GRAY, width: 2.0};
         draw_input_connections(ui, &input_tips, weights_rect, stroke);
         draw_output_connections(ui, &output_tails, weights_rect, stroke);
 
@@ -498,6 +548,23 @@ impl PipelineWidget{
         } }};}
 
         self.action = match std::mem::take(&mut self.action) {
+            PipelineAction::OpenInputAxis { input_idx, axis_idx } => {
+                modal(id.with(("input axis".as_ptr(), input_idx, axis_idx)), ui, |ui|{
+                    let mut action = None;
+                    interface_widget.input_widgets[input_idx].axis_widgets[axis_idx].draw_and_parse(ui, id.with("axis".as_ptr()));
+                    ui.separator();
+                    ui.horizontal(|ui|{
+                        if ui.button("Remove").clicked(){
+                            interface_widget.input_widgets[input_idx].axis_widgets.remove(axis_idx);
+                            action.replace(PipelineAction::Nothing);
+                        }
+                        if ui.button("Ok").clicked(){
+                            action.replace(PipelineAction::Nothing);
+                        }
+                    });
+                    None
+                }).unwrap_or(PipelineAction::OpenInputAxis { input_idx, axis_idx })
+            },
             PipelineAction::OpenInputs => {
                 modal(id.with("all inputs".as_ptr()), ui, |ui|{
                     let vec_widget = VecWidget{

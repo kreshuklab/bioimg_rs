@@ -203,14 +203,9 @@ impl InputTensorWidget{
                     show_reorder_buttons: true,
                     item_renderer: VecItemRender::HeaderAndBody {
                         render_header: |widget: &mut InputAxisWidget, idx, ui|{
-                            let label = if widget.raw_axis_id().len() == 0{
-                                egui::RichText::new(format!("Axis #{}", idx + 1))
-                            } else {
-                                egui::RichText::new(widget.raw_axis_id())
-                            };
                             match widget.state(){
-                                Ok(_) => ui.label(label),
-                                Err(err) => ui.label(label.color(egui::Color32::RED)).on_hover_text(err.to_string()),
+                                Ok(_) => ui.add(egui::Label::new(widget.name_label(idx))),
+                                Err(err) => ui.add(egui::Label::new(widget.name_label(idx))).on_hover_text(err.to_string()),
                             };
                         },
                         render_body: |widget: &mut InputAxisWidget, idx, ui|{
@@ -435,14 +430,9 @@ impl OutputTensorWidget{
                     show_reorder_buttons: true,
                     item_renderer: VecItemRender::HeaderAndBody {
                         render_header: |widget: &mut OutputAxisWidget, idx, ui|{
-                            let label = if widget.raw_axis_id().len() == 0{
-                                egui::RichText::new(format!("Axis #{}", idx + 1))
-                            } else {
-                                egui::RichText::new(widget.raw_axis_id())
-                            };
                             match widget.state(){
-                                Ok(_) => ui.label(label),
-                                Err(err) => ui.label(label.color(egui::Color32::RED)).on_hover_text(err.to_string()),
+                                Ok(_) => ui.add(widget.name_label(idx)),
+                                Err(err) => ui.add(widget.name_label(idx)).on_hover_text(err.to_string()),
                             };
                         },
                         render_body: |widget: &mut OutputAxisWidget, idx, ui|{
