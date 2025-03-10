@@ -7,6 +7,7 @@ use indoc::indoc;
 use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
+use crate::widgets::output_axis_widget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
 use crate::widgets::util::{draw_vertical_brackets, VecItemRender, VecWidget};
 
@@ -342,27 +343,30 @@ impl PipelineWidget{
                                 pipeline_action = PipelineAction::OpenInput{input_idx};
                             }
 
-                            let axes_rect = ui.vertical(|ui|{ egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
-                                ui.spacing_mut().item_spacing.y = 1.0;
-                                for (axis_idx, axis_widget) in inp.axis_widgets.iter().enumerate(){
-                                    if egui::Button::new(axis_widget.name_label(axis_idx).small()).draw_as_label(ui).clicked(){
-                                        pipeline_action = PipelineAction::OpenInputAxis { input_idx, axis_idx };
-                                    }
-                                }
-                            }) }).response.rect;
-
                             if inp.axis_widgets.len() > 0{
-                                draw_vertical_brackets(ui, axes_rect);
+                                ui.vertical(|ui|{
+                                    let axes_resp = egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
+                                        ui.spacing_mut().item_spacing.y = 0.5;
+                                        for (axis_idx, axis_widget) in inp.axis_widgets.iter().enumerate(){
+                                            if egui::Button::new(axis_widget.name_label(axis_idx).small()).draw_as_label(ui).clicked(){
+                                                pipeline_action = PipelineAction::OpenInputAxis { input_idx, axis_idx };
+                                            }
+                                        }
+                                    });
+                                    draw_vertical_brackets(ui, axes_resp.response.rect);
+                                });
                             }
 
-                            ui.spacing_mut().item_spacing.x = 1.0;
-
-                            inp.preprocessing_widget.iter().enumerate().for_each(|(idx, preproc)|{
-                                if draw_preproc_button(ui, preproc).clicked(){
-                                    pipeline_action = PipelineAction::OpenPreproc { input_idx, preproc_idx: idx };
-                                }
-                            });
-
+                            if inp.preprocessing_widget.len() > 0{
+                                ui.scope(|ui|{
+                                    ui.spacing_mut().item_spacing.x = 1.0;
+                                    for (preproc_idx, proc) in inp.preprocessing_widget.iter().enumerate(){
+                                        if draw_preproc_button(ui, proc).clicked(){
+                                            pipeline_action = PipelineAction::OpenPreproc { input_idx, preproc_idx };
+                                        }
+                                    }
+                                });
+                            }
                             ui.add_space(10.0);
                             if ui.button("✚").on_hover_text("Add preprocesing step").clicked(){
                                 inp.preprocessing_widget.push(Default::default());
@@ -418,27 +422,30 @@ impl PipelineWidget{
                                 pipeline_action = PipelineAction::OpenOutput{output_idx};
                             }
 
-                            let axes_rect = ui.vertical(|ui|{ egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
-                                ui.spacing_mut().item_spacing.y = 1.0;
-                                for (axis_idx, axis_widget) in output.axis_widgets.iter().enumerate(){
-                                    if egui::Button::new(axis_widget.name_label(axis_idx).small()).draw_as_label(ui).clicked(){
-                                        pipeline_action = PipelineAction::OpenOutputAxis { output_idx, axis_idx };
-                                    }
-                                }
-                            }) }).response.rect;
-
                             if output.axis_widgets.len() > 0{
-                                draw_vertical_brackets(ui, axes_rect);
+                                ui.vertical(|ui|{
+                                    let axes_resp = egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
+                                        ui.spacing_mut().item_spacing.y = 0.5;
+                                        for (axis_idx, axis_widget) in output.axis_widgets.iter().enumerate(){
+                                            if egui::Button::new(axis_widget.name_label(axis_idx).small()).draw_as_label(ui).clicked(){
+                                                pipeline_action = PipelineAction::OpenOutputAxis { output_idx, axis_idx };
+                                            }
+                                        }
+                                    });
+                                    draw_vertical_brackets(ui, axes_resp.response.rect);
+                                });
                             }
 
-                            ui.spacing_mut().item_spacing.x = 1.0;
-
-                            for (idx, postproc) in output.postprocessing_widgets.iter().enumerate(){
-                                if draw_postproc_button(ui, &postproc.inner).clicked(){
-                                    pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx: idx };
-                                }
+                            if output.postprocessing_widgets.len() > 0{
+                                ui.scope(|ui|{
+                                    ui.spacing_mut().item_spacing.x = 1.0;
+                                    for (idx, postproc) in output.postprocessing_widgets.iter().enumerate(){
+                                        if draw_postproc_button(ui, &postproc.inner).clicked(){
+                                            pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx: idx };
+                                        }
+                                    }
+                                });
                             }
-
                             ui.add_space(10.0);
                             if ui.button("✚").on_hover_text("Add postprocessing step").clicked(){
                                 output.postprocessing_widgets.push(Default::default());
