@@ -123,7 +123,12 @@ impl InputTensorWidget{
         let TestTensorWidgetState::Loaded { data: gui_npy_array, .. } = state else {
             return Err(GuiError::new("Test tensor is missing"));
         };
-        let axes = self.axis_widgets.iter().map(|w| w.state()).collect::<Result<Vec<_>>>()?;
+        let axes = self.axis_widgets.iter()
+            .enumerate()
+            .map(|(idx, w)| {
+                w.state().map_err(|err| GuiError::new(format!("Error parsing axis #{idx}: {err}")))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let sample_shape = gui_npy_array.shape();
         if sample_shape.len() != axes.len(){
             return Err(GuiError::new(format!(
@@ -132,11 +137,14 @@ impl InputTensorWidget{
         }
         let input_axis_group = modelrdf::InputAxisGroup::try_from(axes)?;
         let meta_msg = rdfinput::InputTensorMetadataMsg{
-            id: self.id_widget.state()?.clone(),
+            id: self.id_widget.state()
+                .map_err(|err| GuiError::new(format!("Bad input id: {err}")))?
+                .clone(),
             optional: self.is_optional,
             preprocessing: self.preprocessing_widget.iter()
                 .map(|w| w.state())
-                .collect::<Result<_>>()?,
+                .collect::<Result<_>>()
+                .map_err(|err| GuiError::new(format!("Preprocessing error: {err}")))?,
             description: self.description_widget.state()?.clone(),
             axes: input_axis_group,
         };
