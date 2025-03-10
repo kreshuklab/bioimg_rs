@@ -423,14 +423,6 @@ impl eframe::App for AppState1 {
                 });
                 ui.add_space(16.0);
                 egui::widgets::global_theme_preference_buttons(ui);
-                if ui.button("go").clicked(){
-                    let model_path = std::path::PathBuf::from("/root/sample_models/affable_shark_ilastik/affable_shark_ilastik.zip");
-                    let message = match rt::zoo_model::ZooModel::try_load(&model_path){
-                        Err(err) => TaskResult::Notification(Err(format!("Could not import model {err}"))),
-                        Ok(zoo_model) => TaskResult::ModelImport(Box::new(zoo_model)),
-                    };
-                    self.notifications_channel.sender().send(message).unwrap();
-                }
             });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
