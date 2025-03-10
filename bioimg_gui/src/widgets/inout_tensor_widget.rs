@@ -211,13 +211,14 @@ impl InputTensorWidget{
                     show_reorder_buttons: true,
                     item_renderer: VecItemRender::HeaderAndBody {
                         render_header: |widget: &mut InputAxisWidget, idx, ui|{
+                            widget.draw_type_picker(ui, id.with(("type picker".as_ptr(), idx)));
                             match widget.state(){
                                 Ok(_) => ui.add(egui::Label::new(widget.name_label(idx))),
                                 Err(err) => ui.add(egui::Label::new(widget.name_label(idx))).on_hover_text(err.to_string()),
                             };
                         },
                         render_body: |widget: &mut InputAxisWidget, idx, ui|{
-                            widget.draw_and_parse(ui, id.with("input axis").with(idx));
+                            widget.draw(ui, id.with("input axis").with(idx), false);
                         },
                         collapsible_id_source: Some(id.with("axis list")),
                         marker: PhantomData,

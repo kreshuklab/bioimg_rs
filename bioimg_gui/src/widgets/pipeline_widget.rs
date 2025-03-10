@@ -520,7 +520,7 @@ impl PipelineWidget{
             PipelineAction::OpenInputAxis { input_idx, axis_idx } => {
                 modal(id.with(("input axis".as_ptr(), input_idx, axis_idx)), ui, |ui|{
                     let mut action = None;
-                    interface_widget.input_widgets[input_idx].axis_widgets[axis_idx].draw_and_parse(ui, id.with("axis".as_ptr()));
+                    interface_widget.input_widgets[input_idx].axis_widgets[axis_idx].draw(ui, id.with("axis".as_ptr()), true);
                     ui.separator();
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
