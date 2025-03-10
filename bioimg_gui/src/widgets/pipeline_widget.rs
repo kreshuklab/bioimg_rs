@@ -654,8 +654,12 @@ impl PipelineWidget{
                 let id = id.with(input_idx).with("input modal".as_ptr());
                 modal(id, ui, |ui| {
                     let mut action = None;
-                    interface_widget.input_widgets[input_idx].draw(ui, id.with("input widget".as_ptr()));
+                    let input = &mut interface_widget.input_widgets[input_idx];
+                    input.draw(ui, id.with("input widget".as_ptr()));
                     ui.separator();
+                    if let Err(err) = input.parse(){
+                        show_error(ui, err);
+                    }
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
                             interface_widget.input_widgets.remove(input_idx);
@@ -672,8 +676,12 @@ impl PipelineWidget{
                 let id = id.with(input_idx).with("output modal".as_ptr());
                 modal(id, ui, |ui| {
                     let mut action = None;
-                    interface_widget.output_widgets[input_idx].draw(ui, id.with("output widget".as_ptr()));
+                    let output = &mut interface_widget.output_widgets[input_idx];
+                    output.draw(ui, id.with("output widget".as_ptr()));
                     ui.separator();
+                    if let Err(err) = output.parse(){
+                        show_error(ui, err);
+                    }
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
                             interface_widget.output_widgets.remove(input_idx);
