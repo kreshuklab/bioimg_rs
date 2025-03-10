@@ -531,7 +531,7 @@ impl PipelineWidget{
                             action.replace(PipelineAction::Nothing);
                         }
                     });
-                    None
+                    action
                 }).unwrap_or(PipelineAction::OpenInputAxis { input_idx, axis_idx })
             },
             PipelineAction::OpenOutputAxis { output_idx, axis_idx } => {
@@ -548,7 +548,7 @@ impl PipelineWidget{
                             action.replace(PipelineAction::Nothing);
                         }
                     });
-                    None
+                    action
                 }).unwrap_or(PipelineAction::OpenOutputAxis { output_idx, axis_idx })
             },
             PipelineAction::OpenInputs => {
