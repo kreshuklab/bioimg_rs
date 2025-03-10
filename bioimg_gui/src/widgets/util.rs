@@ -259,18 +259,23 @@ where
                         render_header(widget, widget_idx, ui);
                     },
                     VecItemRender::HeaderAndBody { render_header, render_body, collapsible_id_source, ..} => {
+                        let header_frame = egui::Frame::new().inner_margin(egui::Margin::same(5)).fill(ui.visuals().faint_bg_color);
                         if let Some(id_source) = collapsible_id_source{
                             let id = ui.make_persistent_id(id_source.with(widget_idx));
                             egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)
-                                .show_header(ui, |ui| {
+                                .show_header(ui, |ui| { header_frame.show(ui, |ui|{
                                     draw_controls(ui, widget_idx, &mut action);
-                                    render_header(widget, widget_idx, ui)
-                                })
+                                    render_header(widget, widget_idx, ui);
+                                    ui.add_space(ui.available_width());
+                                }) })
                                 .body(|ui| render_body(widget, widget_idx, ui));
                         } else {
-                            ui.horizontal(|ui|{
-                                draw_controls(ui, widget_idx, &mut action);
-                                render_header(widget, widget_idx, ui);
+                            header_frame.show(ui, |ui|{
+                                ui.horizontal(|ui|{
+                                    draw_controls(ui, widget_idx, &mut action);
+                                    render_header(widget, widget_idx, ui);
+                                    ui.add_space(ui.available_width());
+                                });
                             });
                             render_body(widget, widget_idx, ui);
                         }
