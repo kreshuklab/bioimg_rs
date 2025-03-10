@@ -262,15 +262,15 @@ impl OutputAxisWidget{
             AxisType::Index => "index",
         }
     }
-    pub fn name_label(&self, axis_idx: usize) -> egui::Label{
+    pub fn name_label(&self, axis_idx: usize) -> egui::RichText{
         let label = if self.raw_axis_id().len() == 0{
             egui::RichText::new(format!("Axis #{}", axis_idx + 1))
         } else {
             egui::RichText::new(self.raw_axis_id())
         };
         match self.state(){
-            Ok(_) => egui::Label::new(label),
-            Err(_) => egui::Label::new(label.color(egui::Color32::RED))
+            Ok(_) => label,
+            Err(_) => label.color(egui::Color32::RED)
         }
     }
 }

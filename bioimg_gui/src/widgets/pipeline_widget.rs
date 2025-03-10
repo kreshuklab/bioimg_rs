@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 use std::ops::Mul;
 
-use egui::{Sense, Widget};
+use egui::Widget;
 use indoc::indoc;
 
 use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
-use crate::widgets::util::{clickable_label, VecItemRender, VecWidget};
+use crate::widgets::util::{clickable_label, draw_vertical_brackets, VecItemRender, VecWidget};
 
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
@@ -306,6 +306,7 @@ enum PipelineAction{
     #[default]
     Nothing,
     OpenInputAxis{input_idx: usize, axis_idx: usize},
+    OpenOutputAxis{output_idx: usize, axis_idx: usize},
     OpenWeights,
     OpenInputs,
     OpenSpewcificWeights{flavor: WeightsFlavor},
@@ -370,43 +371,9 @@ impl PipelineWidget{
                             }) }).response.rect;
 
                             if inp.axis_widgets.len() > 0{
-                                let stroke = ui.visuals().window_stroke();
-                                let min_to_max = axes_rect.max - axes_rect.min;
-                                let left_to_right = egui::Vec2{y: 0.0, ..min_to_max};
-                                let top_to_bot = egui::Vec2{x: 0.0, ..min_to_max};
-
-                                let top_right = axes_rect.min + left_to_right;
-                                let bot_left = axes_rect.min + top_to_bot;
-                                let bot_right = bot_left + left_to_right;
-
-                                ui.painter().line_segment(
-                                    [axes_rect.min, axes_rect.min + left_to_right * 0.2],
-                                    stroke,
-                                );
-                                ui.painter().line_segment(
-                                    [top_right, top_right - left_to_right * 0.2],
-                                    stroke,
-                                );
-
-                                ui.painter().line_segment(
-                                    [axes_rect.min, axes_rect.min + top_to_bot],
-                                    stroke,
-                                );
-                                ui.painter().line_segment(
-                                    [axes_rect.max, axes_rect.max - top_to_bot],
-                                    stroke,
-                                );
-
-                                ui.painter().line_segment(
-                                    [bot_left, bot_left + left_to_right * 0.2],
-                                    stroke,
-                                );
-                                ui.painter().line_segment(
-                                    [bot_right, bot_right - left_to_right * 0.2],
-                                    stroke,
-                                );
+                                draw_vertical_brackets(ui, axes_rect);
                             }
-                            
+
                             ui.spacing_mut().item_spacing.x = 1.0;
 
                             inp.preprocessing_widget.iter().enumerate().for_each(|(idx, preproc)|{
@@ -469,6 +436,21 @@ impl PipelineWidget{
                             if clickable_label(ui, output_name).clicked(){
                                 pipeline_action = PipelineAction::OpenOutput{output_idx};
                             }
+
+                            let axes_rect = ui.vertical(|ui|{ egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
+                                ui.spacing_mut().item_spacing.y = 1.0;
+                                for (axis_idx, axis_widget) in output.axis_widgets.iter().enumerate(){
+                                    let label_text = egui::Button::new(axis_widget.name_label(axis_idx).small()).frame(false);
+                                    if ui.add(label_text).clicked(){
+                                        pipeline_action = PipelineAction::OpenOutputAxis { output_idx, axis_idx };
+                                    }
+                                }
+                            }) }).response.rect;
+
+                            if output.axis_widgets.len() > 0{
+                                draw_vertical_brackets(ui, axes_rect);
+                            }
+
                             ui.spacing_mut().item_spacing.x = 1.0;
 
                             for (idx, postproc) in output.postprocessing_widgets.iter().enumerate(){
@@ -564,6 +546,23 @@ impl PipelineWidget{
                     });
                     None
                 }).unwrap_or(PipelineAction::OpenInputAxis { input_idx, axis_idx })
+            },
+            PipelineAction::OpenOutputAxis { output_idx, axis_idx } => {
+                modal(id.with(("output axis".as_ptr(), output_idx, axis_idx)), ui, |ui|{
+                    let mut action = None;
+                    interface_widget.output_widgets[output_idx].axis_widgets[axis_idx].draw_and_parse(ui, id.with("axis".as_ptr()));
+                    ui.separator();
+                    ui.horizontal(|ui|{
+                        if ui.button("Remove").clicked(){
+                            interface_widget.output_widgets[output_idx].axis_widgets.remove(axis_idx);
+                            action.replace(PipelineAction::Nothing);
+                        }
+                        if ui.button("Ok").clicked(){
+                            action.replace(PipelineAction::Nothing);
+                        }
+                    });
+                    None
+                }).unwrap_or(PipelineAction::OpenOutputAxis { output_idx, axis_idx })
             },
             PipelineAction::OpenInputs => {
                 modal(id.with("all inputs".as_ptr()), ui, |ui|{

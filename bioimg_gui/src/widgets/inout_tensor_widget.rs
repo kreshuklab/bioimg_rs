@@ -431,8 +431,8 @@ impl OutputTensorWidget{
                     item_renderer: VecItemRender::HeaderAndBody {
                         render_header: |widget: &mut OutputAxisWidget, idx, ui|{
                             match widget.state(){
-                                Ok(_) => ui.add(widget.name_label(idx)),
-                                Err(err) => ui.add(widget.name_label(idx)).on_hover_text(err.to_string()),
+                                Ok(_) => ui.add(egui::Label::new(widget.name_label(idx))),
+                                Err(err) => ui.add(egui::Label::new(widget.name_label(idx))).on_hover_text(err.to_string()),
                             };
                         },
                         render_body: |widget: &mut OutputAxisWidget, idx, ui|{

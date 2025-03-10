@@ -36,6 +36,44 @@ pub fn group_frame<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui
     response
 }
 
+pub fn draw_vertical_brackets(ui: &mut egui::Ui, rect: egui::Rect){
+    let stroke = ui.visuals().window_stroke();
+    let min_to_max = rect.max - rect.min;
+    let left_to_right = egui::Vec2{y: 0.0, ..min_to_max};
+    let top_to_bot = egui::Vec2{x: 0.0, ..min_to_max};
+
+    let top_right = rect.min + left_to_right;
+    let bot_left = rect.min + top_to_bot;
+    let bot_right = bot_left + left_to_right;
+
+    ui.painter().line_segment(
+        [rect.min, rect.min + left_to_right * 0.2],
+        stroke,
+    );
+    ui.painter().line_segment(
+        [top_right, top_right - left_to_right * 0.2],
+        stroke,
+    );
+
+    ui.painter().line_segment(
+        [rect.min, rect.min + top_to_bot],
+        stroke,
+    );
+    ui.painter().line_segment(
+        [rect.max, rect.max - top_to_bot],
+        stroke,
+    );
+
+    ui.painter().line_segment(
+        [bot_left, bot_left + left_to_right * 0.2],
+        stroke,
+    );
+    ui.painter().line_segment(
+        [bot_right, bot_right - left_to_right * 0.2],
+        stroke,
+    );
+}
+
 pub fn clickable_label(ui: &mut egui::Ui, text: impl Into<egui::WidgetText>) -> egui::Response{
     let resp = ui.add(egui::Label::new(text).sense(egui::Sense::CLICK & egui::Sense::HOVER));
     if resp.hovered(){
