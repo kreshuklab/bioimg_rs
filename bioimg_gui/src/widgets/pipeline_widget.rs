@@ -8,14 +8,15 @@ use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
-use crate::widgets::util::{clickable_label, draw_vertical_brackets, VecItemRender, VecWidget};
+use crate::widgets::util::{draw_vertical_brackets, VecItemRender, VecWidget};
 
+use super::button_ext::ButtonExt;
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::inout_tensor_widget::InputTensorWidget;
 use super::model_interface_widget::ModelInterfaceWidget;
-use super::posstprocessing_widget::{PostprocessingWidget, PostprocessingWidgetMode, ShowPostprocTypePicker};
-use super::preprocessing_widget::{PreprocessingWidget, PreprocessingWidgetMode, ShowPreprocTypePicker};
+use super::posstprocessing_widget::{PostprocessingWidget, ShowPostprocTypePicker};
+use super::preprocessing_widget::{PreprocessingWidget, ShowPreprocTypePicker};
 use super::util::Arrow;
 use super::weights_widget::{KerasHdf5WeightsWidget, TorchscriptWeightsWidget, WeightsWidget};
 use super::StatefulWidget;
@@ -35,18 +36,9 @@ pub struct PipelineWidget{
 }
 
 fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui::Response{
-    let color = match preproc.mode{
-        PreprocessingWidgetMode::Binarize => egui::Color32::GOLD,
-        PreprocessingWidgetMode::Clip => egui::Color32::BLUE,
-        PreprocessingWidgetMode::ScaleLinear => egui::Color32::GREEN,
-        PreprocessingWidgetMode::Sigmoid => egui::Color32::ORANGE,
-        PreprocessingWidgetMode::ZeroMeanUnitVariance => egui::Color32::BROWN,
-        PreprocessingWidgetMode::ScaleRange => egui::Color32::DARK_GREEN,
-        PreprocessingWidgetMode::EnsureDtype => egui::Color32::LIGHT_GRAY,
-        PreprocessingWidgetMode::FixedZmuv => egui::Color32::KHAKI,
-    };
+    let bg = egui::Color32::GOLD;
     match preproc.iconify(){
-        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(color).ui(ui),
+        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(bg).ui(ui),
         Err(err) => {
             let text = egui::RichText::new("!").color(egui::Color32::WHITE);
             egui::Button::new(text).fill(egui::Color32::RED).ui(ui).on_hover_ui(|ui| show_error(ui, err))
@@ -55,19 +47,9 @@ fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui
 }
 
 fn draw_postproc_button(ui: &mut egui::Ui, postproc: &PostprocessingWidget) -> egui::Response{
-    let color = match postproc.mode{
-        PostprocessingWidgetMode::Binarize => egui::Color32::GOLD,
-        PostprocessingWidgetMode::Clip => egui::Color32::BLUE,
-        PostprocessingWidgetMode::ScaleLinear => egui::Color32::GREEN,
-        PostprocessingWidgetMode::Sigmoid => egui::Color32::ORANGE,
-        PostprocessingWidgetMode::ZeroMeanUnitVariance => egui::Color32::BROWN,
-        PostprocessingWidgetMode::ScaleRange => egui::Color32::DARK_GREEN,
-        PostprocessingWidgetMode::EnsureDtype => egui::Color32::LIGHT_GRAY,
-        PostprocessingWidgetMode::FixedZmuv => egui::Color32::KHAKI,
-        PostprocessingWidgetMode::ScaleMeanVariance => egui::Color32::CYAN,
-    };
+    let bg = egui::Color32::GOLD;
     match postproc.iconify(){
-        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(color).ui(ui),
+        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(bg).ui(ui),
         Err(err) => {
             let text = egui::RichText::new("!").color(egui::Color32::WHITE);
             egui::Button::new(text).fill(egui::Color32::RED).ui(ui).on_hover_ui(|ui| show_error(ui, err))
@@ -217,7 +199,7 @@ fn draw_weights_widget(ui: &mut egui::Ui, out: &mut PipelineAction, weights_widg
         .corner_radius(10.0)
         .show(ui, |ui|{
             let weights_text = egui::RichText::new("Model Weights:").strong();
-            let label_resp = clickable_label(ui, weights_text).on_hover_text(indoc!("
+            let label_resp = egui::Button::new(weights_text).draw_as_label(ui).on_hover_text(indoc!("
                 The serialized weights and biases underlying this model.
 
                 Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
@@ -334,7 +316,7 @@ impl PipelineWidget{
             let mut output_tails = Vec::<egui::Pos2>::new();
 
             ui.vertical(|ui| {
-                if clickable_label(ui, egui::RichText::new("Inputs:").strong()).on_hover_text(MODEL_INPUTS_TIP).clicked(){
+                if egui::Button::new(egui::RichText::new("Inputs:").strong()).draw_as_label(ui).on_hover_text(MODEL_INPUTS_TIP).clicked(){
                     pipeline_action = PipelineAction::OpenInputs;
                 }
                 let id = id.with("inputs".as_ptr());
@@ -349,22 +331,21 @@ impl PipelineWidget{
 
                         ui.horizontal(|ui| {
                             let mut input_name = if inp.id_widget.raw.len() == 0{
-                                egui::RichText::new("Unnamed input").weak()
+                                egui::RichText::new("Unnamed input").italics()
                             } else {
-                                egui::RichText::new(&inp.id_widget.raw).strong()
+                                egui::RichText::new(&inp.id_widget.raw)
                             };
                             if inp.parse().is_err(){
                                 input_name = input_name.color(egui::Color32::RED);
                             }
-                            if clickable_label(ui, input_name).clicked(){
+                            if egui::Button::new(input_name).draw_as_label(ui).clicked(){
                                 pipeline_action = PipelineAction::OpenInput{input_idx};
                             }
 
                             let axes_rect = ui.vertical(|ui|{ egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
                                 ui.spacing_mut().item_spacing.y = 1.0;
                                 for (axis_idx, axis_widget) in inp.axis_widgets.iter().enumerate(){
-                                    let label_text = egui::Button::new(axis_widget.name_label(axis_idx).small()).frame(false);
-                                    if ui.add(label_text).clicked(){
+                                    if egui::Button::new(axis_widget.name_label(axis_idx).small()).draw_as_label(ui).clicked(){
                                         pipeline_action = PipelineAction::OpenInputAxis { input_idx, axis_idx };
                                     }
                                 }
@@ -426,22 +407,21 @@ impl PipelineWidget{
 
                         ui.horizontal(|ui| {
                             let mut output_name = if output.id_widget.raw.len() == 0{
-                                egui::RichText::new("Unnamed output").weak()
+                                egui::RichText::new("Unnamed output").italics()
                             } else {
-                                egui::RichText::new(&output.id_widget.raw).strong()
+                                egui::RichText::new(&output.id_widget.raw)
                             };
                             if output.parse().is_err(){
                                 output_name = output_name.color(egui::Color32::RED);
                             }
-                            if clickable_label(ui, output_name).clicked(){
+                            if egui::Button::new(output_name).draw_as_label(ui).clicked(){
                                 pipeline_action = PipelineAction::OpenOutput{output_idx};
                             }
 
                             let axes_rect = ui.vertical(|ui|{ egui::Frame::new().inner_margin(4.0).show(ui, |ui|{
                                 ui.spacing_mut().item_spacing.y = 1.0;
                                 for (axis_idx, axis_widget) in output.axis_widgets.iter().enumerate(){
-                                    let label_text = egui::Button::new(axis_widget.name_label(axis_idx).small()).frame(false);
-                                    if ui.add(label_text).clicked(){
+                                    if egui::Button::new(axis_widget.name_label(axis_idx).small()).draw_as_label(ui).clicked(){
                                         pipeline_action = PipelineAction::OpenOutputAxis { output_idx, axis_idx };
                                     }
                                 }

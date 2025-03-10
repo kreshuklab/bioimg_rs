@@ -74,14 +74,6 @@ pub fn draw_vertical_brackets(ui: &mut egui::Ui, rect: egui::Rect){
     );
 }
 
-pub fn clickable_label(ui: &mut egui::Ui, text: impl Into<egui::WidgetText>) -> egui::Response{
-    let resp = ui.add(egui::Label::new(text).sense(egui::Sense::CLICK & egui::Sense::HOVER));
-    if resp.hovered(){
-        ui.ctx().output_mut(|out| out.cursor_icon = egui::CursorIcon::PointingHand);
-    }
-    resp
-}
-
 pub struct TaskChannel<T>{
     sender: Sender<T>,
     receiver: Receiver<T>
