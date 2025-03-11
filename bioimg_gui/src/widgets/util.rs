@@ -422,9 +422,9 @@ where
         egui::AboveOrBelow::Above
     };
     egui::popup::popup_above_or_below_widget(ui, popup_id, &button_response, above_or_below, CloseOnClickOutside, |ui| {
-        ui.set_min_width(200.0);
-        ui.set_min_height(vert_space_above_button.max(vert_space_under_button));
-        ui.set_max_height(vert_space_above_button.max(vert_space_under_button));
+        // ui.set_min_width(200.0);
+        // ui.set_min_height(vert_space_above_button.max(vert_space_under_button));
+        // ui.set_max_height(vert_space_above_button.max(vert_space_under_button));
         ui.vertical(|ui|{
             let header_height = if matches!(search_visibility, SearchVisibility::Show){
                 let header_rect = ui.vertical(|ui|{
