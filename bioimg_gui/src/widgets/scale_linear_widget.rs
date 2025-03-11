@@ -2,6 +2,7 @@ use bioimg_spec::rdf::model::{self as modelrdf, preprocessing::ScaleLinearDescr}
 use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 
 use crate::{project_data::ScaleLinearModeRawData, result::{GuiError, Result, VecResultExt}};
+use super::iconify::Iconify;
 use super::{error_display::show_if_error, search_and_pick_widget::SearchAndPickWidget, staging_float::StagingFloat, staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, Restore, StatefulWidget, ValueWidget};
 
 #[derive(PartialEq, Eq, Default, Copy, Clone, strum::VariantArray, strum::AsRefStr, strum::Display)]
@@ -160,8 +161,8 @@ pub struct ScaleLinearWidget{
 
 use itertools::Itertools;
 
-impl ScaleLinearWidget{
-    pub fn iconify(&self) -> Result<egui::WidgetText>{
+impl Iconify for ScaleLinearWidget{
+    fn iconify(&self) -> Result<egui::WidgetText>{
         let preproc = self.state().clone()?;
         let text = match preproc{
             ScaleLinearDescr::AlongAxis(preproc) => {

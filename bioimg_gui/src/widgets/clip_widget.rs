@@ -1,6 +1,7 @@
 use bioimg_spec::rdf::model::{self as modelrdf, preprocessing::ClipDescr};
 use bioimg_spec::rdf::model::preprocessing as preproc;
 
+use super::iconify::Iconify;
 use super::staging_float::StagingFloat;
 use super::Restore;
 use super::{error_display::show_if_error, StatefulWidget, ValueWidget};
@@ -15,11 +16,14 @@ pub struct ClipWidget{
     pub parsed: Result<modelrdf::preprocessing::ClipDescr>,
 }
 
-impl ClipWidget{
-    pub fn iconify(&self) -> Result<egui::WidgetText>{
+impl Iconify for ClipWidget{
+    fn iconify(&self) -> Result<egui::WidgetText>{
         let preproc = self.state().clone()?;
         Ok(egui::RichText::new(format!("➡ {} , {} ⬅", preproc.min(), preproc.max())).into())
     }
+}
+
+impl ClipWidget {
     pub fn update(&mut self){
         self.parsed = || -> Result<ClipDescr> {
             let min = self.min_widget.state()?;

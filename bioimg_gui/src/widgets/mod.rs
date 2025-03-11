@@ -56,6 +56,7 @@ pub mod zoo_widget;
 pub mod labels;
 pub mod axis_physical_scale_widget;
 pub mod button_ext;
+pub mod iconify;
 
 pub trait StatefulWidget {
     type Value<'p>

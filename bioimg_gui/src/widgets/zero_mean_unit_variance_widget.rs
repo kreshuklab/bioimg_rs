@@ -2,6 +2,7 @@ use bioimg_spec::rdf::model::preprocessing as modelrdfpreproc;
 use bioimg_spec::rdf::model as modelrdf;
 
 use crate::result::{GuiError, Result, VecResultExt};
+use super::iconify::Iconify;
 use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
 use super::{Restore, ValueWidget};
@@ -19,8 +20,8 @@ pub struct ZeroMeanUnitVarianceWidget{
     pub epsilon_widget: StagingFloat<modelrdfpreproc::PreprocessingEpsilon>,
 }
 
-impl ZeroMeanUnitVarianceWidget{
-    pub fn iconify(&self) -> Result<egui::WidgetText>{
+impl Iconify for ZeroMeanUnitVarianceWidget{
+    fn iconify(&self) -> Result<egui::WidgetText>{
         let _preproc = self.state()?;
         Ok("μ=0 σ²=1".into())
     }

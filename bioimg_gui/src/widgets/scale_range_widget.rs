@@ -5,6 +5,7 @@ use bioimg_spec::rdf::model::{preprocessing as modelrdfpreproc, TensorId};
 
 
 use crate::result::{GuiError, Result};
+use super::iconify::Iconify;
 use super::staging_float::StagingFloat;
 use super::staging_vec::ItemWidgetConf;
 use super::{Restore, ValueWidget};
@@ -80,8 +81,8 @@ pub struct ScaleRangeWidget{
     pub reference_tensor: StagingOpt<StagingString<TensorId>>,
 }
 
-impl ScaleRangeWidget{
-    pub fn iconify(&self) -> Result<egui::WidgetText>{
+impl Iconify for ScaleRangeWidget{
+    fn iconify(&self) -> Result<egui::WidgetText>{
         let preproc = self.state()?;
         Ok(preproc.to_string().into()) //FIXME?
     }

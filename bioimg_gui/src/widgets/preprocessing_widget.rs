@@ -3,6 +3,7 @@ use bioimg_spec::rdf::model as modelrdf;
 use strum::VariantArray;
 
 use crate::{project_data::PreprocessingWidgetModeRawData, result::Result};
+use super::iconify::Iconify;
 use super::util::{search_and_pick, SearchVisibility};
 use super::{Restore, StatefulWidget, ValueWidget};
 use super::binarize_widget::BinarizePreprocessingWidget;
@@ -76,8 +77,8 @@ pub struct PreprocessingWidget{
     pub fixed_zmuv_widget: FixedZmuvWidget,
 }
 
-impl PreprocessingWidget{
-    pub fn iconify(&self) -> Result<egui::WidgetText> {
+impl Iconify for  PreprocessingWidget{
+    fn iconify(&self) -> Result<egui::WidgetText> {
         match self.mode{
             PreprocessingWidgetMode::Binarize => {
                 self.binarize_widget.iconify()

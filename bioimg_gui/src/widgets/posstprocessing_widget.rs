@@ -7,6 +7,7 @@ use crate::project_data::PostprocessingWidgetModeRawData;
 use crate::result::Result;
 use super::collapsible_widget::CollapsibleWidget;
 use super::collapsible_widget::SummarizableWidget;
+use super::iconify::Iconify;
 use super::scale_mean_variance_widget::ScaleMeanVarianceWidget;
 use super::util::search_and_pick;
 use super::util::SearchVisibility;
@@ -151,8 +152,8 @@ pub enum ShowPostprocTypePicker{
     Hide,
 }
 
-impl PostprocessingWidget{
-    pub fn iconify(&self) -> Result<egui::WidgetText> {
+impl Iconify for PostprocessingWidget{
+    fn iconify(&self) -> Result<egui::WidgetText> {
         match self.mode{
             PostprocessingWidgetMode::Binarize => {
                 self.binarize_widget.iconify()
@@ -183,7 +184,9 @@ impl PostprocessingWidget{
             }
         }
     }
+}
 
+impl PostprocessingWidget {
     pub fn draw_type_picker(&mut self, ui: &mut egui::Ui, id: egui::Id,){
         let mut current = Some(self.mode);
         search_and_pick(

@@ -7,17 +7,17 @@ use indoc::indoc;
 use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
-use crate::widgets::output_axis_widget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
 use crate::widgets::util::{draw_vertical_brackets, VecItemRender, VecWidget};
 
 use super::button_ext::ButtonExt;
 use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
+use super::iconify::Iconify;
 use super::inout_tensor_widget::InputTensorWidget;
 use super::model_interface_widget::ModelInterfaceWidget;
-use super::posstprocessing_widget::{PostprocessingWidget, ShowPostprocTypePicker};
-use super::preprocessing_widget::{PreprocessingWidget, ShowPreprocTypePicker};
+use super::posstprocessing_widget::ShowPostprocTypePicker;
+use super::preprocessing_widget::ShowPreprocTypePicker;
 use super::util::Arrow;
 use super::weights_widget::{KerasHdf5WeightsWidget, TorchscriptWeightsWidget, WeightsWidget};
 use super::StatefulWidget;
@@ -36,20 +36,9 @@ pub struct PipelineWidget{
     action: PipelineAction,
 }
 
-fn draw_preproc_button(ui: &mut egui::Ui, preproc: &PreprocessingWidget) -> egui::Response{
+fn draw_proc_button<P: Iconify>(ui: &mut egui::Ui, proc: &P) -> egui::Response{
     let bg = egui::Color32::GOLD;
-    match preproc.iconify(){
-        Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(bg).ui(ui),
-        Err(err) => {
-            let text = egui::RichText::new("!").color(egui::Color32::WHITE);
-            egui::Button::new(text).fill(egui::Color32::RED).ui(ui).on_hover_ui(|ui| show_error(ui, err))
-        }
-    }
-}
-
-fn draw_postproc_button(ui: &mut egui::Ui, postproc: &PostprocessingWidget) -> egui::Response{
-    let bg = egui::Color32::GOLD;
-    match postproc.iconify(){
+    match proc.iconify(){
         Ok(widget_text) => egui::Button::new(widget_text.color(egui::Color32::BLACK).strong()).fill(bg).ui(ui),
         Err(err) => {
             let text = egui::RichText::new("!").color(egui::Color32::WHITE);
@@ -361,7 +350,7 @@ impl PipelineWidget{
                                 ui.scope(|ui|{
                                     ui.spacing_mut().item_spacing.x = 1.0;
                                     for (preproc_idx, proc) in inp.preprocessing_widget.iter().enumerate(){
-                                        if draw_preproc_button(ui, proc).clicked(){
+                                        if draw_proc_button(ui, proc).clicked(){
                                             pipeline_action = PipelineAction::OpenPreproc { input_idx, preproc_idx };
                                         }
                                     }
@@ -440,7 +429,7 @@ impl PipelineWidget{
                                 ui.scope(|ui|{
                                     ui.spacing_mut().item_spacing.x = 1.0;
                                     for (idx, postproc) in output.postprocessing_widgets.iter().enumerate(){
-                                        if draw_postproc_button(ui, &postproc.inner).clicked(){
+                                        if draw_proc_button(ui, &postproc.inner).clicked(){
                                             pipeline_action = PipelineAction::OpenPostproc { output_idx, postproc_idx: idx };
                                         }
                                     }
