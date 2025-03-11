@@ -5,6 +5,7 @@ use egui::Widget;
 use indoc::indoc;
 
 use crate::widgets::collapsible_widget::SummarizableWidget;
+use crate::widgets::inout_tensor_widget::OutputTensorWidget;
 use crate::widgets::model_interface_widget::{MODEL_INPUTS_TIP, MODEL_OUTPUTS_TIP};
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
@@ -285,6 +286,7 @@ enum PipelineAction{
     OpenOutputAxis{output_idx: usize, axis_idx: usize},
     OpenWeights,
     OpenInputs,
+    OpenOutputs,
     OpenSpewcificWeights{flavor: WeightsFlavor},
     OpenOutput{output_idx: usize},
     RemoveOutput{output_idx: usize},
@@ -389,9 +391,9 @@ impl PipelineWidget{
             ui.add_space(30.0);
 
             ui.vertical(|ui| {
-                let outputs_text = egui::RichText::new("Outputs: ").strong();
-                ui.add(egui::Label::new(outputs_text).wrap_mode(egui::TextWrapMode::Extend))
-                    .on_hover_text(MODEL_OUTPUTS_TIP);
+                if egui::Button::new(egui::RichText::new("Outputs:").strong()).draw_as_label(ui).on_hover_text(MODEL_OUTPUTS_TIP).clicked(){
+                    pipeline_action = PipelineAction::OpenOutputs;
+                }
                 let id = id.with("outputs".as_ptr());
                 for (output_idx, output) in interface_widget.output_widgets.iter_mut().enumerate(){
                     let _id = id.with(output_idx);
@@ -568,6 +570,29 @@ impl PipelineWidget{
                     ui.add(vec_widget);
                     None
                 }).unwrap_or(PipelineAction::OpenInputs)
+            },
+            PipelineAction::OpenOutputs => {
+                let modal_id = id.with("all outputs".as_ptr());
+                modal(modal_id, ui, "Model Outputs", |ui|{
+                    let vec_widget = VecWidget{
+                        items: &mut interface_widget.output_widgets,
+                        item_label: "Model Output",
+                        item_renderer: VecItemRender::HeaderAndBody {
+                            render_header: |item: &mut OutputTensorWidget, idx: usize, ui: &mut egui::Ui|{
+                                item.summarize(ui, id.with(idx));
+                            },
+                            render_body: |item, idx, ui|{
+                                item.draw(ui, id.with(idx));
+                            },
+                            collapsible_id_source: Some(id.with("all outputs")),
+                            marker: PhantomData,
+                        },
+                        show_reorder_buttons: true,
+                        new_item: Some(Default::default),
+                    };
+                    ui.add(vec_widget);
+                    None
+                }).unwrap_or(PipelineAction::OpenOutputs)
             },
             PipelineAction::OpenWeights => {
                 let modal_id = egui::Id::from("weights modal");
