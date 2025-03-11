@@ -58,7 +58,7 @@ impl StatefulWidget for ZeroMeanUnitVarianceWidget{
                 ui.strong("Axes: ");
                 let opt_widget = OptWidget{
                     value: &mut self.axes_widget,
-                    draw_frame: false,
+                    draw_frame: true,
                     render_value: |widg: &mut Vec<AxisIdWidget>, ui: &mut egui::Ui|{
                         let vec_widget: VecWidget<'_, _, _, SomeRenderer<AxisIdWidget>, _>  = VecWidget{
                             items: widg,
