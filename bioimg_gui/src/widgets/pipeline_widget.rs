@@ -66,8 +66,8 @@ fn modal(
     let mut out = None;
     egui::Modal::new(id).show(ui.ctx(), |ui| {
         egui::ScrollArea::both()
-        // .max_height(ui.ctx().screen_rect().max.y - 80.0)
-        // .max_width(ui.ctx().screen_rect().max.x - 80.0)
+        .max_height(ui.ctx().screen_rect().max.y - 80.0)
+        .max_width(ui.ctx().screen_rect().max.x - 80.0)
         .min_scrolled_height(ui.ctx().screen_rect().max.y - 80.0)
         .min_scrolled_width(ui.ctx().screen_rect().max.x - 80.0)
         .show(ui, |ui|{
