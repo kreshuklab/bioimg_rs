@@ -18,7 +18,7 @@ use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
 use crate::widgets::code_editor_widget::MarkdwownLang;
-use crate::widgets::collapsible_widget::CollapsibleWidget;
+use crate::widgets::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::icon_widget::IconWidgetValue;
@@ -32,7 +32,7 @@ use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
-use crate::widgets::util::TaskChannel;
+use crate::widgets::util::{TaskChannel, VecItemRender, VecWidget};
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::zoo_widget::{upload_model, ZooLoginWidget};
@@ -77,7 +77,7 @@ pub struct AppState1 {
     pub staging_description: StagingString<BoundedString<0, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,
-    pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
+    pub staging_authors: Vec<AuthorWidget>,
     pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
     pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
     pub custom_config_widget: StagingOpt<JsonObjectEditorWidget, false>, //FIXME
@@ -131,7 +131,13 @@ impl ValueWidget for AppState1{
                 .collect()
         );
         self.model_id_widget.set_value(zoo_model.id);
-        self.staging_authors.set_value(zoo_model.authors.into_inner());
+        self.staging_authors = zoo_model.authors.into_inner().into_iter()
+            .map(|descr| {
+                let mut widget = AuthorWidget::default();
+                widget.set_value(descr);
+                widget
+            })
+            .collect();
         self.attachments_widget.set_value(zoo_model.attachments);
         self.staging_citations.set_value(zoo_model.cite.into_inner());
         self.custom_config_widget.set_value(
@@ -165,7 +171,7 @@ impl Default for AppState1 {
             staging_description: StagingString::new(InputLines::Multiline),
             cover_images: StagingVec::default(),
             model_id_widget: Default::default(),
-            staging_authors: StagingVec::default(),
+            staging_authors: Default::default(),
             attachments_widget: Default::default(),
             staging_citations: StagingVec::default(),
             custom_config_widget: Default::default(),
@@ -212,11 +218,15 @@ impl AppState1{
         let model_id = self.model_id_widget.state().transpose()
             .map_err(|e| GuiError::new_with_rect("Check model id for errors", e.failed_widget_rect))?
             .cloned();
-        let authors = NonEmptyList::
-            try_from(
-                self.staging_authors.state()
-                    .collect_result()
-                    .map_err(|e| GuiError::new_with_rect("Check authors for errors", e.failed_widget_rect))?
+        let authors = NonEmptyList::try_from(
+                self.staging_authors.iter()
+                    .enumerate()
+                    .map(|(idx, widget)| {
+                        widget.state().map_err(|err| {
+                            GuiError::new_with_rect(format!("Check author #{} for errors", idx + 1), err.failed_widget_rect)
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?
             )
             .map_err(|_| GuiError::new("Empty authors"))?;
         let attachments = self.attachments_widget.state()
@@ -470,10 +480,28 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let authors_base_id = egui::Id::from("authors");
                     ui.strong("Authors: ").on_hover_text(
                         "The authors are the creators of this resource description and the primary points of contact."
                     );
-                    self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
+                    let vec_widget = VecWidget{
+                        items: &mut self.staging_authors,
+                        item_label: "Author",
+                        show_reorder_buttons: true,
+                        new_item: Some(AuthorWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut AuthorWidget, idx, ui|{
+                                widg.summarize(ui, authors_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut AuthorWidget, idx, ui|{
+                                widg.draw_and_parse(ui, authors_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(authors_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
+                    // self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
                     // let author_results = self.staging_authors.state();
                 });
                 ui.add_space(10.0);

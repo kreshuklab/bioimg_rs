@@ -530,7 +530,7 @@ pub struct AppState1RawData{
     pub cover_images: Vec<SpecialImageWidgetRawData>,
     #[serde(default)] // added after AppState1RawData
     pub model_id_widget: Option<String>,
-    pub staging_authors: Vec<CollapsibleWidgetRawData<AuthorWidget>>,
+    pub staging_authors: Vec<AuthorWidgetRawData>,
     pub attachments_widget: Vec<CollapsibleWidgetRawData<FileSourceWidget>>,
     pub staging_citations: Vec<CollapsibleWidgetRawData<CiteEntryWidget>>,
     #[serde(default)] // added after AppState1RawData
