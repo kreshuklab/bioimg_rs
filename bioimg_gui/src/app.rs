@@ -32,7 +32,7 @@ use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
-use crate::widgets::util::{TaskChannel, VecItemRender, VecWidget};
+use crate::widgets::util::{widget_vec_from_values, TaskChannel, VecItemRender, VecWidget};
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::zoo_widget::{upload_model, ZooLoginWidget};
@@ -78,7 +78,7 @@ pub struct AppState1 {
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,
     pub staging_authors: Vec<AuthorWidget>,
-    pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
+    pub attachments_widget: Vec<AttachmentsWidget>,
     pub staging_citations: Vec<CiteEntryWidget>,
     pub custom_config_widget: StagingOpt<JsonObjectEditorWidget, false>, //FIXME
     pub staging_git_repo: StagingOpt<StagingUrl, false>,
@@ -138,7 +138,7 @@ impl ValueWidget for AppState1{
                 widget
             })
             .collect();
-        self.attachments_widget.set_value(zoo_model.attachments);
+        self.attachments_widget = widget_vec_from_values(zoo_model.attachments);
         self.staging_citations = zoo_model.cite.into_inner().into_iter()
             .map(|descr|{
                 let mut widget = CiteEntryWidget::default();
@@ -235,9 +235,14 @@ impl AppState1{
                     .collect::<Result<Vec<_>>>()?
             )
             .map_err(|_| GuiError::new("Empty authors"))?;
-        let attachments = self.attachments_widget.state()
-            .collect_result()
-            .map_err(|e| GuiError::new_with_rect("Check model attachments for errors", e.failed_widget_rect))?;
+        let attachments = self.attachments_widget.iter()
+            .enumerate()
+            .map(|(idx, widget)| {
+                widget.state().map_err(|_| GuiError::new(format!("Check attachment #{} for errors", idx + 1)))
+            })
+            .collect::<Result<Vec<_>>>()?;
+            // .collect_result()
+            // .map_err(|e| GuiError::new_with_rect("Check model attachments for errors", e.failed_widget_rect))?;
         let cite = self.staging_citations.iter().enumerate()
             .map(|(idx, widget)| {
                 widget.state().map_err(|_| GuiError::new(format!("Check citation #{} for errors", idx + 1)))
@@ -513,11 +518,27 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let attachments_base_id = egui::Id::from("attachments");
                     ui.strong("Attachments: ").on_hover_text(
                         "Any other files that are relevant to your model can be listed as 'attachments'"
                     );
-                    self.attachments_widget.draw_and_parse(ui, egui::Id::from("Attachments"));
-                    // let author_results = self.staging_authors.state();
+                    let vec_widget = VecWidget{
+                        items: &mut self.attachments_widget,
+                        item_label: "Attachment",
+                        show_reorder_buttons: true,
+                        new_item: Some(AttachmentsWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut AttachmentsWidget, idx, ui|{
+                                widg.summarize(ui, attachments_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut AttachmentsWidget, idx, ui|{
+                                widg.draw_and_parse(ui, attachments_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(attachments_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 

@@ -3,6 +3,8 @@ use std::{marker::PhantomData, ops::{Deref, Sub}, sync::mpsc::{Receiver, Sender}
 use egui::InnerResponse;
 use egui::PopupCloseBehavior::CloseOnClickOutside;
 
+use super::ValueWidget;
+
 pub trait DynamicImageExt {
     fn to_egui_texture_handle(&self, name: impl Into<String>, ctx: &egui::Context) -> egui::TextureHandle;
 }
@@ -34,6 +36,20 @@ pub fn group_frame<R>(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui
     let line_end = line_start + egui::Vec2 { x: 0.0, y: response_rect.height() };
     ui.painter().line_segment([line_start, line_end], ui.visuals().window_stroke);
     response
+}
+
+pub fn widget_vec_from_values<Itms, W>(values: Itms) -> Vec<W>
+where
+    Itms: IntoIterator,
+    W: Default,
+    W: for<'a> ValueWidget<Value<'a> = Itms::Item>,
+{
+    values.into_iter().map(|v|{
+        let mut widget = W::default();
+        widget.set_value(v);
+        widget
+    })
+    .collect()
 }
 
 pub fn draw_vertical_brackets(ui: &mut egui::Ui, rect: egui::Rect){

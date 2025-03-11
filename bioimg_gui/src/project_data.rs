@@ -6,8 +6,6 @@ use crate::widgets::maintainer_widget::MaintainerWidget;
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::posstprocessing_widget::PostprocessingWidget;
 
-use crate::widgets::file_source_widget::FileSourceWidget;
-use crate::widgets::cite_widget::CiteEntryWidget;
 use crate::widgets::pytorch_statedict_weights_widget::PytorchStateDictWidget;
 use crate::widgets::weights_widget::{KerasHdf5WeightsWidget, TorchscriptWeightsWidget};
 use crate::widgets::Restore;
@@ -531,7 +529,7 @@ pub struct AppState1RawData{
     #[serde(default)] // added after AppState1RawData
     pub model_id_widget: Option<String>,
     pub staging_authors: Vec<AuthorWidgetRawData>,
-    pub attachments_widget: Vec<CollapsibleWidgetRawData<FileSourceWidget>>,
+    pub attachments_widget: Vec<FileSourceWidgetRawData>,
     pub staging_citations: Vec<CiteEntryWidgetRawData>,
     #[serde(default)] // added after AppState1RawData
     pub custom_config_widget: Option<JsonObjectEditorWidgetRawData>,
