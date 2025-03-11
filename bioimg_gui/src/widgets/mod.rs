@@ -93,6 +93,29 @@ impl<T: Restore + Default> Restore for Vec<T>{
     }
 }
 
+impl<T> Restore for Option<T>
+where
+    T: Restore + Default
+{
+    type RawData = Option<T::RawData>;
+
+    fn dump(&self) -> Self::RawData {
+        self.as_ref().map(|v| v.dump())
+    }
+    fn restore(&mut self, raw: Self::RawData) {
+        let mut val = T::default();
+        match raw{
+            Some(raw) => {
+                val.restore(raw);
+                self.replace(val);
+            },
+            None => {
+                self.take();
+            },
+        };
+    }
+}
+
 macro_rules! impl_Restore_for {($type:ty) => {
     impl Restore for $type{
         type RawData = $type;

@@ -52,6 +52,19 @@ where
     .collect()
 }
 
+pub fn opt_widget_from_value<Val, W>(val: Option<Val>) -> Option<W>
+where
+    W: Default,
+    W: for<'a> ValueWidget<Value<'a> = Val>,
+{
+    val.map(|v|{
+        let mut widget = W::default();
+        widget.set_value(v);
+        widget
+    })
+}
+
+
 pub fn draw_vertical_brackets(ui: &mut egui::Ui, rect: egui::Rect){
     let stroke = ui.visuals().window_stroke();
     let min_to_max = rect.max - rect.min;
@@ -192,6 +205,8 @@ pub enum WidgetItemPosition{
     Block,
 }
 
+pub type SomeRenderer<Itm> = fn(&mut Itm, usize, &mut egui::Ui);
+
 pub struct VecWidget<'a, Itm, RndHdr, RndBdy, NewItm>
 where
     RndHdr: FnMut(&mut Itm, usize, &mut egui::Ui),
@@ -269,13 +284,19 @@ where
 
         let mut action: Action = Action::Nothing;
         let resp = ui.vertical(|ui| {
+            let header_frame = egui::Frame::new().inner_margin(egui::Margin::same(5)).fill(ui.visuals().faint_bg_color);
             items.iter_mut().enumerate().for_each(|(widget_idx, widget)| {
                 match &mut item_renderer{
                     VecItemRender::HeaderOnly { render_header } => {
-                        render_header(widget, widget_idx, ui);
+                        header_frame.show(ui, |ui|{
+                            ui.horizontal(|ui|{
+                                draw_controls(ui, widget_idx, &mut action);
+                                render_header(widget, widget_idx, ui);
+                                ui.add_space(ui.available_width());
+                            });
+                        });
                     },
                     VecItemRender::HeaderAndBody { render_header, render_body, collapsible_id_source, ..} => {
-                        let header_frame = egui::Frame::new().inner_margin(egui::Margin::same(5)).fill(ui.visuals().faint_bg_color);
                         if let Some(id_source) = collapsible_id_source{
                             let id = ui.make_persistent_id(id_source.with(widget_idx));
                             egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)
@@ -320,6 +341,41 @@ where
             Action::MoveDown(idx) => items.swap(idx, idx + 1),
         };
         resp.response
+    }
+}
+
+pub struct OptWidget<'a, T, RndVal>{
+    pub value: &'a mut Option<T>,
+    pub draw_frame: bool,
+    pub render_value: RndVal,
+}
+
+impl<T, RndVal> OptWidget<'_, T, RndVal>
+where
+    T: Default,
+    RndVal: FnMut(&mut T, &mut egui::Ui)
+{
+    pub fn ui(self, ui: &mut egui::Ui) /*-> egui::Response*/ {
+        let Self{value, draw_frame, mut render_value} = self;
+        ui.horizontal(|ui| {
+            if value.is_none() {
+                if ui.button("✚").clicked() {
+                    *value = Some(Default::default());
+                }
+                return
+            }
+            let x_clicked = ui.button("🗙").clicked();
+            if draw_frame{
+                group_frame(ui, |ui| {
+                    render_value(value.as_mut().unwrap(), ui);
+                });
+            } else {
+                render_value(value.as_mut().unwrap(), ui);
+            }
+            if x_clicked {
+                value.take();
+            }
+        });
     }
 }
 
