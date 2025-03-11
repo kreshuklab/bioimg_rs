@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::result::Result;
+use crate::result::{GuiError, Result};
 use bioimg_spec::rdf::{
     bounded_string::{BoundedString, BoundedStringParsingError},
     cite_entry::CiteEntry2,
@@ -94,10 +94,15 @@ impl StatefulWidget for CiteEntryWidget {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(CiteEntry2 {
-            text: self.citation_text_widget.state()?.clone(),
-            doi: self.doi_widget.state().transpose()?.cloned(),
+            text: self.citation_text_widget.state()
+                .map_err(|_| GuiError::new("Invalid citation text"))?
+                .clone(),
+            doi: self.doi_widget.state().transpose()
+                .map_err(|_| GuiError::new("Invalid DOI"))?
+                .cloned(),
             url: self.url_widget.state()
-                .transpose()?
+                .transpose()
+                .map_err(|_| GuiError::new("Invalid URL"))?
                 .map(|val| val.as_ref().clone())
         })
     }

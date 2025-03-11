@@ -79,7 +79,7 @@ pub struct AppState1 {
     pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,
     pub staging_authors: Vec<AuthorWidget>,
     pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
-    pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
+    pub staging_citations: Vec<CiteEntryWidget>,
     pub custom_config_widget: StagingOpt<JsonObjectEditorWidget, false>, //FIXME
     pub staging_git_repo: StagingOpt<StagingUrl, false>,
     pub icon_widget: StagingOpt<IconWidget>,
@@ -139,7 +139,13 @@ impl ValueWidget for AppState1{
             })
             .collect();
         self.attachments_widget.set_value(zoo_model.attachments);
-        self.staging_citations.set_value(zoo_model.cite.into_inner());
+        self.staging_citations = zoo_model.cite.into_inner().into_iter()
+            .map(|descr|{
+                let mut widget = CiteEntryWidget::default();
+                widget.set_value(descr);
+                widget
+            })
+            .collect();
         self.custom_config_widget.set_value(
             if zoo_model.config.is_empty(){
                 None
@@ -173,7 +179,7 @@ impl Default for AppState1 {
             model_id_widget: Default::default(),
             staging_authors: Default::default(),
             attachments_widget: Default::default(),
-            staging_citations: StagingVec::default(),
+            staging_citations: Default::default(),
             custom_config_widget: Default::default(),
             staging_git_repo: Default::default(),
             icon_widget: Default::default(),
@@ -232,9 +238,11 @@ impl AppState1{
         let attachments = self.attachments_widget.state()
             .collect_result()
             .map_err(|e| GuiError::new_with_rect("Check model attachments for errors", e.failed_widget_rect))?;
-        let cite = self.staging_citations.state()
-            .collect_result()
-            .map_err(|e| GuiError::new_with_rect("Check cites for errors", e.failed_widget_rect))?;
+        let cite = self.staging_citations.iter().enumerate()
+            .map(|(idx, widget)| {
+                widget.state().map_err(|_| GuiError::new(format!("Check citation #{} for errors", idx + 1)))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let non_empty_cites = NonEmptyList::try_from(cite)
             .map_err(|_| GuiError::new("Cites are empty"))?;
         let config = self.custom_config_widget.state().cloned()
@@ -501,8 +509,6 @@ impl eframe::App for AppState1 {
                         }
                     };
                     ui.add(vec_widget);
-                    // self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
-                    // let author_results = self.staging_authors.state();
                 });
                 ui.add_space(10.0);
 
@@ -516,9 +522,26 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let cite_base_id = egui::Id::from("cite");
                     ui.strong("Cite: ").on_hover_text("How this model should be cited in other publications.");
-                    self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
-                    // let citation_results = self.staging_citations.state();
+
+                    let vec_widget = VecWidget{
+                        items: &mut self.staging_citations,
+                        item_label: "Citation",
+                        show_reorder_buttons: true,
+                        new_item: Some(CiteEntryWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut CiteEntryWidget, idx, ui|{
+                                widg.summarize(ui, cite_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut CiteEntryWidget, idx, ui|{
+                                widg.draw_and_parse(ui, cite_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(cite_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 
