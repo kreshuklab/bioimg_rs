@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use bioimg_spec::rdf::model::{self as modelrdf, AxisType};
 use crate::widgets::author_widget::AuthorWidget;
-use crate::widgets::maintainer_widget::MaintainerWidget;
 use crate::widgets::onnx_weights_widget::OnnxWeightsWidget;
 use crate::widgets::posstprocessing_widget::PostprocessingWidget;
 
@@ -537,7 +536,7 @@ pub struct AppState1RawData{
     pub icon_widget: Option<IconWidgetRawData>,
     #[serde(default)] // added after AppState1RawData
     pub links_widget: Vec<String>,
-    pub staging_maintainers: Vec<CollapsibleWidgetRawData<MaintainerWidget>>,
+    pub staging_maintainers: Vec<MaintainerWidgetRawData>,
     pub staging_tags: Vec<String>,
     pub staging_version: Option<VersionWidgetRawData>,
 

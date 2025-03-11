@@ -84,7 +84,7 @@ pub struct AppState1 {
     pub staging_git_repo: StagingOpt<StagingUrl, false>,
     pub icon_widget: StagingOpt<IconWidget>,
     pub links_widget: ModelLinksWidget,
-    pub staging_maintainers: StagingVec<CollapsibleWidget<MaintainerWidget>>,
+    pub staging_maintainers: Vec<MaintainerWidget>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
     pub staging_version: StagingOpt<VersionWidget, false>,
 
@@ -156,7 +156,13 @@ impl ValueWidget for AppState1{
         self.staging_git_repo.set_value(zoo_model.git_repo.map(|val| Arc::new(val)));
         self.icon_widget.set_value(zoo_model.icon.map(IconWidgetValue::from));
         self.links_widget.set_value(zoo_model.links);
-        self.staging_maintainers.set_value(zoo_model.maintainers);
+        self.staging_maintainers = zoo_model.maintainers.into_iter()
+            .map(|val| {
+                let mut widget = MaintainerWidget::default();
+                widget.set_value(val);
+                widget
+            })
+            .collect();
         self.staging_tags.set_value(zoo_model.tags);
         self.staging_version.set_value(zoo_model.version);
         self.staging_documentation.set_value(&zoo_model.documentation);
@@ -184,7 +190,7 @@ impl Default for AppState1 {
             staging_git_repo: Default::default(),
             icon_widget: Default::default(),
             links_widget: Default::default(),
-            staging_maintainers: StagingVec::default(),
+            staging_maintainers: Default::default(),
             staging_tags: StagingVec::default(),
             staging_version: Default::default(),
             staging_documentation: Default::default(),
@@ -265,8 +271,12 @@ impl AppState1{
             .into_iter()
             .map(|s| s.clone())
             .collect();
-        let maintainers = self.staging_maintainers.state().collect_result()
-            .map_err(|e| GuiError::new_with_rect("Check maintainers field for errors", e.failed_widget_rect))?;
+        let maintainers = self.staging_maintainers.iter()
+            .enumerate()
+            .map(|(idx, w)| {
+                w.state().map_err(|_| GuiError::new(format!("Check maintainer #{} for errors", idx + 1)))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let tags: Vec<rdf::Tag> = self.staging_tags.state()
             .into_iter()
             .map(|res_ref| res_ref.cloned())
@@ -603,11 +613,29 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let maintainers_base_id = egui::Id::from("maintainers");
                     ui.strong("Maintainers: ").on_hover_text(
                         "Maintainers of this resource. If not specified, 'authors' are considered maintainers \
                         and at least one of them must specify their `github_user` name."
                     );
-                    self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
+
+                    let vec_widget = VecWidget{
+                        items: &mut self.staging_maintainers,
+                        item_label: "Maintainer",
+                        show_reorder_buttons: true,
+                        new_item: Some(MaintainerWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut MaintainerWidget, idx, ui|{
+                                widg.summarize(ui, maintainers_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut MaintainerWidget, idx, ui|{
+                                widg.draw_and_parse(ui, maintainers_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(maintainers_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 
