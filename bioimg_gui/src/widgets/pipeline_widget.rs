@@ -50,6 +50,7 @@ fn draw_proc_button<P: Iconify>(ui: &mut egui::Ui, proc: &P) -> egui::Response{
 fn modal(
     id: egui::Id,
     ui: &mut egui::Ui,
+    title: impl Into<egui::RichText>,
     mut draw_widgets: impl FnMut(&mut egui::Ui) -> Option<PipelineAction>
 ) -> Option<PipelineAction>{
     let mut out = None;
@@ -61,10 +62,13 @@ fn modal(
         .min_scrolled_width(ui.ctx().screen_rect().max.x - 80.0)
         .show(ui, |ui|{
             ui.vertical(|ui|{
-                ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
-                    if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
-                        out = Some(PipelineAction::Nothing);
-                    }
+                ui.horizontal(|ui|{
+                    ui.heading(title.into().strong());
+                    ui.with_layout(egui::Layout::right_to_left(Default::default()), |ui|{
+                        if ui.button("🗙").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)){
+                            out = Some(PipelineAction::Nothing);
+                        }
+                    });
                 });
                 draw_widgets(ui).map(|val| out.insert(val))
             });
@@ -472,13 +476,10 @@ impl PipelineWidget{
         macro_rules! weights_modal {($flavor:ident, $weights_widget:ty) => { paste::paste!{ {
             use itertools::Itertools;
             let id = id.with(stringify!([<$flavor _modal>]));
-            modal(id, ui, |ui| {
+            let mut model_header = stringify!([<$flavor:snake>]).split("_").join(" ");
+            model_header += " Weights";
+            modal(id, ui, model_header, |ui| {
                 let mut action = None;
-
-                let mut model_header = stringify!([<$flavor:snake>]).split("_").join(" ");
-                model_header += " Weights";
-                ui.heading(model_header);
-                ui.separator();
 
                 weights_widget.[<$flavor:snake _weights_widget>].0 = match std::mem::take(&mut weights_widget.[<$flavor _weights_widget>].0) {
                     None => {
@@ -507,7 +508,9 @@ impl PipelineWidget{
 
         self.action = match std::mem::take(&mut self.action) {
             PipelineAction::OpenInputAxis { input_idx, axis_idx } => {
-                modal(id.with(("input axis".as_ptr(), input_idx, axis_idx)), ui, |ui|{
+                let modal_id = id.with(("input axis".as_ptr(), input_idx, axis_idx));
+                let header = format!("Input axis #{} from input #{}", axis_idx + 1, input_idx + 1);
+                modal(modal_id, ui, header, |ui|{
                     let mut action = None;
                     interface_widget.input_widgets[input_idx].axis_widgets[axis_idx].draw(ui, id.with("axis".as_ptr()), true);
                     ui.separator();
@@ -524,7 +527,9 @@ impl PipelineWidget{
                 }).unwrap_or(PipelineAction::OpenInputAxis { input_idx, axis_idx })
             },
             PipelineAction::OpenOutputAxis { output_idx, axis_idx } => {
-                modal(id.with(("output axis".as_ptr(), output_idx, axis_idx)), ui, |ui|{
+                let modal_id = id.with(("output axis".as_ptr(), output_idx, axis_idx));
+                let header = format!("Output axis #{} from output #{}", axis_idx + 1, output_idx + 1);
+                modal(modal_id, ui, header, |ui|{
                     let mut action = None;
                     interface_widget.output_widgets[output_idx].axis_widgets[axis_idx].draw_and_parse(ui, id.with("axis".as_ptr()));
                     ui.separator();
@@ -541,7 +546,8 @@ impl PipelineWidget{
                 }).unwrap_or(PipelineAction::OpenOutputAxis { output_idx, axis_idx })
             },
             PipelineAction::OpenInputs => {
-                modal(id.with("all inputs".as_ptr()), ui, |ui|{
+                let modal_id = id.with("all inputs".as_ptr());
+                modal(modal_id, ui, "Model Inputs", |ui|{
                     let vec_widget = VecWidget{
                         items: &mut interface_widget.input_widgets,
                         item_label: "Model Input",
@@ -565,7 +571,7 @@ impl PipelineWidget{
             },
             PipelineAction::OpenWeights => {
                 let modal_id = egui::Id::from("weights modal");
-                modal(modal_id, ui, |ui|{
+                modal(modal_id, ui, "Model Weights", |ui|{
                     let mut action = None;
                     weights_widget.draw(ui, modal_id.with("weights widget".as_ptr()));
                     ui.separator();
@@ -597,7 +603,8 @@ impl PipelineWidget{
             }
             PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
                 let id = id.with("preproc modal".as_ptr()).with(input_idx).with(preproc_idx);
-                modal(id, ui, |ui| {
+                let header = format!("Preprocessing step #{} from input #{}", preproc_idx + 1, input_idx + 1);
+                modal(id, ui, header, |ui| {
                     let mut action = None;
                     ui.vertical(|ui|{
                         interface_widget.input_widgets[input_idx].preprocessing_widget[preproc_idx].draw_and_parse(
@@ -619,7 +626,8 @@ impl PipelineWidget{
             },
             PipelineAction::OpenPostproc { output_idx, postproc_idx } => {
                 let id = id.with("postproc modal".as_ptr()).with(output_idx).with(postproc_idx);
-                modal(id, ui, |ui| {
+                let header = format!("Posprocessing step #{} from input #{}", postproc_idx + 1, output_idx + 1);
+                modal(id, ui, header, |ui| {
                     let mut action = None;
                     ui.vertical(|ui|{
                         interface_widget.output_widgets[output_idx].postprocessing_widgets[postproc_idx].inner.draw_and_parse(
@@ -641,7 +649,8 @@ impl PipelineWidget{
             }
             PipelineAction::OpenInput { input_idx } => {
                 let id = id.with(input_idx).with("input modal".as_ptr());
-                modal(id, ui, |ui| {
+                let header = format!("Input #{}", input_idx + 1);
+                modal(id, ui, header, |ui| {
                     let mut action = None;
                     let input = &mut interface_widget.input_widgets[input_idx];
                     input.draw(ui, id.with("input widget".as_ptr()));
@@ -661,11 +670,12 @@ impl PipelineWidget{
                     action
                 }).unwrap_or(PipelineAction::OpenInput { input_idx })
             },
-            PipelineAction::OpenOutput { output_idx: input_idx } => {
-                let id = id.with(input_idx).with("output modal".as_ptr());
-                modal(id, ui, |ui| {
+            PipelineAction::OpenOutput { output_idx } => {
+                let id = id.with(output_idx).with("output modal".as_ptr());
+                let header = format!("Output #{}", output_idx + 1);
+                modal(id, ui, header, |ui| {
                     let mut action = None;
-                    let output = &mut interface_widget.output_widgets[input_idx];
+                    let output = &mut interface_widget.output_widgets[output_idx];
                     output.draw(ui, id.with("output widget".as_ptr()));
                     ui.separator();
                     if let Err(err) = output.parse(){
@@ -673,7 +683,7 @@ impl PipelineWidget{
                     }
                     ui.horizontal(|ui|{
                         if ui.button("Remove").clicked(){
-                            interface_widget.output_widgets.remove(input_idx);
+                            interface_widget.output_widgets.remove(output_idx);
                             action.replace(PipelineAction::Nothing);
                         }
                         if ui.button("Ok").clicked(){
@@ -681,7 +691,7 @@ impl PipelineWidget{
                         }
                     });
                     action
-                }).unwrap_or(PipelineAction::OpenOutput { output_idx: input_idx })
+                }).unwrap_or(PipelineAction::OpenOutput { output_idx })
             },
             PipelineAction::RemoveInput { input_idx } => {
                 interface_widget.input_widgets.remove(input_idx);
