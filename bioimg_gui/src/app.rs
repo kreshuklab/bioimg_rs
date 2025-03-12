@@ -18,7 +18,7 @@ use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
 use crate::widgets::code_editor_widget::MarkdwownLang;
-use crate::widgets::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
+use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::icon_widget::IconWidgetValue;
