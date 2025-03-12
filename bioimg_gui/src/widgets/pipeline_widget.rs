@@ -97,6 +97,7 @@ fn modal(
                         }
                     });
                 });
+                ui.add_space(10.0);
                 draw_widgets(ui).map(|val| out.insert(val))
             });
         });
