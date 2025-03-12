@@ -16,7 +16,9 @@ use super::collapsible_widget::CollapsibleWidget;
 use super::error_display::show_error;
 use super::iconify::Iconify;
 use super::inout_tensor_widget::InputTensorWidget;
+use super::input_axis_widget::InputAxisWidget;
 use super::model_interface_widget::ModelInterfaceWidget;
+use super::output_axis_widget::OutputAxisWidget;
 use super::posstprocessing_widget::ShowPostprocTypePicker;
 use super::preprocessing_widget::ShowPreprocTypePicker;
 use super::util::Arrow;
@@ -46,6 +48,30 @@ fn draw_proc_button<P: Iconify>(ui: &mut egui::Ui, proc: &P) -> egui::Response{
             egui::Button::new(text).fill(egui::Color32::RED).ui(ui).on_hover_ui(|ui| show_error(ui, err))
         }
     }
+}
+
+fn get_input_name(input: &InputTensorWidget, input_idx: usize) -> String{
+    if input.id_widget.raw.len() == 0{
+        format!("Input #{}", input_idx)
+    } else {
+        input.id_widget.raw.clone()
+    }
+}
+
+fn get_output_name(output: &OutputTensorWidget, output_idx: usize) -> String{
+    if output.id_widget.raw.len() == 0{
+        format!("Output #{}", output_idx)
+    } else {
+        output.id_widget.raw.clone()
+    }
+}
+
+fn get_input_axis_name(axis: &InputAxisWidget, axis_idx: usize) -> String{
+    axis.name_label(axis_idx).text().to_owned()
+}
+
+fn get_output_axis_name(axis: &OutputAxisWidget, axis_idx: usize) -> String{
+    axis.name_label(axis_idx).text().to_owned()
 }
 
 fn modal(
@@ -511,7 +537,13 @@ impl PipelineWidget{
         self.action = match std::mem::take(&mut self.action) {
             PipelineAction::OpenInputAxis { input_idx, axis_idx } => {
                 let modal_id = id.with(("input axis".as_ptr(), input_idx, axis_idx));
-                let header = format!("Input axis #{} from input #{}", axis_idx + 1, input_idx + 1);
+                let input_widget = &interface_widget.input_widgets[input_idx];
+                let axis_widget = &input_widget.axis_widgets[axis_idx];
+                let header = format!(
+                    "Axis '{}' from input '{}'",
+                    get_input_axis_name(axis_widget, axis_idx),
+                    get_input_name(input_widget, input_idx),
+                );
                 modal(modal_id, ui, header, |ui|{
                     let mut action = None;
                     interface_widget.input_widgets[input_idx].axis_widgets[axis_idx].draw(ui, id.with("axis".as_ptr()), true);
@@ -530,7 +562,13 @@ impl PipelineWidget{
             },
             PipelineAction::OpenOutputAxis { output_idx, axis_idx } => {
                 let modal_id = id.with(("output axis".as_ptr(), output_idx, axis_idx));
-                let header = format!("Output axis #{} from output #{}", axis_idx + 1, output_idx + 1);
+                let output_widget = &interface_widget.output_widgets[output_idx];
+                let axis_widget = &output_widget.axis_widgets[axis_idx];
+                let header = format!(
+                    "Axis '{}' from output '{}'",
+                    get_output_axis_name(axis_widget, axis_idx),
+                    get_output_name(output_widget, output_idx),
+                );
                 modal(modal_id, ui, header, |ui|{
                     let mut action = None;
                     interface_widget.output_widgets[output_idx].axis_widgets[axis_idx].draw_and_parse(ui, id.with("axis".as_ptr()));
@@ -628,7 +666,11 @@ impl PipelineWidget{
             }
             PipelineAction::OpenPreproc { input_idx, preproc_idx } => {
                 let id = id.with("preproc modal".as_ptr()).with(input_idx).with(preproc_idx);
-                let header = format!("Preprocessing step #{} from input #{}", preproc_idx + 1, input_idx + 1);
+                let input_widget = &interface_widget.input_widgets[input_idx];
+                let header = format!(
+                    "Preprocessing step #{preproc_idx} from input '{}'",
+                    get_input_name(input_widget, input_idx),
+                );
                 modal(id, ui, header, |ui| {
                     let mut action = None;
                     ui.vertical(|ui|{
@@ -651,7 +693,11 @@ impl PipelineWidget{
             },
             PipelineAction::OpenPostproc { output_idx, postproc_idx } => {
                 let id = id.with("postproc modal".as_ptr()).with(output_idx).with(postproc_idx);
-                let header = format!("Posprocessing step #{} from input #{}", postproc_idx + 1, output_idx + 1);
+                let output_widget = &interface_widget.output_widgets[output_idx];
+                let header = format!(
+                    "Postprocessing step #{postproc_idx} from output '{}'",
+                    get_output_name(output_widget, output_idx),
+                );
                 modal(id, ui, header, |ui| {
                     let mut action = None;
                     ui.vertical(|ui|{
@@ -674,7 +720,11 @@ impl PipelineWidget{
             }
             PipelineAction::OpenInput { input_idx } => {
                 let id = id.with(input_idx).with("input modal".as_ptr());
-                let header = format!("Input #{}", input_idx + 1);
+                let input_widget = &interface_widget.input_widgets[input_idx];
+                let header = format!(
+                    "Input '{}'",
+                    get_input_name(input_widget, input_idx),
+                );
                 modal(id, ui, header, |ui| {
                     let mut action = None;
                     let input = &mut interface_widget.input_widgets[input_idx];
@@ -697,7 +747,11 @@ impl PipelineWidget{
             },
             PipelineAction::OpenOutput { output_idx } => {
                 let id = id.with(output_idx).with("output modal".as_ptr());
-                let header = format!("Output #{}", output_idx + 1);
+                let output_widget = &interface_widget.output_widgets[output_idx];
+                let header = format!(
+                    "Output '{}'",
+                    get_output_name(output_widget, output_idx),
+                );
                 modal(id, ui, header, |ui| {
                     let mut action = None;
                     let output = &mut interface_widget.output_widgets[output_idx];
