@@ -356,7 +356,11 @@ impl StatefulWidget for FileSourceWidget{
     fn state(&self) -> Result<rt::FileSource>{
         return match self.mode {
             FileSourceWidgetMode::Local => self.local_file_source_widget.state(),
-            FileSourceWidgetMode::Url => Ok(rt::FileSource::HttpUrl(self.http_url_widget.state()?)),
+            FileSourceWidgetMode::Url => Ok(
+                rt::FileSource::HttpUrl(
+                    self.http_url_widget.state().map_err(|_| GuiError::new("Invalid HTTP URL"))?
+                )
+            ),
         }
     }
 }

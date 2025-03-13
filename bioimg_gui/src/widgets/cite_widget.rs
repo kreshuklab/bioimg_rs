@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::result::Result;
+use crate::result::{GuiError, Result};
 use bioimg_spec::rdf::{
     bounded_string::{BoundedString, BoundedStringParsingError},
-    cite_entry::CiteEntry2,
+    cite_entry::{CiteEntry2, CiteEntry2Msg},
 };
 
 use super::{collapsible_widget::{CollapsibleWidget, SummarizableWidget}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, url_widget::StagingUrl, Restore, StatefulWidget, ValueWidget};
@@ -32,9 +32,9 @@ pub struct CiteEntryWidget {
 impl ValueWidget for CiteEntryWidget{
     type Value<'a> = CiteEntry2;
     fn set_value<'a>(&mut self, value: Self::Value<'a>) {
+        self.doi_widget.set_value(value.doi().cloned());
+        self.url_widget.set_value(value.url().cloned().map(|val| Arc::new(val)));
         self.citation_text_widget.set_value(value.text);
-        self.doi_widget.set_value(value.doi);
-        self.url_widget.set_value(value.url.map(|val| Arc::new(val)));
     }
 }
 
@@ -93,12 +93,18 @@ impl StatefulWidget for CiteEntryWidget {
     }
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
-        Ok(CiteEntry2 {
-            text: self.citation_text_widget.state()?.clone(),
-            doi: self.doi_widget.state().transpose()?.cloned(),
+        let msg = CiteEntry2Msg {
+            text: self.citation_text_widget.state()
+                .map_err(|_| GuiError::new("Invalid citation text"))?
+                .clone(),
+            doi: self.doi_widget.state().transpose()
+                .map_err(|_| GuiError::new("Invalid DOI"))?
+                .cloned(),
             url: self.url_widget.state()
-                .transpose()?
+                .transpose()
+                .map_err(|_| GuiError::new("Invalid URL"))?
                 .map(|val| val.as_ref().clone())
-        })
+        };
+        Ok(CiteEntry2::try_from(msg)?)
     }
 }

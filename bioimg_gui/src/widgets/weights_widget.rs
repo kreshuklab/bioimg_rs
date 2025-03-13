@@ -15,26 +15,12 @@ use super::file_source_widget::FileSourceWidget;
 use super::error_display::show_error;
 use super::collapsible_widget::{CollapsibleWidget, SummarizableWidget};
 
-#[derive(Restore)]
+#[derive(Restore, Default)]
 pub struct WeightsWidget{
     pub keras_weights_widget: StagingOpt<CollapsibleWidget<KerasHdf5WeightsWidget>, false>,
     pub torchscript_weights_widget: StagingOpt<CollapsibleWidget<TorchscriptWeightsWidget>, false>,
-    pub pytorch_state_dict_widget: StagingOpt<CollapsibleWidget<PytorchStateDictWidget>, false>,
-    pub onnx_eights_widget: StagingOpt<CollapsibleWidget<OnnxWeightsWidget>, false>,
-    #[restore_on_update]
-    parsed: Result<Arc<rt::ModelWeights>>
-}
-
-impl Default for WeightsWidget{
-    fn default() -> Self {
-        Self {
-            keras_weights_widget: Default::default(),
-            torchscript_weights_widget: Default::default(),
-            pytorch_state_dict_widget: Default::default(),
-            onnx_eights_widget: Default::default(),
-            parsed: Err(GuiError::new("empty"))
-        }
-    }
+    pub pytorch_state_dict_weights_widget: StagingOpt<CollapsibleWidget<PytorchStateDictWidget>, false>,
+    pub onnx_weights_widget: StagingOpt<CollapsibleWidget<OnnxWeightsWidget>, false>,
 }
 
 impl ValueWidget for WeightsWidget{
@@ -42,35 +28,13 @@ impl ValueWidget for WeightsWidget{
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
         self.keras_weights_widget.set_value(value.keras_hdf5().cloned());
         self.torchscript_weights_widget.set_value(value.torchscript().cloned());
-        self.pytorch_state_dict_widget.set_value(value.pytorch_state_dict().cloned());
-        self.onnx_eights_widget.set_value(value.onnx().cloned());
+        self.pytorch_state_dict_weights_widget.set_value(value.pytorch_state_dict().cloned());
+        self.onnx_weights_widget.set_value(value.onnx().cloned());
     }
 }
 
-impl WeightsWidget{
-    pub fn update(&mut self){
-        self.parsed = (|| {
-            Ok(Arc::new(rt::ModelWeights::new(
-                self.keras_weights_widget.0.as_ref()
-                    .map(|col_widget| col_widget.inner.state())
-                    .transpose()?,
-                self.onnx_eights_widget.state().transpose()?,
-                self.pytorch_state_dict_widget.state().transpose()?,
-                None,
-                None,
-                self.torchscript_weights_widget.0.as_ref()
-                    .map(|col_widget| col_widget.inner.state())
-                    .transpose()?,
-            )?)
-        )})();
-    }
-}
-
-impl StatefulWidget for WeightsWidget{
-    type Value<'p> = Result<Arc<rt::ModelWeights>>;
-
-    fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        self.update();
+impl  WeightsWidget{
+    pub fn draw(&mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.vertical(|ui|{
             ui.horizontal(|ui|{
                 ui.strong("Torchscript: ");
@@ -78,7 +42,7 @@ impl StatefulWidget for WeightsWidget{
             });
             ui.horizontal(|ui|{
                 ui.strong("Pytorch state dict: ");
-                self.pytorch_state_dict_widget.draw_and_parse(ui, id.with("pytorch".as_ptr()));
+                self.pytorch_state_dict_weights_widget.draw_and_parse(ui, id.with("pytorch".as_ptr()));
             });
             ui.horizontal(|ui|{
                 ui.strong("Keras: ");
@@ -86,17 +50,24 @@ impl StatefulWidget for WeightsWidget{
             });
             ui.horizontal(|ui|{
                 ui.strong("Onnx: ");
-                self.onnx_eights_widget.draw_and_parse(ui, id.with("onnx".as_ptr()));
+                self.onnx_weights_widget.draw_and_parse(ui, id.with("onnx".as_ptr()));
             });
-
-            if let Err(e) = &self.parsed{
-                show_error(ui, e);
-            }
         });
     }
 
-    fn state<'p>(&'p self) -> Self::Value<'p> {
-        self.parsed.clone()
+    pub fn get_value(&self) -> Result<Arc<rt::ModelWeights>> {
+        Ok(Arc::new(rt::ModelWeights::new(
+            self.keras_weights_widget.0.as_ref()
+                .map(|col_widget| col_widget.inner.state())
+                .transpose()?,
+            self.onnx_weights_widget.state().transpose()?,
+            self.pytorch_state_dict_weights_widget.state().transpose()?,
+            None,
+            None,
+            self.torchscript_weights_widget.0.as_ref()
+                .map(|col_widget| col_widget.inner.state())
+                .transpose()?,
+        )?))
     }
 }
 

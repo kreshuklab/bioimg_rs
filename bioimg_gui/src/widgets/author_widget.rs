@@ -3,7 +3,7 @@ use bioimg_spec::rdf::{author::Author2, bounded_string::BoundedString, orcid::Or
 use super::{
     collapsible_widget::{CollapsibleWidget, SummarizableWidget}, labels::{self, orcid_label}, staging_opt::StagingOpt, staging_string::StagingString, staging_vec::ItemWidgetConf, Restore, StatefulWidget, ValueWidget
 };
-use crate::result::Result;
+use crate::result::{GuiError, Result};
 
 pub type ConfString = BoundedString<1, 1024>;
 
@@ -95,10 +95,17 @@ impl StatefulWidget for AuthorWidget {
 
     fn state<'p>(&'p self) -> Self::Value<'p> {
         Ok(Author2 { //FIXME: maybe check everything before cloning?
-            name: self.name_widget.state().cloned()?,
-            affiliation: self.affiliation_widget.state().transpose()?.cloned(),
-            email: self.email_widget.state().transpose()?.cloned(),
-            github_user: self.github_user_widget.state().transpose()?.cloned(),
+            name: self.name_widget.state().cloned()
+                .map_err(|_| GuiError::new(format!("Invalid name")))?,
+            affiliation: self.affiliation_widget.state().transpose()
+                .map_err(|_| GuiError::new("Invalid affiliation"))?
+                .cloned(),
+            email: self.email_widget.state().transpose()
+                .map_err(|_| GuiError::new("Invalid email"))?
+                .cloned(),
+            github_user: self.github_user_widget.state().transpose()
+                .map_err(|_| GuiError::new("Invalid github user"))?
+                .cloned(),
             orcid: self.orcid_widget.state().transpose()?.cloned(),
         })
     }

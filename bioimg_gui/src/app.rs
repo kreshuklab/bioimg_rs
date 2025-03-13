@@ -18,7 +18,7 @@ use crate::result::{GuiError, Result, VecResultExt};
 use crate::widgets::attachments_widget::AttachmentsWidget;
 
 use crate::widgets::code_editor_widget::MarkdwownLang;
-use crate::widgets::collapsible_widget::CollapsibleWidget;
+use crate::widgets::collapsible_widget::SummarizableWidget;
 use crate::widgets::cover_image_widget::CoverImageItemConf;
 // use crate::widgets::cover_image_widget::CoverImageWidget;
 use crate::widgets::icon_widget::IconWidgetValue;
@@ -27,11 +27,12 @@ use crate::widgets::json_editor_widget::JsonObjectEditorWidget;
 use crate::widgets::model_interface_widget::ModelInterfaceWidget;
 use crate::widgets::model_links_widget::ModelLinksWidget;
 use crate::widgets::notice_widget::NotificationsWidget;
+use crate::widgets::pipeline_widget::PipelineWidget;
 use crate::widgets::search_and_pick_widget::SearchAndPickWidget;
 use crate::widgets::staging_opt::StagingOpt;
 use crate::widgets::staging_string::{InputLines, StagingString};
 use crate::widgets::staging_vec::StagingVec;
-use crate::widgets::util::TaskChannel;
+use crate::widgets::util::{widget_vec_from_values, TaskChannel, VecItemRender, VecWidget};
 use crate::widgets::version_widget::VersionWidget;
 use crate::widgets::weights_widget::WeightsWidget;
 use crate::widgets::zoo_widget::{upload_model, ZooLoginWidget};
@@ -58,20 +59,32 @@ pub enum TaskResult{
     ModelImport(Box<rt::zoo_model::ZooModel>),
 }
 
+pub struct MyWidget{
+    id: egui::Id,
+    #[allow(dead_code)]
+    text: String,
+}
+
+impl std::hash::Hash for MyWidget{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
+    }
+}
+
 #[derive(Restore)]
 pub struct AppState1 {
     pub staging_name: StagingString<ModelRdfName>,
     pub staging_description: StagingString<BoundedString<0, 1024>>,
     pub cover_images: StagingVec<SpecialImageWidget<rt::CoverImage>, CoverImageItemConf>,
     pub model_id_widget: StagingOpt<StagingString<ResourceId>, false>,
-    pub staging_authors: StagingVec<CollapsibleWidget<AuthorWidget>>,
-    pub attachments_widget: StagingVec<CollapsibleWidget<AttachmentsWidget>>,
-    pub staging_citations: StagingVec<CollapsibleWidget<CiteEntryWidget>>,
+    pub staging_authors: Vec<AuthorWidget>,
+    pub attachments_widget: Vec<AttachmentsWidget>,
+    pub staging_citations: Vec<CiteEntryWidget>,
     pub custom_config_widget: StagingOpt<JsonObjectEditorWidget, false>, //FIXME
     pub staging_git_repo: StagingOpt<StagingUrl, false>,
     pub icon_widget: StagingOpt<IconWidget>,
     pub links_widget: ModelLinksWidget,
-    pub staging_maintainers: StagingVec<CollapsibleWidget<MaintainerWidget>>,
+    pub staging_maintainers: Vec<MaintainerWidget>,
     pub staging_tags: StagingVec<StagingString<rdf::Tag>>,
     pub staging_version: StagingOpt<VersionWidget, false>,
 
@@ -81,6 +94,13 @@ pub struct AppState1 {
     pub model_interface_widget: ModelInterfaceWidget,
     ////
     pub weights_widget: WeightsWidget,
+
+
+
+    #[restore_default]
+    pub pipeline_widget: PipelineWidget,
+
+
 
     #[restore_default]
     pub zoo_login_widget: ZooLoginWidget,
@@ -111,9 +131,21 @@ impl ValueWidget for AppState1{
                 .collect()
         );
         self.model_id_widget.set_value(zoo_model.id);
-        self.staging_authors.set_value(zoo_model.authors.into_inner());
-        self.attachments_widget.set_value(zoo_model.attachments);
-        self.staging_citations.set_value(zoo_model.cite.into_inner());
+        self.staging_authors = zoo_model.authors.into_inner().into_iter()
+            .map(|descr| {
+                let mut widget = AuthorWidget::default();
+                widget.set_value(descr);
+                widget
+            })
+            .collect();
+        self.attachments_widget = widget_vec_from_values(zoo_model.attachments);
+        self.staging_citations = zoo_model.cite.into_inner().into_iter()
+            .map(|descr|{
+                let mut widget = CiteEntryWidget::default();
+                widget.set_value(descr);
+                widget
+            })
+            .collect();
         self.custom_config_widget.set_value(
             if zoo_model.config.is_empty(){
                 None
@@ -124,7 +156,13 @@ impl ValueWidget for AppState1{
         self.staging_git_repo.set_value(zoo_model.git_repo.map(|val| Arc::new(val)));
         self.icon_widget.set_value(zoo_model.icon.map(IconWidgetValue::from));
         self.links_widget.set_value(zoo_model.links);
-        self.staging_maintainers.set_value(zoo_model.maintainers);
+        self.staging_maintainers = zoo_model.maintainers.into_iter()
+            .map(|val| {
+                let mut widget = MaintainerWidget::default();
+                widget.set_value(val);
+                widget
+            })
+            .collect();
         self.staging_tags.set_value(zoo_model.tags);
         self.staging_version.set_value(zoo_model.version);
         self.staging_documentation.set_value(&zoo_model.documentation);
@@ -145,14 +183,14 @@ impl Default for AppState1 {
             staging_description: StagingString::new(InputLines::Multiline),
             cover_images: StagingVec::default(),
             model_id_widget: Default::default(),
-            staging_authors: StagingVec::default(),
+            staging_authors: Default::default(),
             attachments_widget: Default::default(),
-            staging_citations: StagingVec::default(),
+            staging_citations: Default::default(),
             custom_config_widget: Default::default(),
             staging_git_repo: Default::default(),
             icon_widget: Default::default(),
             links_widget: Default::default(),
-            staging_maintainers: StagingVec::default(),
+            staging_maintainers: Default::default(),
             staging_tags: StagingVec::default(),
             staging_version: Default::default(),
             staging_documentation: Default::default(),
@@ -166,6 +204,7 @@ impl Default for AppState1 {
             notifications_channel: Default::default(),
             zoo_login_widget: Default::default(),
             zoo_model_creation_task: Default::default(),
+            pipeline_widget: Default::default(),
 
             close_confirmed: false,
             show_confirmation_dialog: false,
@@ -191,19 +230,30 @@ impl AppState1{
         let model_id = self.model_id_widget.state().transpose()
             .map_err(|e| GuiError::new_with_rect("Check model id for errors", e.failed_widget_rect))?
             .cloned();
-        let authors = NonEmptyList::
-            try_from(
-                self.staging_authors.state()
-                    .collect_result()
-                    .map_err(|e| GuiError::new_with_rect("Check authors for errors", e.failed_widget_rect))?
+        let authors = NonEmptyList::try_from(
+                self.staging_authors.iter()
+                    .enumerate()
+                    .map(|(idx, widget)| {
+                        widget.state().map_err(|err| {
+                            GuiError::new_with_rect(format!("Check author #{} for errors", idx + 1), err.failed_widget_rect)
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?
             )
             .map_err(|_| GuiError::new("Empty authors"))?;
-        let attachments = self.attachments_widget.state()
-            .collect_result()
-            .map_err(|e| GuiError::new_with_rect("Check model attachments for errors", e.failed_widget_rect))?;
-        let cite = self.staging_citations.state()
-            .collect_result()
-            .map_err(|e| GuiError::new_with_rect("Check cites for errors", e.failed_widget_rect))?;
+        let attachments = self.attachments_widget.iter()
+            .enumerate()
+            .map(|(idx, widget)| {
+                widget.state().map_err(|_| GuiError::new(format!("Check attachment #{} for errors", idx + 1)))
+            })
+            .collect::<Result<Vec<_>>>()?;
+            // .collect_result()
+            // .map_err(|e| GuiError::new_with_rect("Check model attachments for errors", e.failed_widget_rect))?;
+        let cite = self.staging_citations.iter().enumerate()
+            .map(|(idx, widget)| {
+                widget.state().map_err(|_| GuiError::new(format!("Check citation #{} for errors", idx + 1)))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let non_empty_cites = NonEmptyList::try_from(cite)
             .map_err(|_| GuiError::new("Cites are empty"))?;
         let config = self.custom_config_widget.state().cloned()
@@ -221,8 +271,12 @@ impl AppState1{
             .into_iter()
             .map(|s| s.clone())
             .collect();
-        let maintainers = self.staging_maintainers.state().collect_result()
-            .map_err(|e| GuiError::new_with_rect("Check maintainers field for errors", e.failed_widget_rect))?;
+        let maintainers = self.staging_maintainers.iter()
+            .enumerate()
+            .map(|(idx, w)| {
+                w.state().map_err(|_| GuiError::new(format!("Check maintainer #{} for errors", idx + 1)))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let tags: Vec<rdf::Tag> = self.staging_tags.state()
             .into_iter()
             .map(|res_ref| res_ref.cloned())
@@ -234,11 +288,9 @@ impl AppState1{
             .cloned();
         let documentation = self.staging_documentation.state().to_owned();
         let license = self.staging_license.state();
-        let model_interface = self.model_interface_widget.state()
-            .as_ref()
-            .map(|interf| interf.clone())
+        let model_interface = self.model_interface_widget.get_value()
             .map_err(|_| GuiError::new("Check model interface for errors"))?;
-        let weights = self.weights_widget.state()
+        let weights = self.weights_widget.get_value()
             .map_err(|e| GuiError::new_with_rect("Check model weights for errors", e.failed_widget_rect))?
             .as_ref().clone();
 
@@ -409,7 +461,8 @@ impl eframe::App for AppState1 {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.style_mut().spacing.item_spacing = egui::Vec2 { x: 10.0, y: 10.0 };
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.heading("Model Properties");
+                ui.heading("Model Metadata");
+                ui.separator();
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Name: ").on_hover_text(
@@ -450,27 +503,76 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let authors_base_id = egui::Id::from("authors");
                     ui.strong("Authors: ").on_hover_text(
                         "The authors are the creators of this resource description and the primary points of contact."
                     );
-                    self.staging_authors.draw_and_parse(ui, egui::Id::from("Authors"));
-                    // let author_results = self.staging_authors.state();
+                    let vec_widget = VecWidget{
+                        items: &mut self.staging_authors,
+                        item_label: "Author",
+                        show_reorder_buttons: true,
+                        new_item: Some(AuthorWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut AuthorWidget, idx, ui|{
+                                widg.summarize(ui, authors_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut AuthorWidget, idx, ui|{
+                                widg.draw_and_parse(ui, authors_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(authors_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let attachments_base_id = egui::Id::from("attachments");
                     ui.strong("Attachments: ").on_hover_text(
                         "Any other files that are relevant to your model can be listed as 'attachments'"
                     );
-                    self.attachments_widget.draw_and_parse(ui, egui::Id::from("Attachments"));
-                    // let author_results = self.staging_authors.state();
+                    let vec_widget = VecWidget{
+                        items: &mut self.attachments_widget,
+                        item_label: "Attachment",
+                        show_reorder_buttons: true,
+                        new_item: Some(AttachmentsWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut AttachmentsWidget, idx, ui|{
+                                widg.summarize(ui, attachments_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut AttachmentsWidget, idx, ui|{
+                                widg.draw_and_parse(ui, attachments_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(attachments_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let cite_base_id = egui::Id::from("cite");
                     ui.strong("Cite: ").on_hover_text("How this model should be cited in other publications.");
-                    self.staging_citations.draw_and_parse(ui, egui::Id::from("Cite"));
-                    // let citation_results = self.staging_citations.state();
+
+                    let vec_widget = VecWidget{
+                        items: &mut self.staging_citations,
+                        item_label: "Citation",
+                        show_reorder_buttons: true,
+                        new_item: Some(CiteEntryWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut CiteEntryWidget, idx, ui|{
+                                widg.summarize(ui, cite_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut CiteEntryWidget, idx, ui|{
+                                widg.draw_and_parse(ui, cite_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(cite_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 
@@ -511,11 +613,29 @@ impl eframe::App for AppState1 {
                 ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
+                    let maintainers_base_id = egui::Id::from("maintainers");
                     ui.strong("Maintainers: ").on_hover_text(
                         "Maintainers of this resource. If not specified, 'authors' are considered maintainers \
                         and at least one of them must specify their `github_user` name."
                     );
-                    self.staging_maintainers.draw_and_parse(ui, egui::Id::from("Maintainers"));
+
+                    let vec_widget = VecWidget{
+                        items: &mut self.staging_maintainers,
+                        item_label: "Maintainer",
+                        show_reorder_buttons: true,
+                        new_item: Some(MaintainerWidget::default),
+                        item_renderer: VecItemRender::HeaderAndBody{
+                            render_header: |widg: &mut MaintainerWidget, idx, ui|{
+                                widg.summarize(ui, maintainers_base_id.with(("header".as_ptr(), idx)));
+                            },
+                            render_body: |widg: &mut MaintainerWidget, idx, ui|{
+                                widg.draw_and_parse(ui, maintainers_base_id.with(("body".as_ptr(), idx)));
+                            },
+                            collapsible_id_source: Some(maintainers_base_id),
+                            marker: Default::default(),
+                        }
+                    };
+                    ui.add(vec_widget);
                 });
                 ui.add_space(10.0);
 
@@ -541,38 +661,35 @@ impl eframe::App for AppState1 {
                 });
                 ui.add_space(10.0);
 
-                ui.horizontal_top(|ui| {
-                    ui.strong("Documentation (markdown): ").on_hover_text(
-                        "All model documentation should be written here. This field accepts Markdown syntax"
-                    );
-                    self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
-                });
-
                 ui.horizontal(|ui| {
                     ui.strong("License: ").on_hover_text("A standard software licence, specifying how this model can be used and for what purposes.");
                     self.staging_license.draw_and_parse(ui, egui::Id::from("License"));
                 });
+                ui.add_space(20.0);
 
-                self.model_interface_widget.draw_and_parse(ui, egui::Id::from("Interface"));
 
-                ui.horizontal(|ui| {
-                    ui.strong("Model Weights: ").on_hover_text(indoc!("
-                        The serialized weights and biases underlying this model.
+                ui.heading("Documentation (markdown): ").on_hover_text(
+                    "All model documentation should be written here. This field accepts Markdown syntax"
+                );
+                ui.separator();
+                self.staging_documentation.draw_and_parse(ui, egui::Id::from("Documentation"));
+                ui.add_space(20.0);
 
-                        Model authors are strongly encouraged to use a format other than pytorch satedicts to maximize \
-                        intercompatibility between tools. Pytorch statedicts contain arbitrary python code and, crucially, \
-                        arbitrary dependencies that are very likely to clash with the dependencies of consumer applications. \
-                        Further, pytorch state dicts essentially require client applications to either be written in Python or \
-                        to ship the Python interpreter embedded into them.
 
-                        You can include mutiple flavors of your model weights, but they all MUST produce the same results"
-                    ));
-                    group_frame(ui, |ui| {
-                        self.weights_widget.draw_and_parse(ui, egui::Id::from("Weights"));
-                    });
-
+                ui.heading("Model Interface");
+                ui.separator();
+                egui::ScrollArea::horizontal().show(ui, |ui|{
+                    self.pipeline_widget.draw(
+                        ui,
+                        egui::Id::from("pipeline"),
+                        &mut self.model_interface_widget,
+                        &mut self.weights_widget,
+                    );
                 });
+                ui.add_space(20.0);
 
+
+                ui.separator();
                 ui.horizontal(|ui| {
                     let save_button_clicked = ui.button("Save Model")
                         .on_hover_text("Save this model to a .zip file, ready to be used or uploaded to the Model Zoo")

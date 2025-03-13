@@ -44,7 +44,7 @@ where
     type Value<'p> = W::Value<'p> where W: 'p;
     
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
-        let frame = egui::Frame::none()
+        let frame = egui::Frame::new()
             .inner_margin(4.0)
             .stroke(ui.visuals().window_stroke);
         frame.show(ui, |ui|{

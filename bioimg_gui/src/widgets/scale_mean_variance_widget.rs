@@ -6,6 +6,7 @@ use bioimg_spec::rdf::model::postprocessing as postproc;
 use crate::result::GuiError;
 use crate::result::Result;
 use crate::result::VecResultExt;
+use super::iconify::Iconify;
 use super::staging_float::StagingFloat;
 use super::Restore;
 use super::ValueWidget;
@@ -16,6 +17,15 @@ pub struct ScaleMeanVarianceWidget{
     pub reference_tensor_widget: StagingString<modelrdf::TensorId>,
     pub axes_widget: StagingOpt<  StagingVec< StagingString<modelrdf::AxisId>, ScaleMeanVarItemConfig >  >,
     pub eps_widget: StagingFloat<preproc::PreprocessingEpsilon>,
+}
+
+impl Iconify for ScaleMeanVarianceWidget{
+    fn iconify(&self) -> Result<egui::WidgetText> {
+        let prep = self.state()?;
+        Ok(egui::RichText::new(format!(
+            "⚖ {}", prep.reference_tensor
+        )).into())
+    }
 }
 
 impl ValueWidget for ScaleMeanVarianceWidget{

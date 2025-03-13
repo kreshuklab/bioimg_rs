@@ -31,7 +31,7 @@ impl Display for Author2{
             write!(f, " 📧{email}")?;
         }
         if let Some(github_user) = &self.github_user{
-            write!(f, " github: {github_user}")?;
+            write!(f, " : {github_user}")?;
         }
         Ok(())
     }

@@ -3,6 +3,7 @@ use bioimg_spec::rdf::model::preprocessing as preproc;
 
 use crate::project_data::ZmuvWidgetModeRawData;
 use crate::result::{GuiError, Result, VecResultExt};
+use super::iconify::Iconify;
 use super::search_and_pick_widget::SearchAndPickWidget;
 use super::staging_float::StagingFloat;
 use super::Restore;
@@ -160,6 +161,13 @@ pub struct FixedZmuvWidget{
     pub mode_widget: SearchAndPickWidget<ZmuvWidgetMode, false>,
     pub simple_widget: SimpleFixedZmuvWidget,
     pub along_axis_widget: FixedZmuvAlongAxisWidget,
+}
+
+impl Iconify for FixedZmuvWidget{
+    fn iconify(&self) -> Result<egui::WidgetText>{
+        let preproc = self.state()?;
+        Ok(preproc.to_string().into()) //FIXME
+    }
 }
 
 impl ValueWidget for FixedZmuvWidget{

@@ -229,7 +229,9 @@ impl StatefulWidget for ChannelAxisWidget{
             }
             ChannelNamesMode::Explicit => {
                 let channel_names_result: Result<Vec<rdf::Identifier>, GuiError> =
-                    self.staging_explicit_names.state().into_iter().map(|r| r.cloned()).collect();
+                    self.staging_explicit_names.state().into_iter()
+                        .map(|r| r.cloned().map_err(|err| GuiError::new(format!("Bad channel name: {err}"))))
+                        .collect();
                 NonEmptyList::try_from(channel_names_result?)
                     .map_err(|_| GuiError::new("Empty list of channel names".to_owned()))?
             }

@@ -20,7 +20,7 @@ impl Display for Maintainer{
         if let Some(name) = &self.name{
             write!(f, "{name} ")?;
         };
-        write!(f, " github: {}", self.github_user)?;
+        write!(f, " : {}", self.github_user)?;
         if let Some(email) = &self.email{
             write!(f, " 📧{email}")?;
         }

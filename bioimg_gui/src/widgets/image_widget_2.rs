@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, marker::PhantomData};
 use std::sync::Arc;
 use std::io::Cursor;
 use std::error::Error;
@@ -50,21 +50,34 @@ impl Drop for Texture {
     }
 }
 
-#[derive(Default)]
 enum LoadingState{
-    #[default]
-    Empty,
-    Loading{source: rt::FileSource},
-    Ready{source: rt::FileSource, img: ArcDynImg, texture: Option<Texture>},
-    Forced{img: ArcDynImg, texture: Option<Texture>},
-    Failed{source: Option<rt::FileSource>, err: GuiError},
+    Empty{generation: i64},
+    Loading{generation: i64, source: rt::FileSource},
+    Ready{generation: i64, source: rt::FileSource, img: ArcDynImg, texture: Option<Texture>},
+    Forced{generation: i64, img: ArcDynImg, texture: Option<Texture>},
+    Failed{generation: i64, source: Option<rt::FileSource>, err: GuiError},
+}
+
+impl Default for LoadingState{
+    fn default() -> Self {
+        Self::Empty { generation: 0 }
+    }
 }
 
 impl LoadingState{
+    pub fn generation(&self) -> i64{
+        match self {
+            Self::Empty{generation, ..} => *generation,
+            Self::Loading {generation,  ..} => *generation,
+            Self::Ready {generation,  ..} => *generation,
+            Self::Forced {generation,  .. } => *generation,
+            Self::Failed {generation,  .. } => *generation,
+        }
+    }
     pub fn file_source(&self) -> Option<&FileSource>{
         match self {
-            Self::Empty => None,
-            Self::Loading { source } => Some(source),
+            Self::Empty{..} => None,
+            Self::Loading { source, ..} => Some(source),
             Self::Ready { source, ..} => Some(source),
             Self::Forced { .. } => None,
             Self::Failed { source, .. } => source.as_ref()
@@ -74,14 +87,14 @@ impl LoadingState{
 
 pub struct ImageWidget2{
     file_source_widget: FileSourceWidget,
-    loading_state: Arc<pl::Mutex<(Generation, LoadingState)>>,
+    loading_state: Arc<pl::Mutex<LoadingState>>,
 }
 
 impl Default for ImageWidget2{
     fn default() -> Self {
         Self{
             file_source_widget: Default::default(),
-            loading_state: Arc::new(pl::Mutex::new((0, Default::default())))
+            loading_state: Arc::new(pl::Mutex::new(Default::default()))
         }
     }
 }
@@ -90,10 +103,10 @@ impl Restore for ImageWidget2{
     type RawData = ImageWidget2RawData;
     fn dump(&self) -> Self::RawData {
         let loading_state_guard = self.loading_state.lock();
-        let loading_state: &(_, LoadingState) = &*loading_state_guard;
+        let loading_state: &LoadingState = &*loading_state_guard;
         ImageWidget2RawData{
             file_source_widget: self.file_source_widget.dump(),
-            loading_state: match &loading_state.1{
+            loading_state: match loading_state{
                 LoadingState::Forced{img, ..} => {
                     let mut raw_out = Vec::<u8>::new();
                     if let Err(err) = img.write_to(&mut Cursor::new(&mut raw_out), image::ImageFormat::Png){
@@ -107,21 +120,22 @@ impl Restore for ImageWidget2{
     }
     fn restore(&mut self, raw: Self::RawData) {
         self.file_source_widget.restore(raw.file_source_widget);
+        let generation = 0;
         let loading_state = match raw.loading_state{
-            ImageWidget2LoadingStateRawData::Empty => LoadingState::Empty,
+            ImageWidget2LoadingStateRawData::Empty => LoadingState::Empty{generation},
             ImageWidget2LoadingStateRawData::Forced { img_bytes } => 'forced: {
                 let Ok(reader) = image::io::Reader::new(Cursor::new(img_bytes)).with_guessed_format() else {
                     eprintln!("[WARNING] Could not guess format of saved image");
-                    break 'forced LoadingState::Empty;
+                    break 'forced LoadingState::Empty{generation};
                 };
                 let Ok(image) = reader.decode() else {
                     eprintln!("[WARNING] Could not decoded saved image");
-                    break 'forced LoadingState::Empty;
+                    break 'forced LoadingState::Empty{generation};
                 };
-                LoadingState::Forced { img: Arc::new(image), texture: None }
+                LoadingState::Forced { generation, img: Arc::new(image), texture: None }
             }
         };
-        self.loading_state = Arc::new(pl::Mutex::new((0, loading_state)));
+        self.loading_state = Arc::new(pl::Mutex::new(loading_state));
     }
 }
 
@@ -129,18 +143,19 @@ impl ValueWidget for ImageWidget2{
     type Value<'v> = (Option<rt::FileSource>, Option<ArcDynImg>);
 
     fn set_value<'v>(&mut self, value: Self::Value<'v>) {
+        let generation = 0;
         match value{
             (None, Some(img)) => {
                 self.file_source_widget = Default::default();
-                self.loading_state = Arc::new(pl::Mutex::new((0, LoadingState::Forced { img, texture: None})));
+                self.loading_state = Arc::new(pl::Mutex::new(LoadingState::Forced { generation, img, texture: None}));
             },
             (None, None) => {
                 self.file_source_widget = Default::default();
-                self.loading_state = Arc::new(pl::Mutex::new((0, LoadingState::Empty)));
+                self.loading_state = Arc::new(pl::Mutex::new(LoadingState::Empty{generation}));
             },
             (Some(file_source), _) => {
                 self.file_source_widget.set_value(file_source);
-                self.loading_state = Arc::new(pl::Mutex::new((0, LoadingState::Empty)));
+                self.loading_state = Arc::new(pl::Mutex::new(LoadingState::Empty{generation}));
             }
         }
         // self.update(); //FIXME: call once set_value takes a context
@@ -151,7 +166,7 @@ impl ImageWidget2{
     fn spawn_load_image_task(
         generation: Generation,
         file_source: FileSource,
-        loading_state: Arc<pl::Mutex<(Generation, LoadingState)>>,
+        loading_state: Arc<pl::Mutex<LoadingState>>,
         ctx: egui::Context,
     ){
         std::thread::spawn(move ||{
@@ -162,13 +177,13 @@ impl ImageWidget2{
                 Ok(Arc::new(img))
             }();
             let mut guard = loading_state.lock();
-            if guard.0 > generation {
+            if guard.generation() != generation {
                 eprintln!("Dropping stale image: {file_source:?}");
                 return
             }
-            guard.1 = match res{
-                Err(e) => LoadingState::Failed { source: Some(file_source), err: e },
-                Ok(img) => LoadingState::Ready { source: file_source, img, texture: None },
+            *guard = match res{
+                Err(e) => LoadingState::Failed { generation, source: Some(file_source), err: e },
+                Ok(img) => LoadingState::Ready { generation, source: file_source, img, texture: None },
             };
             ctx.request_repaint();
         });
@@ -180,76 +195,86 @@ impl StatefulWidget for ImageWidget2{
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
         let mut loading_state_guard = self.loading_state.lock();
-        let gen_state: &mut (Generation, LoadingState) = &mut *loading_state_guard;
-        let generation: &mut Generation = &mut gen_state.0;
-        let loading_state: &mut LoadingState = &mut gen_state.1;
+        let loading_state: &mut LoadingState = &mut *loading_state_guard;
+
+        fn fill_and_show_texture(ui: &mut egui::Ui, tex: &mut Option<Texture>, img: &image::DynamicImage) {
+                let tex = tex.get_or_insert_with(|| Texture::load(&img, ui.ctx().clone()));
+                let (width, height) = img.dimensions();
+                let ratio =  width as f64 / height as f64;
+                tex.show(ui, egui::Vec2 { y: 50.0, x: 50.0 * ratio as f32 }); //FIXME: can we not hardcode this?
+        }
 
         ui.vertical(|ui|{
-            ui.horizontal(|ui|{
-                self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
-
-                match self.file_source_widget.state() {
-                    Ok(file_source) => 'needs_reload: {
-                        if let Some(fs) = loading_state.file_source() {
-                            if *fs == file_source{
-                                eprintln!("Reload dismissed!!");
-                                break 'needs_reload
-                            }
-                        }
-                        //FIXME: this logic should also trigger on restore, but we'd need an egui::Context
-                        eprintln!("Reload REQUIRED, dispatching thread!!");
-                        *generation += 1;
-                        *loading_state = LoadingState::Loading{ source: file_source.clone() };
-                        Self::spawn_load_image_task(
-                            *generation,
-                            file_source,
-                            Arc::clone(&self.loading_state),
-                            ui.ctx().clone(),
-                        );
-                    },
-                    Err(err) => {
-                        *loading_state = LoadingState::Failed{source: None, err}
-                    },
-                }
-
-                match loading_state {
-                    LoadingState::Empty => (),
-                    LoadingState::Loading{ .. } => {
-                        ui.ctx().request_repaint();
-                        ui.weak("Loading...");
-                    },
-                    LoadingState::Ready{ img, texture, ..} => {
-                        let tex = texture.get_or_insert_with(|| Texture::load(img, ui.ctx().clone()));
-                        let (width, height) = img.dimensions();
-                        let ratio =  height as f64 / width as f64;
-                        tex.show(ui, egui::Vec2 { x: 50.0, y: 50.0 * ratio as f32 }); //FIXME: can we not hardcode this?
-                    },
-                    LoadingState::Forced { img, texture } => {
-                        let tex = texture.get_or_insert_with(|| Texture::load(img, ui.ctx().clone()));
-                        let (width, height) = img.dimensions();
-                        let ratio =  height as f64 / width as f64;
-                        tex.show(ui, egui::Vec2 { x: 50.0, y: 50.0 * ratio as f32 }); //FIXME: can we not hardcode this?
-                    },
-                    LoadingState::Failed { .. } => (), //will render later so erro shows under the button
-                };
-            });
-
-            if let LoadingState::Failed{source, err} = loading_state {
-                match source{
-                    None | Some(FileSource::HttpUrl(_)) => (), //FIXME: can we filter out the error some other way?
-                    _ => {
-                        show_error(ui, err);
+            *loading_state = match std::mem::take(loading_state){
+                LoadingState::Forced { generation, img, mut texture } => {
+                    let reset_clicked = ui.horizontal(|ui|{
+                        let reset_clicked = ui.button("Reset").clicked();
+                        fill_and_show_texture(ui, &mut texture, &img);
+                        reset_clicked
+                    }).inner;
+                    if reset_clicked{
+                        self.file_source_widget = Default::default();
+                        LoadingState::Empty{ generation: generation + 1 }
+                    } else {
+                        LoadingState::Forced { generation, img, texture }
                     }
-                }
+                },
+                LoadingState::Empty{mut generation} => 'empty: {
+                    self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
+                    let Ok(source) = self.file_source_widget.state() else{
+                        break 'empty LoadingState::Empty{generation}
+                    };
+                    generation += 1;
+                    Self::spawn_load_image_task(generation, source.clone(), Arc::clone(&self.loading_state), ui.ctx().clone());
+                    LoadingState::Loading { generation, source }
+                },
+                LoadingState::Loading { generation, source } => 'loading: {
+                    let reset_clicked = ui.horizontal(|ui|{
+                        let reset_clicked = ui.button("Reset").clicked();
+                        ui.weak("Loading");
+                        reset_clicked
+                    }).inner;
+                    if reset_clicked{
+                        self.file_source_widget = Default::default();
+                        break 'loading LoadingState::Empty { generation: generation + 1 }
+                    }
+                    LoadingState::Loading { generation, source }
+                },
+                LoadingState::Ready { generation, source, img, mut texture } => {
+                    ui.horizontal(|ui|{
+                        self.file_source_widget.draw_and_parse(ui, id);
+                        let Ok(widget_source) = self.file_source_widget.state() else {
+                            self.file_source_widget = Default::default();
+                            return LoadingState::Empty { generation: generation + 1 }
+                        };
+                        if widget_source == source{
+                            fill_and_show_texture(ui, &mut texture, &img);
+                            return LoadingState::Ready { generation, source, img, texture }
+                        }
+                        LoadingState::Empty { generation: generation + 1 }
+                    }).inner
+                },
+                LoadingState::Failed { generation, source, err } => 'failed: {
+                    self.file_source_widget.draw_and_parse(ui, id.with("file source".as_ptr()));
+                    show_error(ui, &err);
+                    let Ok(widget_source) = self.file_source_widget.state() else {
+                        break 'failed LoadingState::Empty { generation: generation + 1 }
+                    };
+                    if source == Some(widget_source){
+                        break 'failed LoadingState::Failed { generation, source, err };
+                    }
+                    LoadingState::Empty { generation: generation + 1 }
+                },
             }
         });
+
     }
 
     fn state(&self) -> Result<ArcDynImg>{
         let loading_state_guard = self.loading_state.lock();
-        let loading_state: &(_, LoadingState) = &*loading_state_guard;
-        match &loading_state.1{
-            LoadingState::Empty | LoadingState::Loading { .. } => Err(GuiError::new("Empty".to_owned())),
+        let loading_state: &LoadingState = &*loading_state_guard;
+        match loading_state{
+            LoadingState::Empty{..} | LoadingState::Loading { .. } => Err(GuiError::new("No image selected".to_owned())),
             LoadingState::Failed { err, .. } => Err(err.clone()),
             LoadingState::Ready { img, .. } => Ok(img.clone()),
             LoadingState::Forced { img, .. } => Ok(img.clone()),
@@ -259,7 +284,7 @@ impl StatefulWidget for ImageWidget2{
 
 pub struct SpecialImageWidget<I>{
     image_widget: ImageWidget2,
-    parsed: Result<I>,
+    marker: PhantomData<I>
 }
 
 impl<I> ValueWidget for SpecialImageWidget<I>
@@ -288,7 +313,7 @@ impl<I> Default for SpecialImageWidget<I>{
     fn default() -> Self {
         Self{
             image_widget: Default::default(),
-            parsed: Err(GuiError::new("empty".to_owned())),
+            marker: Default::default(),
         }
     }
 }
@@ -298,20 +323,17 @@ where
     I : TryFrom<Arc<image::DynamicImage>>,
     <I as TryFrom<Arc<image::DynamicImage>>>::Error: Error,
 {
-    type Value<'p> = Result<&'p I> where I: 'p;
+    type Value<'p> = Result<I> where I: 'p;
 
     fn draw_and_parse(&mut self, ui: &mut egui::Ui, id: egui::Id){
         ui.horizontal(|ui|{
             self.image_widget.draw_and_parse(ui, id.with("img widget".as_ptr()));
-            let Ok(gui_img) = self.image_widget.state() else {
-                return;
-            };
-            //FIXME: is it always ok to do this every frame?
-            self.parsed = I::try_from(gui_img).map_err(|err| GuiError::from(err))
         });
     }
 
-    fn state<'p>(&'p self) -> Result<&'p I>{
-        self.parsed.as_ref().map_err(|err| err.clone())
+    fn state<'p>(&'p self) -> Result<I>{
+        let gui_img = self.image_widget.state()?;
+        //FIXME: is it always ok to do this every frame?
+        I::try_from(gui_img).map_err(|err| GuiError::from(err))
     } 
 }

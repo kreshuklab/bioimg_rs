@@ -252,6 +252,29 @@ pub struct OutputAxisWidget {
     pub time_axis_widget: OutputTimeAxisWidget,
 }
 
+impl OutputAxisWidget{
+    pub fn raw_axis_id(&self) -> &str{
+        match self.axis_type_widget.value{
+            AxisType::Space => &self.space_axis_widget.id_widget.raw,
+            AxisType::Time => &self.time_axis_widget.id_widget.raw,
+            AxisType::Batch => "batch",
+            AxisType::Channel => "channel",
+            AxisType::Index => "index",
+        }
+    }
+    pub fn name_label(&self, axis_idx: usize) -> egui::RichText{
+        let label = if self.raw_axis_id().len() == 0{
+            egui::RichText::new(format!("Axis #{}", axis_idx + 1))
+        } else {
+            egui::RichText::new(self.raw_axis_id())
+        };
+        match self.state(){
+            Ok(_) => label,
+            Err(_) => label.color(egui::Color32::RED)
+        }
+    }
+}
+
 impl ItemWidgetConf for OutputAxisWidget{
     const ITEM_NAME: &'static str = "Output Axis";
 }

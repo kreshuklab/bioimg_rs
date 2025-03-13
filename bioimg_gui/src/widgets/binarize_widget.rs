@@ -7,6 +7,7 @@ use crate::project_data::{BinarizeAlongAxisWidgetRawData, BinarizeModeRawData};
 use crate::result::{GuiError, Result, VecResultExt};
 
 use super::error_display::show_if_error;
+use super::iconify::Iconify;
 use super::staging_float::StagingFloat;
 use super::{Restore, ValueWidget};
 use super::{staging_string::StagingString, staging_vec::{ItemWidgetConf, StagingVec}, StatefulWidget};
@@ -152,6 +153,20 @@ pub struct BinarizePreprocessingWidget{
     pub mode: BinarizeMode,
     pub simple_binarize_widget: SimpleBinarizeWidget,
     pub binarize_along_axis_wiget: BinarizeAlongAxisWidget,
+}
+
+impl Iconify for BinarizePreprocessingWidget{
+    fn iconify(&self) -> Result<egui::WidgetText> {
+        let prep = self.state()?;
+        Ok(match prep{
+            modelrdf::preprocessing::BinarizeDescr::Simple(prep) => {
+                egui::RichText::new(format!("> {}", prep.threshold)).into()
+            },
+            modelrdf::preprocessing::BinarizeDescr::AlongAxis(prep) => {
+                egui::RichText::new(format!("[{}] > {}", prep.axis, prep.threshold)).into()
+            }
+        })
+    }
 }
 
 impl ValueWidget for BinarizePreprocessingWidget{
