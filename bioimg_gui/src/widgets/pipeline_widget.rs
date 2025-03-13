@@ -502,6 +502,10 @@ impl PipelineWidget{
         draw_input_connections(ui, &input_tips, weights_rect, stroke);
         draw_output_connections(ui, &output_tails, weights_rect, stroke);
 
+        if let Err(err) = interface_widget.get_value(){
+            show_error(ui, err);
+        }
+
         macro_rules! weights_modal {($flavor:ident, $weights_widget:ty) => { paste::paste!{ {
             use itertools::Itertools;
             let id = id.with(stringify!([<$flavor _modal>]));
