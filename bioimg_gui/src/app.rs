@@ -472,14 +472,12 @@ impl eframe::App for AppState1 {
                     self.staging_name.draw_and_parse(ui, egui::Id::from("Name"));
                     let _name_result = self.staging_name.state();
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Description: ").on_hover_text("A brief description of the model.");
                     self.staging_description.draw_and_parse(ui, egui::Id::from("Name"));
                     let _description_result = self.staging_description.state();
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Cover Images: ").on_hover_text(
@@ -489,7 +487,6 @@ impl eframe::App for AppState1 {
                     self.cover_images.draw_and_parse(ui, egui::Id::from("Cover Images"));
                     // let cover_img_results = self.cover_images.state();
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Model Id: ").on_hover_text(
@@ -500,7 +497,6 @@ impl eframe::App for AppState1 {
                     self.model_id_widget.draw_and_parse(ui, egui::Id::from("Model Id"));
                     // let cover_img_results = self.cover_images.state();
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     let authors_base_id = egui::Id::from("authors");
@@ -525,7 +521,6 @@ impl eframe::App for AppState1 {
                     };
                     ui.add(vec_widget);
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     let attachments_base_id = egui::Id::from("attachments");
@@ -550,7 +545,6 @@ impl eframe::App for AppState1 {
                     };
                     ui.add(vec_widget);
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     let cite_base_id = egui::Id::from("cite");
@@ -574,7 +568,6 @@ impl eframe::App for AppState1 {
                     };
                     ui.add(vec_widget);
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.weak("Custom configs: ").on_hover_text(
@@ -584,7 +577,6 @@ impl eframe::App for AppState1 {
                     self.custom_config_widget.draw_and_parse(ui, egui::Id::from("Custom configs"));
                     // let citation_results = self.staging_citations.state();
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Git Repo: ").on_hover_text(
@@ -593,7 +585,6 @@ impl eframe::App for AppState1 {
                     self.staging_git_repo.draw_and_parse(ui, egui::Id::from("Git Repo"));
                     // let git_repo_result = self.staging_git_repo.state();
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Icon: ").on_hover_text(indoc!("
@@ -602,7 +593,6 @@ impl eframe::App for AppState1 {
                     ));
                     self.icon_widget.draw_and_parse(ui, egui::Id::from("Icon"));
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Model Zoo Links: ").on_hover_text("IDs of other bioimage.io resources");
@@ -610,7 +600,6 @@ impl eframe::App for AppState1 {
                         self.links_widget.draw_and_parse(ui, egui::Id::from("Model Zoo Links"));
                     });
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     let maintainers_base_id = egui::Id::from("maintainers");
@@ -637,13 +626,11 @@ impl eframe::App for AppState1 {
                     };
                     ui.add(vec_widget);
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Tags: ").on_hover_text("Tags to help search and classifying your model in the model zoo");
                     self.staging_tags.draw_and_parse(ui, egui::Id::from("Tags"));
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal_top(|ui| {
                     ui.strong("Resource Version: ").on_hover_ui(|ui|{
@@ -659,7 +646,6 @@ impl eframe::App for AppState1 {
                     });
                     self.staging_version.draw_and_parse(ui, egui::Id::from("Version"));
                 });
-                ui.add_space(10.0);
 
                 ui.horizontal(|ui| {
                     ui.strong("License: ").on_hover_text("A standard software licence, specifying how this model can be used and for what purposes.");

@@ -329,7 +329,6 @@ where
                     items.resize_with(items.len() + 1, new_item);
                 }
             }
-            ui.add_space(10.0);
         });
 
         match action{
