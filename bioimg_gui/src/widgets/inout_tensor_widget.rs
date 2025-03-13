@@ -207,6 +207,7 @@ impl InputTensorWidget{
                 "));
                 let vec_widget = VecWidget{
                     items: &mut self.axis_widgets,
+                    min_items: 1,
                     item_label: "Axis",
                     show_reorder_buttons: true,
                     item_renderer: VecItemRender::HeaderAndBody {
@@ -234,6 +235,7 @@ impl InputTensorWidget{
                 ));
                 let vec_widget = VecWidget{
                     items: &mut self.preprocessing_widget,
+                    min_items: 0,
                     item_label: "Preprocessing Step",
                     item_renderer: VecItemRender::HeaderAndBody {
                         render_header: |widget: &mut PreprocessingWidget, idx, ui: &mut egui::Ui|{
@@ -435,6 +437,7 @@ impl OutputTensorWidget{
                 "));
                 let vec_widget = VecWidget{
                     items: &mut self.axis_widgets,
+                    min_items: 0,
                     item_label: "Axis",
                     show_reorder_buttons: true,
                     item_renderer: VecItemRender::HeaderAndBody {
@@ -462,6 +465,7 @@ impl OutputTensorWidget{
 
                 let vec_widget = VecWidget{
                     items: &mut self.postprocessing_widgets,
+                    min_items: 0,
                     item_label: "Postprocessing Step",
                     item_renderer: VecItemRender::HeaderAndBody {
                         render_header: |widget: &mut CollapsibleWidget<PostprocessingWidget>, idx, ui: &mut egui::Ui|{

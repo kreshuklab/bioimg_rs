@@ -3,6 +3,8 @@ use std::{marker::PhantomData, ops::{Deref, Sub}, sync::mpsc::{Receiver, Sender}
 use egui::InnerResponse;
 use egui::PopupCloseBehavior::CloseOnClickOutside;
 
+use crate::widgets::error_display::show_error;
+
 use super::ValueWidget;
 
 pub trait DynamicImageExt {
@@ -214,6 +216,7 @@ where
     NewItm: FnMut() -> Itm,
 {
     pub items: &'a mut Vec<Itm>,
+    pub min_items: usize,
     pub item_label: &'a str,
     pub show_reorder_buttons: bool,
     pub item_renderer: VecItemRender<Itm, RndHdr, RndBdy>,
@@ -253,6 +256,7 @@ where
 
         let Self{
             items,
+            min_items,
             item_label,
             show_reorder_buttons,
             mut item_renderer,
@@ -262,9 +266,12 @@ where
         let current_num_items = items.len();
 
         let draw_controls = |ui: &mut egui::Ui, widget_idx: usize, action: &mut Action|{
-            if ui.small_button("❌").clicked(){
-                *action = Action::Remove(widget_idx);
-            }
+            // let first_deletable_idx = min_items;
+            // ui.add_enabled_ui(widget_idx >= first_deletable_idx, |ui|{
+                if ui.small_button("❌").clicked(){
+                    *action = Action::Remove(widget_idx);
+                }
+            // });
             ui.spacing_mut().item_spacing.x = 0.0;
 
             if show_reorder_buttons{
@@ -325,9 +332,23 @@ where
                 if items.len() > 0{
                     ui.separator();
                 }
-                if ui.button(format!("Add {item_label}")).clicked() {
-                    items.resize_with(items.len() + 1, new_item);
-                }
+                ui.horizontal(|ui|{
+                    if ui.button(format!("Add {item_label}")).clicked() {
+                        items.resize_with(items.len() + 1, new_item);
+                    }
+                    if items.len() < min_items{
+                        let message = match min_items{
+                            0 => String::new(),
+                            1 => format!("At least 1 {item_label} is required"),
+                            _ => format!("At least {min_items} {item_label}s are required"),
+                        };
+                        show_error(ui, message);
+                    }
+                });
+            }
+
+            if items.len() > 0{
+                ui.add_space(10.0);
             }
         });
 

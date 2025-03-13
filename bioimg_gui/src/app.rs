@@ -506,6 +506,7 @@ impl eframe::App for AppState1 {
                     let vec_widget = VecWidget{
                         items: &mut self.staging_authors,
                         item_label: "Author",
+                        min_items: 1,
                         show_reorder_buttons: true,
                         new_item: Some(AuthorWidget::default),
                         item_renderer: VecItemRender::HeaderAndBody{
@@ -529,6 +530,7 @@ impl eframe::App for AppState1 {
                     );
                     let vec_widget = VecWidget{
                         items: &mut self.attachments_widget,
+                        min_items: 0,
                         item_label: "Attachment",
                         show_reorder_buttons: true,
                         new_item: Some(AttachmentsWidget::default),
@@ -552,7 +554,8 @@ impl eframe::App for AppState1 {
 
                     let vec_widget = VecWidget{
                         items: &mut self.staging_citations,
-                        item_label: "Citation",
+                        min_items: 1,
+                        item_label: "Citation Entry",
                         show_reorder_buttons: true,
                         new_item: Some(CiteEntryWidget::default),
                         item_renderer: VecItemRender::HeaderAndBody{
@@ -610,6 +613,7 @@ impl eframe::App for AppState1 {
 
                     let vec_widget = VecWidget{
                         items: &mut self.staging_maintainers,
+                        min_items: 0,
                         item_label: "Maintainer",
                         show_reorder_buttons: true,
                         new_item: Some(MaintainerWidget::default),

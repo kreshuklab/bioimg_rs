@@ -591,6 +591,7 @@ impl PipelineWidget{
                 modal(modal_id, ui, "Model Inputs", |ui|{
                     let vec_widget = VecWidget{
                         items: &mut interface_widget.input_widgets,
+                        min_items: 1,
                         item_label: "Model Input",
                         // render_header: None as Option<fn(&mut CollapsibleWidget<InputTensorWidget>, usize, &mut egui::Ui)>,
                         item_renderer: VecItemRender::HeaderAndBody {
@@ -615,6 +616,7 @@ impl PipelineWidget{
                 modal(modal_id, ui, "Model Outputs", |ui|{
                     let vec_widget = VecWidget{
                         items: &mut interface_widget.output_widgets,
+                        min_items: 1,
                         item_label: "Model Output",
                         item_renderer: VecItemRender::HeaderAndBody {
                             render_header: |item: &mut OutputTensorWidget, idx: usize, ui: &mut egui::Ui|{

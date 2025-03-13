@@ -62,6 +62,7 @@ impl StatefulWidget for ZeroMeanUnitVarianceWidget{
                     render_value: |widg: &mut Vec<AxisIdWidget>, ui: &mut egui::Ui|{
                         let vec_widget: VecWidget<'_, _, _, SomeRenderer<AxisIdWidget>, _>  = VecWidget{
                             items: widg,
+                            min_items: 1,
                             item_label: "Axis Id",
                             show_reorder_buttons: true,
                             new_item: Some(StagingString::default),
